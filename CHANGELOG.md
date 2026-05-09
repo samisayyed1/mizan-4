@@ -4,6 +4,51 @@ All notable changes to Mizan desktop ship from this file. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] — 2026-05-09
+
+### Added
+
+- **Schedule a Recurring Buy / SIP / DCA (end-to-end).** New action on every
+  account page: _Schedule Recurring Buy_. Opens a dialog where the user enters
+  symbol, cash amount per buy, reference price per share, frequency (weekly /
+  biweekly / monthly / quarterly / semi-annual / annual), start date, number of
+  installments (1–240), currency, and optional notes. The backend
+  deterministically generates a series of `BUY` activities at the configured
+  cadence and inserts them into the account.
+  - Pure scheduling logic lives in
+    `crates/core/src/activities/rsp_scheduler.rs`. Thirteen unit tests cover
+    every cadence (weekly through annual), fractional- share rounding to 6 d.p.,
+    symbol normalisation (uppercase, trimmed), exchange MIC pass-through, and
+    the full validation matrix (non-positive amount, non-positive price, empty
+    symbol, zero installments, >240 installments, plus metadata traceability).
+  - Each emitted BUY has `quantity = amount_per_buy / unit_price` (rounded to 6
+    d.p. — the precision most brokers report for fractional fills) and
+    `unit_price = unit_price`, so the engine treats it identically to any
+    manually-entered or broker-synced BUY. Activities land as `POSTED` — the
+    portfolio reflects the plan immediately.
+  - Each emitted activity carries `source_system = "RSP_SCHEDULE"` and a JSON
+    metadata blob with the originating
+    symbol/amount/price/frequency/installments/ start, so future "delete this
+    RSP's schedule" or "show RSP lineage" surfaces have the lineage they need.
+  - New `create_recurring_buy_plan` Tauri command wired through both the Tauri
+    and web platform adapters, so the same call path works on macOS Apple
+    Silicon, macOS Intel, Windows, Linux, and the self-hosted server build.
+
+### Notes
+
+- The `unit_price` in the dialog is a **reference / planned price** applied to
+  every emitted BUY in the schedule. For past dates this is the historical close
+  the user is modelling; for future dates this is their estimate. Users can edit
+  individual emitted BUY activities afterwards (e.g. once a real fill price is
+  known) — the schedule itself is deterministic so the portfolio reflects the
+  plan immediately, and individual fills can be reconciled later without
+  rebuilding the rule.
+- Live-price auto-execution (auto-fill `unit_price` from the close on the
+  scheduled date via the market-data resolver, on a startup tick) is reserved
+  for a follow-up release. The current ship is the full schedule-and-emit loop
+  end-to-end; the auto-reconcile-with-real-prices loop layers on top without
+  changing the user-facing flow.
+
 ## [3.3.8] — 2026-05-09
 
 ### Added
