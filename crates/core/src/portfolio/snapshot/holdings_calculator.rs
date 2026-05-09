@@ -6,7 +6,6 @@ use crate::portfolio::snapshot::AccountStateSnapshot;
 use crate::portfolio::snapshot::HoldingsCalculationResult;
 use crate::portfolio::snapshot::HoldingsCalculationWarning;
 use crate::portfolio::snapshot::Position;
-use crate::portfolio::snapshot::RealizedGainEntry;
 use crate::utils::time_utils::{activity_date_in_tz, parse_user_timezone_or_default};
 
 use chrono::{DateTime, NaiveDate, Utc};
@@ -463,7 +462,7 @@ impl HoldingsCalculator {
         let entry = state
             .realized_gains
             .entry(asset_id.to_string())
-            .or_insert_with(RealizedGainEntry::default);
+            .or_default();
         entry.proceeds_account_ccy += proceeds_account_ccy;
         entry.proceeds_base_ccy += proceeds_base_ccy;
         entry.cost_basis_account_ccy += cost_basis_account_ccy;

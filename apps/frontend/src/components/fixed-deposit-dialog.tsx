@@ -34,7 +34,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-const FREQUENCIES: ReadonlyArray<{ value: FdPaymentFrequency; label: string; perYear: string }> = [
+const FREQUENCIES: readonly { value: FdPaymentFrequency; label: string; perYear: string }[] = [
   { value: "monthly", label: "Monthly", perYear: "12 payments/year" },
   { value: "quarterly", label: "Quarterly", perYear: "4 payments/year" },
   { value: "semi_annual", label: "Semi-annually", perYear: "2 payments/year" },
