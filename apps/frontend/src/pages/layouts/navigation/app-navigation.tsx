@@ -16,34 +16,39 @@ export interface NavigationProps {
   addons?: NavLink[];
 }
 
+// Phase 1 — boomer-friendly primary navigation.
+//
+// The primary nav is intentionally short and concrete: Home, Portfolio,
+// Activities, Goals, Settings. Advanced views (Insights, Performance,
+// Income, Health, Assistant, Connect, addons) remain reachable through
+// direct routes, in-page links, and the secondary nav block — they are
+// no longer competing for primary attention.
+//
+// Documents and Reports will be added as primary entries when Phase 3
+// (Document Vault) and Phase 5 (Report Builder) actually exist; adding
+// them now would be placeholder navigation, which is forbidden by the
+// build plan's hard rules.
 const staticNavigation: NavigationProps = {
   primary: [
     {
       icon: <Icons.Dashboard className="size-6" />,
-      title: "Dashboard",
+      title: "Home",
       href: "/dashboard",
-      keywords: ["home", "overview", "summary"],
-      label: "View Dashboard",
-    },
-    {
-      icon: <Icons.Insight className="size-6" />,
-      title: "Insights",
-      href: "/insights",
-      keywords: ["insights", "Analytics"],
-      label: "View Insights",
+      keywords: ["home", "dashboard", "overview", "summary"],
+      label: "View Home",
     },
     {
       icon: <Icons.Holdings className="size-6" />,
-      title: "Holdings",
+      title: "Portfolio",
       href: "/holdings",
-      keywords: ["Holdings", "portfolio", "assets", "positions", "stocks"],
-      label: "View Holdings",
+      keywords: ["portfolio", "holdings", "assets", "positions", "stocks"],
+      label: "View Portfolio",
     },
     {
       icon: <Icons.Activity className="size-6" />,
       title: "Activities",
       href: "/activities",
-      keywords: ["transactions", "trades", "history"],
+      keywords: ["activities", "transactions", "trades", "history"],
       label: "View Activities",
     },
     {
@@ -51,7 +56,23 @@ const staticNavigation: NavigationProps = {
       title: "Goals",
       href: "/goals",
       keywords: ["goals", "fire", "retire", "retirement", "savings", "planner"],
-      label: "Goals",
+      label: "View Goals",
+    },
+    {
+      icon: <Icons.Settings className="size-6" />,
+      title: "Settings",
+      href: "/settings",
+      keywords: ["settings", "preferences", "config", "configuration"],
+      label: "Open Settings",
+    },
+  ],
+  secondary: [
+    {
+      icon: <Icons.Insight className="size-6" />,
+      title: "Insights",
+      href: "/insights",
+      keywords: ["insights", "analytics"],
+      label: "View Insights",
     },
     {
       icon: <Icons.Sparkles className="size-6" />,
@@ -60,20 +81,12 @@ const staticNavigation: NavigationProps = {
       keywords: ["ai", "assistant", "chat", "help", "ask"],
       label: "AI Assistant",
     },
-  ],
-  secondary: [
     {
       icon: <Icons.Link className="size-6" />,
       title: "Connect",
       href: "/connect",
-      keywords: ["sync", "broker", "device", "supabase", "cloud", "account"],
+      keywords: ["connect", "sync", "broker", "device", "supabase", "cloud", "account"],
       label: "Mizan Connect",
-    },
-    {
-      icon: <Icons.Settings className="size-6" />,
-      title: "Settings",
-      href: "/settings",
-      keywords: ["preferences", "config", "configuration"],
     },
   ],
 };
