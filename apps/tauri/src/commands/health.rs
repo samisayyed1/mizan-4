@@ -5,8 +5,12 @@ use crate::events::{
     emit_portfolio_trigger_recalculate, MarketSyncResult, PortfolioRequestPayload,
     MARKET_SYNC_COMPLETE, MARKET_SYNC_ERROR, MARKET_SYNC_START,
 };
+use chrono::{NaiveDate, Utc};
 use log::{debug, error, info, warn};
-use mizan_core::health::{FixAction, HealthConfig, HealthServiceTrait, HealthStatus};
+use mizan_core::health::{
+    calculate_data_quality, DataQualityInputs, DataQualityScore, FixAction, HealthConfig,
+    HealthServiceTrait, HealthStatus,
+};
 use mizan_core::quotes::MarketSyncMode;
 use mizan_core::quotes::SyncMode;
 use tauri::{AppHandle, Emitter, State};
@@ -19,8 +23,14 @@ pub async fn get_health_status(
 ) -> Result<HealthStatus, String> {
     debug!("Getting health status...");
 
-    let health_service = state.health_service();
+    get_current_health_status(&state, client_timezone.as_deref()).await
+}
 
+async fn get_current_health_status(
+    state: &State<'_, Arc<ServiceContext>>,
+    client_timezone: Option<&str>,
+) -> Result<HealthStatus, String> {
+    let health_service = state.health_service();
     // Try to get cached status first
     if let Some(status) = health_service.get_cached_status().await {
         if !status.is_stale {
@@ -30,7 +40,7 @@ pub async fn get_health_status(
 
     // Run fresh checks
     let base_currency = state.get_base_currency();
-    run_health_checks_internal(&state, &base_currency, client_timezone.as_deref()).await
+    run_health_checks_internal(state, &base_currency, client_timezone).await
 }
 
 /// Run health checks and return fresh status.
@@ -42,6 +52,18 @@ pub async fn run_health_checks(
     debug!("Running health checks...");
     let base_currency = state.get_base_currency();
     run_health_checks_internal(&state, &base_currency, client_timezone.as_deref()).await
+}
+
+/// Calculate the deterministic portfolio data-quality score.
+#[tauri::command]
+pub async fn calculate_data_quality_score(
+    client_timezone: Option<String>,
+    state: State<'_, Arc<ServiceContext>>,
+) -> Result<DataQualityScore, String> {
+    debug!("Calculating data quality score...");
+    let health_status = get_current_health_status(&state, client_timezone.as_deref()).await?;
+    let inputs = build_data_quality_inputs(state.inner().as_ref())?;
+    Ok(calculate_data_quality(&health_status, &inputs))
 }
 
 /// Internal function to run health checks.
@@ -66,6 +88,51 @@ async fn run_health_checks_internal(
         )
         .await
         .map_err(|e| e.to_string())
+}
+
+fn build_data_quality_inputs(state: &ServiceContext) -> Result<DataQualityInputs, String> {
+    let accounts = state
+        .account_service()
+        .get_active_accounts()
+        .map_err(|e| e.to_string())?;
+    let manual_assets = state
+        .universal_asset_repository
+        .list_manual_assets_with_latest_valuation()
+        .map_err(|e| e.to_string())?;
+
+    let today = Utc::now().date_naive();
+    let mut inputs = DataQualityInputs {
+        has_portfolio_data: !accounts.is_empty() || !manual_assets.is_empty(),
+        ..DataQualityInputs::default()
+    };
+
+    for asset in manual_assets {
+        match asset.latest {
+            Some(latest) => match valuation_age_days(&latest.valuation_date, today) {
+                Some(days) if days >= 90 => {
+                    inputs.manual_valuation_critical_count += 1;
+                }
+                Some(days) if days >= 45 => {
+                    inputs.manual_valuation_warning_count += 1;
+                }
+                Some(_) => {}
+                None => {
+                    inputs.manual_valuation_missing_count += 1;
+                }
+            },
+            None => {
+                inputs.manual_valuation_missing_count += 1;
+            }
+        }
+    }
+
+    Ok(inputs)
+}
+
+fn valuation_age_days(valuation_date: &str, today: NaiveDate) -> Option<i64> {
+    NaiveDate::parse_from_str(valuation_date, "%Y-%m-%d")
+        .ok()
+        .map(|date| today.signed_duration_since(date).num_days())
 }
 
 /// Dismiss a health issue.

@@ -1,3 +1,4 @@
+import { DataQualityCard } from "./data-quality-card";
 import { IncomeThisMonth } from "./income-this-month";
 import { NetWorthSummary } from "./net-worth-summary";
 import { PortfolioAttention } from "./portfolio-attention";
@@ -31,6 +32,7 @@ export default function HomePage() {
           <NetWorthSummary />
         </div>
         <IncomeThisMonth />
+        <DataQualityCard />
         <PortfolioAttention />
       </div>
 

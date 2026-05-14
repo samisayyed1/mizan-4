@@ -49,6 +49,7 @@ pub mod model;
 pub mod traits;
 
 pub mod checks;
+pub mod data_quality;
 pub mod fixes;
 pub mod service;
 
@@ -56,6 +57,10 @@ pub mod service;
 mod tests;
 
 // Re-export commonly used types
+pub use data_quality::{
+    calculate_data_quality, DataQualityComponent, DataQualityDeduction, DataQualityInputs,
+    DataQualityScore,
+};
 pub use errors::HealthError;
 pub use model::{
     AffectedItem, FixAction, HealthCategory, HealthConfig, HealthIssue, HealthIssueBuilder,

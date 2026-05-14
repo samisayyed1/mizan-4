@@ -87,7 +87,7 @@ const TODAY_ISO = () => {
  * any edit is a no-op.
  */
 export function buildInitialGrid(
-  view: ReadonlyArray<ManualAssetValuationView>,
+  view: readonly ManualAssetValuationView[],
   today: Date = new Date(),
 ): GridRow[] {
   return view.map((row) => {
@@ -152,7 +152,7 @@ export interface GridValidationError {
  * Validates only the rows that actually changed.
  * Returns the input payload + the list of errors in a single pass.
  */
-export function collectChanges(rows: ReadonlyArray<GridRow>): {
+export function collectChanges(rows: readonly GridRow[]): {
   changes: BulkValuationInput[];
   errors: GridValidationError[];
 } {

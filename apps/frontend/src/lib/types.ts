@@ -1968,6 +1968,34 @@ export interface HealthStatus {
   isStale: boolean;
 }
 
+export type DataQualityComponent =
+  | "MANUAL_VALUATION_FRESHNESS"
+  | "STALE_MARKET_QUOTES"
+  | "MISSING_FX"
+  | "UNCLASSIFIED_ASSETS"
+  | "PENDING_HEALTH_ISSUES"
+  | "MISSING_SOURCE_DOCUMENTS"
+  | "PENDING_EXTRACTED_FACTS";
+
+export interface DataQualityDeduction {
+  component: DataQualityComponent;
+  label: string;
+  points: number;
+  severity: HealthSeverity;
+  clickTarget: string;
+  affectedCount: number;
+  explanation: string;
+}
+
+export interface DataQualityScore {
+  score: number | null;
+  severity: HealthSeverity;
+  explanation: string;
+  deductions: DataQualityDeduction[];
+  checkedAt: string;
+  isOnboarding: boolean;
+}
+
 /**
  * Health center configuration.
  */

@@ -1,5 +1,5 @@
 // Health Center Commands
-import type { FixAction, HealthConfig, HealthStatus } from "@/lib/types";
+import type { DataQualityScore, FixAction, HealthConfig, HealthStatus } from "@/lib/types";
 import { invoke } from "./platform";
 
 /**
@@ -16,6 +16,14 @@ export const getHealthStatus = async (): Promise<HealthStatus> => {
 export const runHealthChecks = async (): Promise<HealthStatus> => {
   const clientTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   return invoke<HealthStatus>("run_health_checks", { clientTimezone });
+};
+
+/**
+ * Calculate the deterministic portfolio data-quality score.
+ */
+export const calculateDataQuality = async (): Promise<DataQualityScore> => {
+  const clientTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return invoke<DataQualityScore>("calculate_data_quality_score", { clientTimezone });
 };
 
 /**

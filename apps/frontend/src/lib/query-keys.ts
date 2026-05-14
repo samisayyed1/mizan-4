@@ -129,6 +129,7 @@ export const QueryKeys = {
 
   // Health Center
   HEALTH_STATUS: "healthStatus",
+  DATA_QUALITY_SCORE: "dataQualityScore",
   HEALTH_CONFIG: "healthConfig",
   DISMISSED_HEALTH_ISSUES: "dismissedHealthIssues",
 

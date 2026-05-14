@@ -46,7 +46,7 @@ interface KindOption {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-export const KIND_OPTIONS: ReadonlyArray<KindOption> = [
+export const KIND_OPTIONS: readonly KindOption[] = [
   {
     key: "public_equity",
     label: "Stock / ETF / Fund",

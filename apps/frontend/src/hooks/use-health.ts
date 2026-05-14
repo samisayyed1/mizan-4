@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { FixAction, HealthConfig, HealthStatus } from "@/lib/types";
+import type { DataQualityScore, FixAction, HealthConfig, HealthStatus } from "@/lib/types";
 import {
+  calculateDataQuality,
   dismissHealthIssue,
   executeHealthFix,
   getHealthConfig,
@@ -28,6 +29,20 @@ export function useHealthStatus() {
 }
 
 /**
+ * Hook for fetching the deterministic data-quality score.
+ */
+export function useDataQualityScore() {
+  const { isAuthenticated, statusLoading } = useAuth();
+
+  return useQuery<DataQualityScore, Error>({
+    queryKey: [QueryKeys.DATA_QUALITY_SCORE],
+    queryFn: calculateDataQuality,
+    enabled: !statusLoading && isAuthenticated,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+/**
  * Hook for running health checks.
  */
 export function useRunHealthChecks(options?: { navigate?: (path: string) => void }) {
@@ -37,6 +52,7 @@ export function useRunHealthChecks(options?: { navigate?: (path: string) => void
     mutationFn: runHealthChecks,
     onSuccess: (data: HealthStatus) => {
       queryClient.setQueryData([QueryKeys.HEALTH_STATUS], data);
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.DATA_QUALITY_SCORE] });
       const issueCount = data.issues?.length ?? 0;
       if (issueCount === 0) {
         toast.success("All checks passed", { description: "No issues found." });
@@ -66,6 +82,7 @@ export function useDismissHealthIssue() {
       dismissHealthIssue(issueId, dataHash),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QueryKeys.HEALTH_STATUS] });
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.DATA_QUALITY_SCORE] });
       toast.success("Issue dismissed");
     },
     onError: (error: Error) => {
@@ -84,6 +101,7 @@ export function useRestoreHealthIssue() {
     mutationFn: restoreHealthIssue,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QueryKeys.HEALTH_STATUS] });
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.DATA_QUALITY_SCORE] });
       toast.success("Issue restored");
     },
     onError: (error: Error) => {
@@ -112,6 +130,7 @@ export function useExecuteHealthFix() {
       // Invalidate holdings so related pages refresh
       queryClient.invalidateQueries({ queryKey: [QueryKeys.HOLDINGS] });
       queryClient.invalidateQueries({ queryKey: [QueryKeys.PORTFOLIO_ALLOCATIONS] });
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.DATA_QUALITY_SCORE] });
       // Skip toast for sync actions — global event listeners handle feedback
       if (actionId !== "sync_prices" && actionId !== "retry_sync") {
         toast.success("Fix applied successfully");
@@ -147,6 +166,7 @@ export function useUpdateHealthConfig() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QueryKeys.HEALTH_CONFIG] });
       queryClient.invalidateQueries({ queryKey: [QueryKeys.HEALTH_STATUS] });
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.DATA_QUALITY_SCORE] });
       toast.success("Configuration updated");
     },
     onError: (error: Error) => {

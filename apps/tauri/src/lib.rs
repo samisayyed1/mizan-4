@@ -730,6 +730,7 @@ pub fn run() {
             // Health commands
             commands::health::get_health_status,
             commands::health::run_health_checks,
+            commands::health::calculate_data_quality_score,
             commands::health::dismiss_health_issue,
             commands::health::restore_health_issue,
             commands::health::get_dismissed_health_issues,

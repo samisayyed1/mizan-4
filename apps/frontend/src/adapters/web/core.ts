@@ -177,6 +177,7 @@ export const COMMANDS: CommandMap = {
   // Health Center
   get_health_status: { method: "GET", path: "/health/status" },
   run_health_checks: { method: "POST", path: "/health/check" },
+  calculate_data_quality_score: { method: "GET", path: "/health/data-quality" },
   dismiss_health_issue: { method: "POST", path: "/health/dismiss" },
   restore_health_issue: { method: "POST", path: "/health/restore" },
   get_dismissed_health_issues: { method: "GET", path: "/health/dismissed" },
@@ -971,6 +972,7 @@ export const invoke = async <T>(command: string, payload?: Record<string, unknow
     // Health Center commands
     case "get_health_status":
     case "run_health_checks":
+    case "calculate_data_quality_score":
     case "get_dismissed_health_issues":
     case "get_health_config":
       break;
@@ -1441,7 +1443,11 @@ export const invoke = async <T>(command: string, payload?: Record<string, unknow
   if (body !== undefined) {
     headers["Content-Type"] = "application/json";
   }
-  if (command === "get_health_status" || command === "run_health_checks") {
+  if (
+    command === "get_health_status" ||
+    command === "run_health_checks" ||
+    command === "calculate_data_quality_score"
+  ) {
     const payloadTimezone =
       typeof payload === "object" && payload !== null && "clientTimezone" in payload
         ? String((payload as { clientTimezone?: string }).clientTimezone ?? "").trim()

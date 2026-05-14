@@ -7,7 +7,13 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use mizan_core::health::{FixAction, HealthConfig, HealthStatus};
+use mizan_core::{
+    accounts::AccountServiceTrait,
+    health::{
+        calculate_data_quality, DataQualityInputs, DataQualityScore, FixAction, HealthConfig,
+        HealthStatus,
+    },
+};
 
 /// Get current health status (cached or fresh check).
 async fn get_health_status(
@@ -41,6 +47,23 @@ async fn run_health_checks(
     Ok(Json(status))
 }
 
+/// Calculate the deterministic portfolio data-quality score.
+async fn calculate_data_quality_score(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> ApiResult<Json<DataQualityScore>> {
+    let base_currency = state
+        .base_currency
+        .read()
+        .map_err(|_| anyhow::anyhow!("base currency lock poisoned"))?
+        .clone();
+    let client_timezone = extract_client_timezone(&headers);
+    let status =
+        run_health_checks_internal(&state, &base_currency, client_timezone.as_deref()).await?;
+    let inputs = build_data_quality_inputs(&state)?;
+    Ok(Json(calculate_data_quality(&status, &inputs)))
+}
+
 /// Internal function to run health checks.
 async fn run_health_checks_internal(
     state: &Arc<AppState>,
@@ -72,6 +95,14 @@ fn extract_client_timezone(headers: &HeaderMap) -> Option<String> {
         .map(str::trim)
         .filter(|tz| !tz.is_empty())
         .map(ToString::to_string)
+}
+
+fn build_data_quality_inputs(state: &AppState) -> Result<DataQualityInputs, anyhow::Error> {
+    let accounts = state.account_service.get_active_accounts()?;
+    Ok(DataQualityInputs {
+        has_portfolio_data: !accounts.is_empty(),
+        ..DataQualityInputs::default()
+    })
 }
 
 #[derive(serde::Deserialize)]
@@ -167,6 +198,7 @@ async fn update_health_config(
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
+        .route("/health/data-quality", get(calculate_data_quality_score))
         .route("/health/status", get(get_health_status))
         .route("/health/check", post(run_health_checks))
         .route("/health/dismiss", post(dismiss_health_issue))

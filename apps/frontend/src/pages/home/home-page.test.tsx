@@ -29,6 +29,14 @@ vi.mock("@/adapters", async () => {
       checkedAt: new Date().toISOString(),
       isStale: false,
     }),
+    calculateDataQuality: vi.fn().mockResolvedValue({
+      score: undefined,
+      severity: "INFO",
+      explanation: "Add portfolio data to calculate a data quality score.",
+      checkedAt: new Date().toISOString(),
+      isOnboarding: true,
+      deductions: [],
+    }),
   };
 });
 
@@ -52,13 +60,14 @@ function renderHome() {
 }
 
 describe("HomePage integration", () => {
-  it("composes all five modules without crashing", () => {
+  it("composes all dashboard modules without crashing", () => {
     renderHome();
 
     expect(screen.getByTestId("home-page")).toBeInTheDocument();
     expect(screen.getByTestId("home-net-worth")).toBeInTheDocument();
     expect(screen.getByTestId("home-income-this-month")).toBeInTheDocument();
     expect(screen.getByTestId("home-attention")).toBeInTheDocument();
+    expect(screen.getByTestId("home-data-quality")).toBeInTheDocument();
     expect(screen.getByTestId("home-wealth-inbox")).toBeInTheDocument();
     expect(screen.getByTestId("home-quick-actions")).toBeInTheDocument();
   });

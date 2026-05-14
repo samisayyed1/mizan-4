@@ -30,7 +30,7 @@ export interface QuickActionDef {
  * marked pending until Phase 3 (Document Vault) and Phase 5 (Report
  * Builder) ship.
  */
-export const QUICK_ACTIONS: ReadonlyArray<QuickActionDef> = [
+export const QUICK_ACTIONS: readonly QuickActionDef[] = [
   {
     id: "add-asset",
     label: "Add Asset",
@@ -71,7 +71,7 @@ export const QUICK_ACTIONS: ReadonlyArray<QuickActionDef> = [
 ];
 
 interface QuickActionsViewProps {
-  actions?: ReadonlyArray<QuickActionDef>;
+  actions?: readonly QuickActionDef[];
 }
 
 /**

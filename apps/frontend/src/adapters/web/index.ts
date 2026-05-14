@@ -328,6 +328,7 @@ export {
 
 // Health Center Commands
 export {
+  calculateDataQuality,
   dismissHealthIssue,
   executeHealthFix,
   getDismissedHealthIssues,

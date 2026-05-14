@@ -51,11 +51,11 @@ export interface NetWorthSlice {
  * `baseCurrency` by the Rust performance service.
  */
 export function deriveNetWorth(
-  metrics: ReadonlyArray<{
+  metrics: readonly {
     totalValue?: number | null;
     baseCurrency?: string | null;
     dayGainLossAmount?: number | null;
-  }>,
+  }[],
 ): NetWorthSlice | null {
   if (metrics.length === 0) return null;
 
@@ -103,7 +103,7 @@ export interface IncomeThisMonthSlice {
    * keys come from the Rust ActivityType enum (DIVIDEND, INTEREST,
    * etc.) — we surface only types that contributed this month.
    */
-  byType: Array<{ type: string; amount: number }>;
+  byType: { type: string; amount: number }[];
 }
 
 const INCOME_TYPES = new Set([
@@ -126,7 +126,7 @@ const INCOME_TYPES = new Set([
  * `null` so the module can render an honest empty state.
  */
 export function deriveIncomeThisMonth(
-  summaries: ReadonlyArray<IncomeSummary>,
+  summaries: readonly IncomeSummary[],
   now: Date,
 ): IncomeThisMonthSlice | null {
   const ytd = summaries.find((s) => s.period === "YTD") ?? summaries[0];
@@ -165,7 +165,7 @@ const SEVERITY_RANK: Record<HealthSeverity, number> = {
  * preview. We never invent items — if no issues exist, the slice is
  * empty and the module renders its honest empty state.
  */
-export function pickTopHealthIssues(issues: ReadonlyArray<HealthIssue>, limit = 5): HealthIssue[] {
+export function pickTopHealthIssues(issues: readonly HealthIssue[], limit = 5): HealthIssue[] {
   return [...issues]
     .sort((a, b) => {
       const ra = SEVERITY_RANK[a.severity] ?? 99;
@@ -200,7 +200,7 @@ const CATEGORY_LABELS: Record<HealthCategory, string> = {
  * total affected count, and a route the user can click through to
  * resolve the issue.
  */
-export function deriveAttention(issues: ReadonlyArray<HealthIssue>): AttentionRow[] {
+export function deriveAttention(issues: readonly HealthIssue[]): AttentionRow[] {
   const buckets = new Map<HealthCategory, { count: number; severity: HealthSeverity }>();
 
   for (const issue of issues) {
