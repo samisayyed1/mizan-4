@@ -228,6 +228,22 @@ export {
   updateAlternativeAssetValuation,
 } from "../shared/alternative-assets";
 
+// Universal Add Asset wizard (Prompt 5)
+export { createUniversalAsset } from "../shared/universal-asset";
+export type {
+  CollectibleFields,
+  CommodityFields,
+  FixedIncomeFields,
+  InsuranceFields,
+  LiabilityFields,
+  PrivateInvestmentFields,
+  PublicEquityFields,
+  RealEstateFields,
+  UniversalAssetCreated,
+  UniversalAssetInput,
+  UniversalBaseAssetInput,
+} from "../shared/universal-asset";
+
 // Connect Commands (Broker + Device Sync + Auth)
 export {
   approvePairing,

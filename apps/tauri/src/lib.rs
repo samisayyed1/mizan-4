@@ -481,6 +481,8 @@ pub fn run() {
             commands::asset::update_quote_mode,
             commands::asset::delete_asset,
             commands::asset::create_asset,
+            // Universal asset model wizard (Prompt 5)
+            commands::universal_asset::create_universal_asset,
             // Alternative asset commands
             commands::alternative_assets::create_alternative_asset,
             commands::alternative_assets::update_alternative_asset_valuation,

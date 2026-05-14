@@ -33,7 +33,7 @@ use mizan_storage_sqlite::{
     accounts::AccountRepository,
     activities::ActivityRepository,
     ai_chat::AiChatRepository,
-    assets::{AlternativeAssetRepository, AssetRepository},
+    assets::{AlternativeAssetRepository, AssetRepository, UniversalAssetRepository},
     db::{self, write_actor},
     fx::FxRepository,
     goals::GoalRepository,
@@ -79,6 +79,7 @@ pub async fn initialize_context(
     let account_repository = Arc::new(AccountRepository::new(pool.clone(), writer.clone()));
     let activity_repository = Arc::new(ActivityRepository::new(pool.clone(), writer.clone()));
     let asset_repository = Arc::new(AssetRepository::new(pool.clone(), writer.clone()));
+    let universal_asset_repository = Arc::new(UniversalAssetRepository::new(pool.clone()));
     let goal_repo = Arc::new(GoalRepository::new(pool.clone(), writer.clone()));
     let market_data_repo = Arc::new(MarketDataRepository::new(pool.clone(), writer.clone()));
     let limit_repository = Arc::new(ContributionLimitRepository::new(
@@ -361,6 +362,7 @@ pub async fn initialize_context(
             account_service,
             activity_service,
             asset_service,
+            universal_asset_repository,
             goal_service,
             quote_service,
             limits_service,

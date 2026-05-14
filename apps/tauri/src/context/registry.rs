@@ -7,7 +7,10 @@ use mizan_core::{
     fx, goals, health, limits, portfolio, quotes, settings, taxonomies,
 };
 use mizan_device_sync::{engine::DeviceSyncRuntimeState, DeviceEnrollService};
-use mizan_storage_sqlite::{portfolio::snapshot::SnapshotRepository, sync::AppSyncRepository};
+use mizan_storage_sqlite::{
+    assets::UniversalAssetRepository, portfolio::snapshot::SnapshotRepository,
+    sync::AppSyncRepository,
+};
 use std::sync::{Arc, RwLock};
 
 use super::TauriAiEnvironment;
@@ -32,6 +35,11 @@ pub struct ServiceContext {
     pub account_service: Arc<dyn accounts::AccountServiceTrait>,
     pub goal_service: Arc<dyn goals::GoalServiceTrait>,
     pub asset_service: Arc<dyn assets::AssetServiceTrait>,
+    /// Universal asset model (Prompt 4) — extension-table writes for
+    /// fixed income, real estate, private investments, insurance,
+    /// commodities, collectibles, liabilities, and the append-only
+    /// `asset_valuations` ledger.
+    pub universal_asset_repository: Arc<UniversalAssetRepository>,
     pub quote_service: Arc<dyn quotes::QuoteServiceTrait>,
     pub limits_service: Arc<dyn limits::ContributionLimitServiceTrait>,
     pub fx_service: Arc<dyn fx::FxServiceTrait>,

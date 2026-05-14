@@ -91,6 +91,9 @@ export * from "../shared/taxonomies";
 // Alternative Assets Commands
 export * from "../shared/alternative-assets";
 
+// Universal Add Asset wizard (Prompt 5)
+export * from "../shared/universal-asset";
+
 // Contribution Limits Commands
 export * from "../shared/contribution-limits";
 

@@ -36,7 +36,7 @@ export const QUICK_ACTIONS: ReadonlyArray<QuickActionDef> = [
     label: "Add Asset",
     description: "Add a new asset to your portfolio.",
     icon: Icons.Plus,
-    route: "/overview",
+    route: "/assets/new",
   },
   {
     id: "update-values",

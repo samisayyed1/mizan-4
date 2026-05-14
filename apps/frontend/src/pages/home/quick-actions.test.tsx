@@ -29,7 +29,7 @@ describe("QuickActionsView", () => {
 
     const addAsset = screen.getByTestId("home-quick-action-add-asset");
     expect(addAsset.tagName).toBe("A");
-    expect(addAsset).toHaveAttribute("href", "/overview");
+    expect(addAsset).toHaveAttribute("href", "/assets/new");
 
     const reviewIssues = screen.getByTestId("home-quick-action-review-issues");
     expect(reviewIssues).toHaveAttribute("href", "/health");
