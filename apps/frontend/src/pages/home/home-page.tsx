@@ -1,3 +1,4 @@
+import { DataQuality } from "./data-quality";
 import { IncomeThisMonth } from "./income-this-month";
 import { NetWorthSummary } from "./net-worth-summary";
 import { PortfolioAttention } from "./portfolio-attention";
@@ -7,7 +8,7 @@ import { WealthInboxPreview } from "./wealth-inbox-preview";
 /**
  * Home — the Mizan command center.
  *
- * Composes the five modules specified by Prompt 3 of the build plan.
+ * Composes the modules specified by Prompts 3 and 7 of the build plan.
  * Each module is self-contained, deterministic, and backed by data
  * services that already exist in the codebase. No new schema, no
  * invented metrics, no placeholder rows.
@@ -31,10 +32,13 @@ export default function HomePage() {
           <NetWorthSummary />
         </div>
         <IncomeThisMonth />
-        <PortfolioAttention />
+        <DataQuality />
       </div>
 
-      <WealthInboxPreview />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <PortfolioAttention />
+        <WealthInboxPreview />
+      </div>
     </div>
   );
 }

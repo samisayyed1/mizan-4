@@ -29,6 +29,7 @@ vi.mock("@/adapters", async () => {
       checkedAt: new Date().toISOString(),
       isStale: false,
     }),
+    listManualValuationAssets: vi.fn().mockResolvedValue([]),
   };
 });
 
@@ -52,7 +53,7 @@ function renderHome() {
 }
 
 describe("HomePage integration", () => {
-  it("composes all five modules without crashing", () => {
+  it("composes every Home module without crashing", () => {
     renderHome();
 
     expect(screen.getByTestId("home-page")).toBeInTheDocument();
@@ -61,6 +62,7 @@ describe("HomePage integration", () => {
     expect(screen.getByTestId("home-attention")).toBeInTheDocument();
     expect(screen.getByTestId("home-wealth-inbox")).toBeInTheDocument();
     expect(screen.getByTestId("home-quick-actions")).toBeInTheDocument();
+    expect(screen.getByTestId("home-data-quality")).toBeInTheDocument();
   });
 
   it("renders the five Quick Actions tiles", () => {
