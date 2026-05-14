@@ -71,7 +71,7 @@ export * from "../shared/accounts";
 
 // Activity Commands
 export * from "../shared/activities";
-export { parseCsv } from "./activities";
+export { analyzeCsvImport, parseCsv } from "./activities";
 
 // Portfolio Commands
 export * from "../shared/portfolio";
@@ -123,6 +123,7 @@ export {
   isAutoUpdateCheckEnabled,
   backupDatabase,
   backupDatabaseToPath,
+  backupDatabaseToPathEncrypted,
   restoreDatabase,
   getAppInfo,
   checkForUpdates,

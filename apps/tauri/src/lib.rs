@@ -1,11 +1,14 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod backup_crypto;
 mod commands;
 mod context;
 mod domain_events;
 mod events;
 mod listeners;
+mod log_redaction;
+mod rate_limit;
 mod scheduler;
 mod secret_store;
 mod services;
@@ -96,6 +99,34 @@ mod desktop {
 
         // Make context available to all commands
         handle.manage(Arc::clone(&context));
+
+        // Per-command IPC rate limiter, available via State to any
+        // command that wants to guard against runaway-frontend loops
+        // or malicious-addon DoS. The expensive commands
+        // (`recalculate_portfolio`, broker sync triggers, market data
+        // syncs) call `state.check()` at entry; cheap commands
+        // (`get_settings`, getters) are intentionally unguarded.
+        // Per-command overrides live alongside the defaults — see
+        // `rate_limit::RateLimiter::with_override`.
+        use std::time::Duration;
+        let rate_limiter = rate_limit::RateLimiter::new()
+            // Portfolio recalc is the single most expensive op in
+            // Mizan (touches every snapshot + valuation). Anything
+            // beyond 5 in a 30-second window is almost certainly a
+            // useEffect-dependency bug or an addon misbehaving.
+            .with_override("recalculate_portfolio", 5, Duration::from_secs(30))
+            .with_override("update_portfolio", 5, Duration::from_secs(30))
+            // Broker syncs hit external rate-limited APIs; users
+            // can't click this fast in normal use.
+            .with_override("trigger_broker_sync", 3, Duration::from_secs(30))
+            // Market data sync (Yahoo etc.) — same reasoning.
+            .with_override("trigger_market_sync", 3, Duration::from_secs(30))
+            // Device pairing approval. A real user pairs maybe one
+            // device a year; back-to-back approvals are the
+            // social-engineering pattern (attacker tricks user into
+            // approving multiple fake devices in rapid succession).
+            .with_override("approve_pairing", 3, Duration::from_secs(60));
+        handle.manage(Arc::new(rate_limiter));
 
         #[cfg(feature = "device-sync")]
         start_sync_outbox_wake_worker(sync_outbox_wake_receiver, Arc::clone(&context));
@@ -289,6 +320,23 @@ pub fn run() {
                     !metadata.target().starts_with("tauri_plugin_updater")
                         || metadata.level() <= log::Level::Info
                 })
+                // Sensitive-data redaction. Catches accidental token /
+                // api_key / refresh_token leakage anywhere in the
+                // codebase before it reaches the log file. See
+                // `log_redaction.rs` for the patterns; passes innocent
+                // messages through unchanged with a single substring
+                // scan on the lowercased body.
+                .format(|out, message, record| {
+                    let body = format!("{}", message);
+                    let safe = log_redaction::redact_sensitive(&body);
+                    out.finish(format_args!(
+                        "{}[{}][{}] {}",
+                        chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
+                        record.target(),
+                        record.level(),
+                        safe
+                    ))
+                })
                 .build(),
         )
         .plugin(tauri_plugin_shell::init())
@@ -366,6 +414,7 @@ pub fn run() {
             commands::activity::delete_import_template,
             commands::activity::check_existing_duplicates,
             commands::activity::parse_csv,
+            commands::activity::analyze_csv_import,
             // Settings commands
             commands::settings::get_settings,
             commands::settings::is_auto_update_check_enabled,
@@ -423,6 +472,7 @@ pub fn run() {
             commands::utilities::install_app_update,
             commands::utilities::backup_database,
             commands::utilities::backup_database_to_path,
+            commands::utilities::backup_database_to_path_encrypted,
             commands::utilities::restore_database,
             // Asset commands
             commands::asset::get_asset_profile,
