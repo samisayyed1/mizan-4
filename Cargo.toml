@@ -74,3 +74,17 @@ mizan-connect = { path = "crates/connect" }
 mizan-storage-sqlite = { path = "crates/storage-sqlite" }
 mizan-device-sync = { path = "crates/device-sync" }
 mizan-ai = { path = "crates/ai" }
+
+# -----------------------------------------------------------------------------
+# Build profiles
+#
+# Dev builds split debug info into companion files on macOS so the
+# resulting binary stays small. Without this, debug builds embed every
+# crate's debuginfo inline and balloon the target/ cache (~50 GB seen
+# on Apple Silicon with the full workspace). `incremental = true` is
+# already Cargo's dev default; keeping it explicit guards against
+# accidental flips by future contributors.
+# -----------------------------------------------------------------------------
+[profile.dev]
+incremental = true
+split-debuginfo = "unpacked"

@@ -1,0 +1,12 @@
+# Workspace-wide Cargo configuration.
+#
+# Pins every crate to the shared `target/` directory at the workspace
+# root so we never accidentally accumulate a second build cache under
+# any per-crate target/. Also forces git-fetch via the system git so
+# CI runners and locked-down corp networks behave consistently.
+
+[build]
+target-dir = "target"
+
+[net]
+git-fetch-with-cli = true

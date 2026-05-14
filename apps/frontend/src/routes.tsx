@@ -11,8 +11,10 @@ import ConnectPage from "@/features/mizan-connect/pages/connect-page";
 import ActivityManagerPage from "@/pages/activity/activity-manager-page";
 import ActivityPage from "@/pages/activity/activity-page";
 import ActivityImportPage from "@/pages/activity/import/activity-import-page";
+import AddAssetPage from "@/pages/asset/new/add-asset-page";
 import AssetsPage from "@/pages/asset/assets-page";
 import PortfolioPage from "@/pages/dashboard/portfolio-page";
+import HomePage from "@/pages/home/home-page";
 import HoldingsPage from "@/pages/holdings/holdings-page";
 import IncomePage from "@/pages/income/income-page";
 import PortfolioInsightsPage from "@/pages/insights/portfolio-insights";
@@ -79,8 +81,14 @@ export function AppRoutes() {
 
         {/* Main app with sidebar */}
         <Route path="/" element={<AppLayout />}>
-          <Route index element={<PortfolioPage />} />
-          <Route path="dashboard" element={<PortfolioPage />} />
+          {/* Home command center (Prompt 3 build plan). The previous
+              portfolio swipable view is preserved at /overview so no
+              functionality is lost. */}
+          <Route index element={<HomePage />} />
+          <Route path="dashboard" element={<HomePage />} />
+          <Route path="overview" element={<PortfolioPage />} />
+          {/* Universal Add Asset wizard (Prompt 5). */}
+          <Route path="assets/new" element={<AddAssetPage />} />
           <Route path="activities" element={<ActivityPage />} />
           <Route path="activities/manage" element={<ActivityManagerPage />} />
           <Route path="holdings" element={<HoldingsPage />} />
