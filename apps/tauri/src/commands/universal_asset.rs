@@ -15,8 +15,9 @@ use std::sync::Arc;
 use log::debug;
 use mizan_core::assets::{Asset, AssetKind, InstrumentType, NewAsset, QuoteMode};
 use mizan_storage_sqlite::assets::{
-    CollectibleRow, CommodityRow, FixedIncomeRow, InsuranceRow, LiabilityRow, NewValuation,
-    PrivateInvestmentRow, PublicEquityRow, RealEstateRow, ValuationSource,
+    CollectibleRow, CommodityRow, FixedIncomeRow, InsuranceRow, LiabilityRow,
+    ManualAssetLatestValuation, NewValuation, PrivateInvestmentRow, PublicEquityRow, RealEstateRow,
+    ValuationRow, ValuationSource,
 };
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -623,4 +624,85 @@ pub async fn create_universal_asset(
             })
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// Prompt 6 — bulk valuation update grid.
+// ---------------------------------------------------------------------------
+
+/// One row of the bulk update payload. Each row writes a single
+/// manual valuation through the universal repository, but the entire
+/// batch is committed atomically inside one SQLite transaction.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BulkValuationInput {
+    pub asset_id: String,
+    pub valuation_date: String,
+    pub value_native: Decimal,
+    pub currency: String,
+    #[serde(default)]
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BulkValuationResult {
+    pub written: usize,
+    pub rows: Vec<ValuationRow>,
+}
+
+/// Lists every manually valued asset together with its latest
+/// valuation (if any). Used by the bulk-update grid as the editable
+/// row set — assets with no valuation yet come back with `latest: None`
+/// so the grid renders an empty editable cell.
+#[tauri::command]
+pub async fn list_manual_valuation_assets(
+    state: State<'_, Arc<ServiceContext>>,
+) -> Result<Vec<ManualAssetLatestValuation>, String> {
+    debug!("list_manual_valuation_assets: loading");
+    state
+        .universal_asset_repository
+        .list_manual_assets_with_latest_valuation()
+        .map_err(|e| e.to_string())
+}
+
+/// Appends a batch of manual valuations atomically. If any row fails
+/// validation or the FK check, no rows are persisted and the caller
+/// receives a structured error string. Empty batches are a no-op.
+#[tauri::command]
+pub async fn bulk_update_valuations(
+    rows: Vec<BulkValuationInput>,
+    state: State<'_, Arc<ServiceContext>>,
+) -> Result<BulkValuationResult, String> {
+    debug!("bulk_update_valuations: {} row(s)", rows.len());
+
+    if rows.is_empty() {
+        return Ok(BulkValuationResult {
+            written: 0,
+            rows: Vec::new(),
+        });
+    }
+
+    let inputs: Vec<NewValuation> = rows
+        .into_iter()
+        .map(|r| NewValuation {
+            asset_id: r.asset_id,
+            valuation_date: r.valuation_date,
+            value_native: r.value_native,
+            currency: r.currency,
+            source_type: ValuationSource::Manual,
+            source_id: None,
+            notes: r.notes,
+        })
+        .collect();
+
+    let written = state
+        .universal_asset_repository
+        .insert_valuations_batch(inputs)
+        .map_err(|e| e.to_string())?;
+
+    Ok(BulkValuationResult {
+        written: written.len(),
+        rows: written,
+    })
 }

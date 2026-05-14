@@ -43,7 +43,7 @@ export const QUICK_ACTIONS: ReadonlyArray<QuickActionDef> = [
     label: "Update Values",
     description: "Refresh manual valuations and balances.",
     icon: Icons.Pencil,
-    route: "/overview",
+    route: "/assets/values",
   },
   {
     id: "upload-document",
