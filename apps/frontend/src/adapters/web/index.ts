@@ -228,14 +228,22 @@ export {
   updateAlternativeAssetValuation,
 } from "../shared/alternative-assets";
 
-// Universal Add Asset wizard (Prompt 5)
-export { createUniversalAsset } from "../shared/universal-asset";
+// Universal Add Asset wizard (Prompt 5) + bulk update grid (Prompt 6)
+export {
+  bulkUpdateValuations,
+  createUniversalAsset,
+  listManualValuationAssets,
+} from "../shared/universal-asset";
 export type {
+  BulkValuationInput,
+  BulkValuationResult,
+  BulkValuationRow,
   CollectibleFields,
   CommodityFields,
   FixedIncomeFields,
   InsuranceFields,
   LiabilityFields,
+  ManualAssetValuationView,
   PrivateInvestmentFields,
   PublicEquityFields,
   RealEstateFields,

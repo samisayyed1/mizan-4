@@ -12,6 +12,7 @@ import ActivityManagerPage from "@/pages/activity/activity-manager-page";
 import ActivityPage from "@/pages/activity/activity-page";
 import ActivityImportPage from "@/pages/activity/import/activity-import-page";
 import AddAssetPage from "@/pages/asset/new/add-asset-page";
+import BulkUpdatePage from "@/pages/asset/values/bulk-update-page";
 import AssetsPage from "@/pages/asset/assets-page";
 import PortfolioPage from "@/pages/dashboard/portfolio-page";
 import HomePage from "@/pages/home/home-page";
@@ -89,6 +90,8 @@ export function AppRoutes() {
           <Route path="overview" element={<PortfolioPage />} />
           {/* Universal Add Asset wizard (Prompt 5). */}
           <Route path="assets/new" element={<AddAssetPage />} />
+          {/* Bulk valuation update grid (Prompt 6). */}
+          <Route path="assets/values" element={<BulkUpdatePage />} />
           <Route path="activities" element={<ActivityPage />} />
           <Route path="activities/manage" element={<ActivityManagerPage />} />
           <Route path="holdings" element={<HoldingsPage />} />

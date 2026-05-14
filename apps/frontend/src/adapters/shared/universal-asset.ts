@@ -174,3 +174,64 @@ export const createUniversalAsset = async (
     throw error;
   }
 };
+
+// ---------------------------------------------------------------------------
+// Prompt 6 — bulk valuation update grid.
+// ---------------------------------------------------------------------------
+
+/// A single valuation row returned by `list_manual_valuation_assets`.
+/// Mirrors the Rust `ValuationRow` shape — monetary values are stored
+/// as canonical Decimal strings, never JS numbers.
+export interface BulkValuationRow {
+  id: string;
+  assetId: string;
+  valuationDate: string;
+  valueNative: string;
+  currency: string;
+  sourceType: string;
+  sourceId: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/// One manual-mode asset together with its most recent valuation (if any).
+export interface ManualAssetValuationView {
+  assetId: string;
+  assetName: string | null;
+  assetCurrency: string;
+  latest: BulkValuationRow | null;
+}
+
+export const listManualValuationAssets = async (): Promise<ManualAssetValuationView[]> => {
+  try {
+    return await invoke<ManualAssetValuationView[]>("list_manual_valuation_assets", {});
+  } catch (error) {
+    logger.error("Error listing manual valuation assets.");
+    throw error;
+  }
+};
+
+export interface BulkValuationInput {
+  assetId: string;
+  valuationDate: string;
+  valueNative: string; // Decimal as canonical string — never a JS number
+  currency: string;
+  notes?: string;
+}
+
+export interface BulkValuationResult {
+  written: number;
+  rows: BulkValuationRow[];
+}
+
+export const bulkUpdateValuations = async (
+  rows: BulkValuationInput[],
+): Promise<BulkValuationResult> => {
+  try {
+    return await invoke<BulkValuationResult>("bulk_update_valuations", { rows });
+  } catch (error) {
+    logger.error("Error bulk-updating valuations.");
+    throw error;
+  }
+};

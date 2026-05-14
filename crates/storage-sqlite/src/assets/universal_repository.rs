@@ -139,6 +139,17 @@ impl ValuationRow {
     }
 }
 
+/// Joined view returned by `list_manual_assets_with_latest_valuation`.
+/// One row per manual-mode asset; `latest` is `None` when the asset
+/// has never had a valuation recorded yet.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ManualAssetLatestValuation {
+    pub asset_id: String,
+    pub asset_name: Option<String>,
+    pub asset_currency: String,
+    pub latest: Option<ValuationRow>,
+}
+
 // ===========================================================================
 // Extension rows — one Insertable + one Queryable per table.
 // ===========================================================================
@@ -356,6 +367,128 @@ impl UniversalAssetRepository {
     /// Return the most recent valuation for an asset, regardless of source.
     pub fn latest_valuation(&self, asset_id: &str) -> Result<Option<ValuationRow>> {
         Ok(self.list_valuations(asset_id)?.into_iter().next())
+    }
+
+    /// Append a batch of valuations atomically.
+    ///
+    /// Wraps every insert in a single SQLite transaction — if any row
+    /// is rejected (FK miss, CHECK violation, invalid Decimal string)
+    /// the entire batch rolls back and no rows are persisted. This is
+    /// the foundation the bulk-update grid (Prompt 6) writes through.
+    pub fn insert_valuations_batch(&self, inputs: Vec<NewValuation>) -> Result<Vec<ValuationRow>> {
+        if inputs.is_empty() {
+            return Ok(Vec::new());
+        }
+        let now = now_iso();
+        let mut conn = self.conn()?;
+        let prepared: Vec<(String, NewValuation)> =
+            inputs.into_iter().map(|i| (new_id("VAL"), i)).collect();
+
+        conn.transaction::<_, diesel::result::Error, _>(|tx| {
+            for (id, input) in &prepared {
+                diesel::insert_into(asset_valuations::table)
+                    .values(InsertableValuationRow {
+                        id,
+                        asset_id: &input.asset_id,
+                        valuation_date: &input.valuation_date,
+                        value_native: input.value_native.to_string(),
+                        currency: &input.currency,
+                        source_type: input.source_type.as_db_str(),
+                        source_id: input.source_id.as_deref(),
+                        notes: input.notes.as_deref(),
+                        created_at: &now,
+                        updated_at: &now,
+                    })
+                    .execute(tx)?;
+            }
+            Ok(())
+        })
+        .map_err(|e| {
+            Error::Database(DatabaseError::QueryFailed(format!(
+                "bulk valuation insert rolled back: {e}"
+            )))
+        })?;
+
+        let ids: Vec<&str> = prepared.iter().map(|(id, _)| id.as_str()).collect();
+        asset_valuations::table
+            .filter(asset_valuations::id.eq_any(&ids))
+            .order((
+                asset_valuations::valuation_date.desc(),
+                asset_valuations::created_at.desc(),
+            ))
+            .select(ValuationRow::as_select())
+            .load::<ValuationRow>(&mut conn)
+            .map_err(|e| {
+                Error::Database(DatabaseError::QueryFailed(format!(
+                    "re-select batch valuations: {e}"
+                )))
+            })
+    }
+
+    /// Return the latest valuation per asset for every active asset
+    /// whose `quote_mode` is `MANUAL` — the population the bulk-update
+    /// grid edits. Assets that have never had a valuation come back
+    /// with `latest = None` so the grid can show an empty editable row.
+    pub fn list_manual_assets_with_latest_valuation(
+        &self,
+    ) -> Result<Vec<ManualAssetLatestValuation>> {
+        use crate::schema::assets;
+        let mut conn = self.conn()?;
+
+        // 1) all manual + active assets
+        let asset_rows = assets::table
+            .filter(assets::quote_mode.eq("MANUAL"))
+            .filter(assets::is_active.eq(1))
+            .select((assets::id, assets::name, assets::quote_ccy))
+            .load::<(String, Option<String>, String)>(&mut conn)
+            .map_err(|e| {
+                Error::Database(DatabaseError::QueryFailed(format!(
+                    "list manual assets: {e}"
+                )))
+            })?;
+
+        if asset_rows.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        // 2) one round-trip for valuations, then group in Rust. Cheaper
+        //    than N+1 even when each asset has many rows because we sort
+        //    + take-first in memory.
+        let asset_ids: Vec<&str> = asset_rows.iter().map(|(id, _, _)| id.as_str()).collect();
+        let valuations = asset_valuations::table
+            .filter(asset_valuations::asset_id.eq_any(&asset_ids))
+            .order((
+                asset_valuations::asset_id.asc(),
+                asset_valuations::valuation_date.desc(),
+                asset_valuations::created_at.desc(),
+            ))
+            .select(ValuationRow::as_select())
+            .load::<ValuationRow>(&mut conn)
+            .map_err(|e| {
+                Error::Database(DatabaseError::QueryFailed(format!(
+                    "load valuations for manual assets: {e}"
+                )))
+            })?;
+
+        // Pick the first row per asset (already sorted desc by date+created).
+        let mut latest_by_asset: std::collections::HashMap<String, ValuationRow> =
+            std::collections::HashMap::new();
+        for v in valuations {
+            latest_by_asset.entry(v.asset_id.clone()).or_insert(v);
+        }
+
+        Ok(asset_rows
+            .into_iter()
+            .map(|(id, name, currency)| {
+                let latest = latest_by_asset.remove(&id);
+                ManualAssetLatestValuation {
+                    asset_id: id,
+                    asset_name: name,
+                    asset_currency: currency,
+                    latest,
+                }
+            })
+            .collect())
     }
 
     // --- extension upserts --------------------------------------------
@@ -1130,5 +1263,170 @@ mod tests {
 
         assert!(repo.get_public_equity(&asset_id).expect("get").is_none());
         assert!(repo.list_valuations(&asset_id).expect("list").is_empty());
+    }
+
+    // -------------------------------------------------------------------
+    // Prompt 6 — bulk-update grid backend.
+    // -------------------------------------------------------------------
+
+    fn make_manual_asset(pool: &DbPool, name: &str) -> String {
+        let id = new_id("ASSET");
+        let mut conn = pool.get().expect("conn");
+        let escaped = name.replace('\'', "''");
+        diesel::sql_query(format!(
+            "INSERT INTO assets (id, kind, name, is_active, quote_mode, quote_ccy, created_at, updated_at) \
+             VALUES ('{id}', 'OTHER', '{escaped}', 1, 'MANUAL', 'USD', \
+             strftime('%Y-%m-%dT%H:%M:%fZ','now'), strftime('%Y-%m-%dT%H:%M:%fZ','now'))"
+        ))
+        .execute(&mut conn)
+        .expect("insert manual asset");
+        id
+    }
+
+    fn make_market_asset(pool: &DbPool) -> String {
+        let id = new_id("ASSET");
+        let mut conn = pool.get().expect("conn");
+        diesel::sql_query(format!(
+            "INSERT INTO assets (id, kind, name, is_active, quote_mode, quote_ccy, created_at, updated_at) \
+             VALUES ('{id}', 'INVESTMENT', 'Market Asset', 1, 'MARKET', 'USD', \
+             strftime('%Y-%m-%dT%H:%M:%fZ','now'), strftime('%Y-%m-%dT%H:%M:%fZ','now'))"
+        ))
+        .execute(&mut conn)
+        .expect("insert market asset");
+        id
+    }
+
+    #[test]
+    fn bulk_insert_writes_every_row_atomically() {
+        let (pool, _) = setup_db();
+        let a = make_manual_asset(&pool, "Property A");
+        let b = make_manual_asset(&pool, "Property B");
+        let repo = UniversalAssetRepository::new(pool);
+
+        let written = repo
+            .insert_valuations_batch(vec![
+                NewValuation {
+                    asset_id: a.clone(),
+                    valuation_date: "2026-05-14".to_string(),
+                    value_native: dec!(1_500_000),
+                    currency: "USD".to_string(),
+                    source_type: ValuationSource::Manual,
+                    source_id: None,
+                    notes: Some("appraisal".to_string()),
+                },
+                NewValuation {
+                    asset_id: b.clone(),
+                    valuation_date: "2026-05-14".to_string(),
+                    value_native: dec!(80_000),
+                    currency: "USD".to_string(),
+                    source_type: ValuationSource::Manual,
+                    source_id: None,
+                    notes: None,
+                },
+            ])
+            .expect("batch");
+
+        assert_eq!(written.len(), 2);
+        assert_eq!(repo.list_valuations(&a).expect("a").len(), 1);
+        assert_eq!(repo.list_valuations(&b).expect("b").len(), 1);
+    }
+
+    #[test]
+    fn bulk_insert_rolls_back_when_any_asset_id_is_invalid() {
+        let (pool, _) = setup_db();
+        let a = make_manual_asset(&pool, "Real Asset");
+        let repo = UniversalAssetRepository::new(pool);
+
+        // Asset B does not exist — the FK on the second row fires inside
+        // the transaction and rolls the whole batch back.
+        let result = repo.insert_valuations_batch(vec![
+            NewValuation {
+                asset_id: a.clone(),
+                valuation_date: "2026-05-14".to_string(),
+                value_native: dec!(100),
+                currency: "USD".to_string(),
+                source_type: ValuationSource::Manual,
+                source_id: None,
+                notes: None,
+            },
+            NewValuation {
+                asset_id: "ASSET-DOES-NOT-EXIST".to_string(),
+                valuation_date: "2026-05-14".to_string(),
+                value_native: dec!(100),
+                currency: "USD".to_string(),
+                source_type: ValuationSource::Manual,
+                source_id: None,
+                notes: None,
+            },
+        ]);
+        assert!(result.is_err(), "second row should kill the whole batch");
+
+        // First row must NOT have been left behind.
+        assert!(repo.list_valuations(&a).expect("list").is_empty());
+    }
+
+    #[test]
+    fn bulk_insert_empty_input_is_a_noop() {
+        let (pool, _) = setup_db();
+        let repo = UniversalAssetRepository::new(pool);
+        let result = repo.insert_valuations_batch(vec![]).expect("noop");
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn list_manual_assets_returns_only_manual_quote_mode_assets() {
+        let (pool, _) = setup_db();
+        let manual_a = make_manual_asset(&pool, "Property");
+        let _market = make_market_asset(&pool);
+        let repo = UniversalAssetRepository::new(pool);
+
+        let view = repo
+            .list_manual_assets_with_latest_valuation()
+            .expect("list");
+
+        assert_eq!(view.len(), 1);
+        assert_eq!(view[0].asset_id, manual_a);
+        assert_eq!(view[0].asset_currency, "USD");
+        // No valuation yet → latest is None.
+        assert!(view[0].latest.is_none());
+    }
+
+    #[test]
+    fn list_manual_assets_returns_most_recent_valuation_per_asset() {
+        let (pool, _) = setup_db();
+        let asset_id = make_manual_asset(&pool, "Gold Bar");
+        let repo = UniversalAssetRepository::new(pool);
+
+        repo.insert_valuation(NewValuation {
+            asset_id: asset_id.clone(),
+            valuation_date: "2026-04-01".to_string(),
+            value_native: dec!(50_000),
+            currency: "USD".to_string(),
+            source_type: ValuationSource::Manual,
+            source_id: None,
+            notes: Some("old".to_string()),
+        })
+        .expect("v1");
+        repo.insert_valuation(NewValuation {
+            asset_id: asset_id.clone(),
+            valuation_date: "2026-05-14".to_string(),
+            value_native: dec!(55_000),
+            currency: "USD".to_string(),
+            source_type: ValuationSource::Manual,
+            source_id: None,
+            notes: Some("appraisal".to_string()),
+        })
+        .expect("v2");
+
+        let view = repo
+            .list_manual_assets_with_latest_valuation()
+            .expect("list");
+        assert_eq!(view.len(), 1);
+        let latest = view[0]
+            .latest
+            .as_ref()
+            .expect("expected a latest valuation");
+        assert_eq!(latest.valuation_date, "2026-05-14");
+        assert_eq!(latest.notes.as_deref(), Some("appraisal"));
     }
 }

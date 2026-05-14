@@ -483,6 +483,9 @@ pub fn run() {
             commands::asset::create_asset,
             // Universal asset model wizard (Prompt 5)
             commands::universal_asset::create_universal_asset,
+            // Bulk valuation update grid (Prompt 6)
+            commands::universal_asset::list_manual_valuation_assets,
+            commands::universal_asset::bulk_update_valuations,
             // Alternative asset commands
             commands::alternative_assets::create_alternative_asset,
             commands::alternative_assets::update_alternative_asset_valuation,
