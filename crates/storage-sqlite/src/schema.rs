@@ -500,6 +500,174 @@ diesel::joinable!(taxonomy_categories -> taxonomies (taxonomy_id));
 
 diesel::joinable!(import_account_templates -> import_templates (template_id));
 
+// ===========================================================================
+// Universal Asset Model (Prompt 4) — see migration
+// 2026-05-14-000001_universal_asset_model. Eight typed extension tables
+// hang off `assets` by `asset_id`, and `asset_valuations` is the append-only
+// ledger of point-in-time valuations.
+// ===========================================================================
+
+diesel::table! {
+    asset_valuations (id) {
+        id -> Text,
+        asset_id -> Text,
+        valuation_date -> Text,
+        value_native -> Text,
+        currency -> Text,
+        source_type -> Text,
+        source_id -> Nullable<Text>,
+        notes -> Nullable<Text>,
+        created_at -> Text,
+        updated_at -> Text,
+    }
+}
+
+diesel::table! {
+    asset_public_equity (asset_id) {
+        asset_id -> Text,
+        security_type -> Text,
+        isin -> Nullable<Text>,
+        exchange -> Nullable<Text>,
+        expense_ratio -> Nullable<Text>,
+        dividend_frequency -> Nullable<Text>,
+        inception_date -> Nullable<Text>,
+        created_at -> Text,
+        updated_at -> Text,
+    }
+}
+
+diesel::table! {
+    asset_fixed_income (asset_id) {
+        asset_id -> Text,
+        instrument_type -> Text,
+        issuer -> Nullable<Text>,
+        isin -> Nullable<Text>,
+        face_value -> Nullable<Text>,
+        currency -> Text,
+        purchase_date -> Nullable<Text>,
+        maturity_date -> Text,
+        coupon_or_profit_rate -> Nullable<Text>,
+        payment_frequency -> Nullable<Text>,
+        day_count_convention -> Nullable<Text>,
+        is_sukuk -> Integer,
+        created_at -> Text,
+        updated_at -> Text,
+    }
+}
+
+diesel::table! {
+    asset_real_estate (asset_id) {
+        asset_id -> Text,
+        property_type -> Nullable<Text>,
+        address_line1 -> Nullable<Text>,
+        address_line2 -> Nullable<Text>,
+        city -> Nullable<Text>,
+        region -> Nullable<Text>,
+        postal_code -> Nullable<Text>,
+        country_code -> Nullable<Text>,
+        purchase_date -> Nullable<Text>,
+        purchase_price -> Nullable<Text>,
+        area_value -> Nullable<Text>,
+        area_unit -> Nullable<Text>,
+        bedrooms -> Nullable<Integer>,
+        bathrooms -> Nullable<Integer>,
+        created_at -> Text,
+        updated_at -> Text,
+    }
+}
+
+diesel::table! {
+    asset_private_investment (asset_id) {
+        asset_id -> Text,
+        investment_kind -> Text,
+        manager -> Nullable<Text>,
+        strategy -> Nullable<Text>,
+        vintage_year -> Nullable<Integer>,
+        commitment_amount -> Nullable<Text>,
+        commitment_currency -> Nullable<Text>,
+        inception_date -> Nullable<Text>,
+        notes -> Nullable<Text>,
+        created_at -> Text,
+        updated_at -> Text,
+    }
+}
+
+diesel::table! {
+    asset_insurance (asset_id) {
+        asset_id -> Text,
+        product_kind -> Text,
+        carrier -> Nullable<Text>,
+        policy_number -> Nullable<Text>,
+        inception_date -> Nullable<Text>,
+        maturity_date -> Nullable<Text>,
+        sum_assured -> Nullable<Text>,
+        premium_amount -> Nullable<Text>,
+        premium_frequency -> Nullable<Text>,
+        currency -> Nullable<Text>,
+        has_market_link -> Integer,
+        notes -> Nullable<Text>,
+        created_at -> Text,
+        updated_at -> Text,
+    }
+}
+
+diesel::table! {
+    asset_commodity (asset_id) {
+        asset_id -> Text,
+        commodity_type -> Text,
+        form -> Nullable<Text>,
+        purity -> Nullable<Text>,
+        weight_value -> Nullable<Text>,
+        weight_unit -> Nullable<Text>,
+        created_at -> Text,
+        updated_at -> Text,
+    }
+}
+
+diesel::table! {
+    asset_collectible (asset_id) {
+        asset_id -> Text,
+        collectible_type -> Nullable<Text>,
+        maker -> Nullable<Text>,
+        model -> Nullable<Text>,
+        year_made -> Nullable<Integer>,
+        serial_number -> Nullable<Text>,
+        condition -> Nullable<Text>,
+        notes -> Nullable<Text>,
+        created_at -> Text,
+        updated_at -> Text,
+    }
+}
+
+diesel::table! {
+    asset_liability (asset_id) {
+        asset_id -> Text,
+        liability_type -> Text,
+        lender -> Nullable<Text>,
+        principal_amount -> Nullable<Text>,
+        outstanding_balance -> Nullable<Text>,
+        currency -> Nullable<Text>,
+        interest_rate -> Nullable<Text>,
+        rate_type -> Nullable<Text>,
+        start_date -> Nullable<Text>,
+        maturity_date -> Nullable<Text>,
+        linked_asset_id -> Nullable<Text>,
+        notes -> Nullable<Text>,
+        created_at -> Text,
+        updated_at -> Text,
+    }
+}
+
+diesel::joinable!(asset_valuations -> assets (asset_id));
+diesel::joinable!(asset_public_equity -> assets (asset_id));
+diesel::joinable!(asset_fixed_income -> assets (asset_id));
+diesel::joinable!(asset_real_estate -> assets (asset_id));
+diesel::joinable!(asset_private_investment -> assets (asset_id));
+diesel::joinable!(asset_insurance -> assets (asset_id));
+diesel::joinable!(asset_commodity -> assets (asset_id));
+diesel::joinable!(asset_collectible -> assets (asset_id));
+diesel::joinable!(asset_liability -> assets (asset_id));
+
 diesel::allow_tables_to_appear_in_same_query!(
     import_account_templates,
     accounts,
@@ -508,7 +676,16 @@ diesel::allow_tables_to_appear_in_same_query!(
     ai_thread_tags,
     ai_threads,
     app_settings,
+    asset_collectible,
+    asset_commodity,
+    asset_fixed_income,
+    asset_insurance,
+    asset_liability,
+    asset_private_investment,
+    asset_public_equity,
+    asset_real_estate,
     asset_taxonomy_assignments,
+    asset_valuations,
     assets,
     brokers_sync_state,
     contribution_limits,
