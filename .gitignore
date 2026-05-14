@@ -62,10 +62,37 @@ apps/tauri/db/*
 
 # Rust/Cargo
 target/
+**/target/
 **/*.rs.bk
 
-# Tauri generated
+# Tauri generated artefacts
+#   - `apps/tauri/gen/schemas/` is regenerated on every build, never commit
+#   - `apps/tauri/gen/.tauri/` is a transient build cache
+#   - The Xcode project under `apps/tauri/gen/apple/` IS tracked, do not exclude
 apps/tauri/gen/schemas/
+apps/tauri/gen/.tauri/
+apps/tauri/src-tauri/target/
+*.tauri-build
+
+# Native build outputs (never commit installer binaries)
+*.app
+*.dmg
+*.AppImage
+*.msi
+*.exe
+
+# Tool caches (Next / Turbo / Parcel)
+.turbo/
+.next/
+.parcel-cache/
+
+# Local AI model artefacts (Ollama / llama.cpp / similar)
+*.gguf
+*.bin
+models/
+
+# Generic tmp files
+*.tmp
 
 # OS generated files
 .DS_Store
