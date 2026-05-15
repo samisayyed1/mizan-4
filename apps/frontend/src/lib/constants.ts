@@ -183,6 +183,7 @@ export const ExportDataType = {
   ACTIVITIES: "activities",
   GOALS: "goals",
   PORTFOLIO_HISTORY: "portfolio-history",
+  PORTFOLIO_WORKBOOK: "portfolio-workbook",
 } as const;
 
 export type ExportDataType = (typeof ExportDataType)[keyof typeof ExportDataType];
@@ -192,11 +193,13 @@ export const exportDataTypeSchema = z.enum([
   ExportDataType.ACTIVITIES,
   ExportDataType.GOALS,
   ExportDataType.PORTFOLIO_HISTORY,
+  ExportDataType.PORTFOLIO_WORKBOOK,
 ]);
 
 export const ExportedFileFormat = {
   CSV: "CSV",
   JSON: "JSON",
+  EXCEL: "Excel",
   SQLITE: "SQLite",
 } as const;
 
@@ -205,6 +208,7 @@ export type ExportedFileFormat = (typeof ExportedFileFormat)[keyof typeof Export
 export const exportedFileFormatSchema = z.enum([
   ExportedFileFormat.CSV,
   ExportedFileFormat.JSON,
+  ExportedFileFormat.EXCEL,
   ExportedFileFormat.SQLITE,
 ]);
 
