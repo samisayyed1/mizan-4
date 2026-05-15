@@ -14,6 +14,11 @@ const dataFormats = [
     description: "Simple, widely compatible spreadsheet format",
   },
   {
+    name: "Excel",
+    icon: Icons.FileSpreadsheet,
+    description: "One .xlsx workbook with a separate tab for each section",
+  },
+  {
     name: "JSON",
     icon: Icons.FileJson,
     description: "Structured data for easy programmatic access",
@@ -78,6 +83,15 @@ const dataTypes = {
       icon: Icons.Files,
       description:
         "Your portfolio's performance over time, including valuations, gains, and cash flow activities.",
+    },
+  ],
+  Excel: [
+    {
+      key: "portfolio-workbook",
+      name: "Entire portfolio (.xlsx)",
+      icon: Icons.FileSpreadsheet,
+      description:
+        "One workbook with tabs: Summary, Accounts, Holdings, Activities, Goals, Portfolio History.",
     },
   ],
   SQLite: [

@@ -5,6 +5,8 @@ import {
   getActivities,
   getGoals,
   getHistoricalValuations,
+  getHoldings,
+  getSettings,
   isWeb,
   logger,
   openFileSaveDialog,
@@ -20,6 +22,7 @@ import {
   ExportDataType,
   ExportedFileFormat,
   Goal,
+  Holding,
 } from "@/lib/types";
 import { QueryObserverResult, useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "@mizan/ui/components/ui/use-toast";
@@ -66,6 +69,43 @@ export function useExportData() {
   } = useMutation<ExportMutationResult, Error, ExportParams>({
     mutationFn: async (params: ExportParams) => {
       const { format, data: desiredData } = params;
+
+      // Excel — produces ONE .xlsx workbook with a tab per data section.
+      // The builder is dynamic-imported so users who never visit the
+      // export screen never pay the ExcelJS bundle cost.
+      if (format === "Excel") {
+        const [accountsRes, activitiesRes, goalsRes, historyRes, holdings, settings] =
+          await Promise.all([
+            fetchAccounts(),
+            fetchActivities(),
+            fetchGoals(),
+            fetchPortfolioHistory(),
+            getHoldings("TOTAL").catch((err: unknown) => {
+              logger.warn(`getHoldings failed during Excel export: ${String(err)}`);
+              return [] as Holding[];
+            }),
+            getSettings().catch((err: unknown) => {
+              logger.warn(`getSettings failed during Excel export: ${String(err)}`);
+              return null;
+            }),
+          ]);
+
+        const { buildPortfolioWorkbook, defaultPortfolioFileName } =
+          await import("@/lib/xlsx-portfolio-export");
+        const generatedAt = new Date();
+        const bytes = await buildPortfolioWorkbook({
+          generatedAt,
+          baseCurrency: settings?.baseCurrency ?? "USD",
+          accounts: accountsRes.data ?? [],
+          activities: activitiesRes.data ?? [],
+          holdings,
+          goals: goalsRes.data ?? [],
+          portfolioHistory: historyRes.data ?? [],
+        });
+
+        return openFileSaveDialog(bytes, defaultPortfolioFileName(generatedAt));
+      }
+
       if (format === "SQLite") {
         if (isWeb) {
           const { filename } = await backupDatabase();
