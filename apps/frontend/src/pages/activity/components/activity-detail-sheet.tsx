@@ -1,6 +1,7 @@
 import { ActivityStatus, ActivityTypeNames, SUBTYPE_DISPLAY_NAMES } from "@/lib/constants";
 import { parseOccSymbol } from "@/lib/occ-symbol";
 import type { ActivityDetails } from "@/lib/types";
+import { useBalancePrivacy } from "@/hooks/use-balance-privacy";
 import {
   Badge,
   Button,
@@ -68,6 +69,9 @@ function DetailSection({ title, icon, children }: DetailSectionProps) {
 }
 
 export function ActivityDetailSheet({ activity, open, onOpenChange }: ActivityDetailSheetProps) {
+  // The hook must run unconditionally to satisfy the Rules of Hooks.
+  // Activity-null branch returns after.
+  const { isBalanceHidden } = useBalancePrivacy();
   if (!activity) return null;
 
   const statusConfig = activity.status
@@ -164,7 +168,11 @@ export function ActivityDetailSheet({ activity, open, onOpenChange }: ActivityDe
               <div className="text-right">
                 <div className="text-muted-foreground text-xs">Amount</div>
                 <div className="text-lg font-bold">
-                  <AmountDisplay value={Number(activity.amount)} currency={activity.currency} />
+                  <AmountDisplay
+                    value={Number(activity.amount)}
+                    currency={activity.currency}
+                    isHidden={isBalanceHidden}
+                  />
                 </div>
               </div>
             </div>
@@ -196,7 +204,11 @@ export function ActivityDetailSheet({ activity, open, onOpenChange }: ActivityDe
               <DetailRow
                 label="Strike Price"
                 value={
-                  <AmountDisplay value={parsedOption.strikePrice} currency={activity.currency} />
+                  <AmountDisplay
+                    value={parsedOption.strikePrice}
+                    currency={activity.currency}
+                    isHidden={isBalanceHidden}
+                  />
                 }
               />
               <DetailRow label="Expiration" value={optionExpirationDisplay} />
@@ -218,18 +230,34 @@ export function ActivityDetailSheet({ activity, open, onOpenChange }: ActivityDe
               <DetailRow
                 label={isOption ? "Premium/Share" : "Unit Price"}
                 value={
-                  <AmountDisplay value={Number(activity.unitPrice)} currency={activity.currency} />
+                  <AmountDisplay
+                    value={Number(activity.unitPrice)}
+                    currency={activity.currency}
+                    isHidden={isBalanceHidden}
+                  />
                 }
               />
             )}
             <DetailRow
               label={isOption ? "Total Premium" : "Amount"}
-              value={<AmountDisplay value={Number(activity.amount)} currency={activity.currency} />}
+              value={
+                <AmountDisplay
+                  value={Number(activity.amount)}
+                  currency={activity.currency}
+                  isHidden={isBalanceHidden}
+                />
+              }
             />
             {Number(activity.fee) !== 0 && (
               <DetailRow
                 label="Fee"
-                value={<AmountDisplay value={Number(activity.fee)} currency={activity.currency} />}
+                value={
+                  <AmountDisplay
+                    value={Number(activity.fee)}
+                    currency={activity.currency}
+                    isHidden={isBalanceHidden}
+                  />
+                }
               />
             )}
             {activity.fxRate && (
