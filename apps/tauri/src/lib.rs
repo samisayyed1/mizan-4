@@ -84,7 +84,14 @@ mod desktop {
 
     /// Initializes desktop-specific plugins.
     pub fn init_plugins(handle: &AppHandle) {
-        let _ = handle.plugin(tauri_plugin_updater::Builder::new().build());
+        // Plugin registration is best-effort — the app should still
+        // boot even if a plugin fails. But silently dropping the error
+        // means the user clicks "Check for updates" later and just gets
+        // nothing with no log trail. Surface it so operators can
+        // diagnose `tauri.conf.json` / capability misconfigurations.
+        if let Err(err) = handle.plugin(tauri_plugin_updater::Builder::new().build()) {
+            log::warn!("Failed to register tauri_plugin_updater: {}", err);
+        }
     }
 
     /// Performs synchronous setup on desktop: initializes context, menu, and registers listeners.
@@ -209,14 +216,26 @@ mod mobile {
 
     /// Initializes mobile-specific plugins.
     pub fn init_plugins(handle: &AppHandle) {
-        let _ = handle.plugin(tauri_plugin_haptics::init());
-        let _ = handle.plugin(tauri_plugin_barcode_scanner::init());
+        // Plugin registration is best-effort (the app should still boot
+        // even if e.g. haptics is unavailable on the host platform), but
+        // we log failures so we can diagnose "haptics doesn't fire" /
+        // "scanner doesn't open" complaints from real users.
+        if let Err(err) = handle.plugin(tauri_plugin_haptics::init()) {
+            log::warn!("Failed to register tauri_plugin_haptics: {}", err);
+        }
+        if let Err(err) = handle.plugin(tauri_plugin_barcode_scanner::init()) {
+            log::warn!("Failed to register tauri_plugin_barcode_scanner: {}", err);
+        }
 
         // iOS-specific: Web Auth plugin for ASWebAuthenticationSession (required for Google OAuth)
         #[cfg(target_os = "ios")]
         {
-            let _ = handle.plugin(tauri_plugin_web_auth::init());
-            let _ = handle.plugin(tauri_plugin_mobile_share::init());
+            if let Err(err) = handle.plugin(tauri_plugin_web_auth::init()) {
+                log::warn!("Failed to register tauri_plugin_web_auth: {}", err);
+            }
+            if let Err(err) = handle.plugin(tauri_plugin_mobile_share::init()) {
+                log::warn!("Failed to register tauri_plugin_mobile_share: {}", err);
+            }
         }
     }
 
