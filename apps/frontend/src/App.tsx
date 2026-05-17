@@ -27,14 +27,30 @@ function App() {
         // instead of silently swallowing them. Mutations that DO supply
         // their own onError keep their existing behaviour (we check
         // `mutation.options.onError` and bail so we don't double-toast).
+        //
+        // We surface the *actual* backend message in the toast description
+        // when it looks useful — so a "Sync engine not configured" or
+        // "Encryption key missing" failure lands in the user's lap with
+        // the right next-step hint, not a generic "please try again".
         mutationCache: new MutationCache({
           onError: (error, _variables, _context, mutation) => {
             if (mutation.options.onError) return;
-            const message = error instanceof Error ? error.message : String(error);
-            logger.error(`Unhandled mutation failure: ${message}`);
+            const rawMessage = error instanceof Error ? error.message : String(error);
+            logger.error(`Unhandled mutation failure: ${rawMessage}`);
+            // Heuristic for "useful" — non-empty, not a stack-trace
+            // wall, not the Tauri invoke-failed envelope. Anything else
+            // came from a deliberate backend message and is worth showing.
+            const trimmed = rawMessage.trim();
+            const looksUseful =
+              trimmed.length > 0 &&
+              trimmed.length < 200 &&
+              !trimmed.startsWith("Error invoking") &&
+              !trimmed.includes("\n    at ");
             toast({
               title: "Something went wrong",
-              description: "Your action couldn't be completed. Please try again.",
+              description: looksUseful
+                ? trimmed
+                : "Your action couldn't be completed. Please try again.",
               variant: "destructive",
             });
           },
