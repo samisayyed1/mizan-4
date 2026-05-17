@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 import ExcelJS from "exceljs";
 
+// Buffer/Uint8Array compat note: ExcelJS v4's `wb.xlsx.load(...)`
+// declares its parameter against an older `@types/node` Buffer shape
+// (Symbol.toStringTag === "ArrayBuffer"). Under @types/node v24+ the
+// runtime Buffer extends Uint8Array (toStringTag === "Uint8Array"),
+// so no cast through any Buffer<T> shape satisfies ExcelJS's old type.
+// Each `wb.xlsx.load(bytes)` below uses `@ts-expect-error` to bypass
+// the structural check — at runtime ExcelJS treats the argument as a
+// byte view, so passing a `Uint8Array<ArrayBufferLike>` works as it
+// always has.
+
 import type { Account, AccountValuation, ActivityDetails, Goal, Holding } from "@/lib/types";
 
 import {
@@ -134,6 +144,7 @@ describe("buildPortfolioWorkbook", () => {
 
     // Round-trip: read back with ExcelJS to confirm the file is valid.
     const wb = new ExcelJS.Workbook();
+    // @ts-expect-error – see Buffer/Uint8Array compat note at top of file
     await wb.xlsx.load(bytes);
     const names = wb.worksheets.map((s) => s.name);
     expect(names).toEqual([
@@ -151,6 +162,7 @@ describe("buildPortfolioWorkbook", () => {
       makeInput({ accounts: [account({ id: "ACC-1" }), account({ id: "ACC-2", name: "Cash" })] }),
     );
     const wb = new ExcelJS.Workbook();
+    // @ts-expect-error – see Buffer/Uint8Array compat note at top of file
     await wb.xlsx.load(bytes);
 
     const ws = wb.getWorksheet(SHEET_NAMES.accounts);
@@ -164,6 +176,7 @@ describe("buildPortfolioWorkbook", () => {
     const input = makeInput({ baseCurrency: "EUR" });
     const bytes = await buildPortfolioWorkbook(input);
     const wb = new ExcelJS.Workbook();
+    // @ts-expect-error – see Buffer/Uint8Array compat note at top of file
     await wb.xlsx.load(bytes);
     const ws = wb.getWorksheet(SHEET_NAMES.holdings);
     if (!ws) throw new Error("holdings sheet missing");
@@ -176,6 +189,7 @@ describe("buildPortfolioWorkbook", () => {
   it("Activities sheet parses string-decimal fields back to numbers", async () => {
     const bytes = await buildPortfolioWorkbook(makeInput());
     const wb = new ExcelJS.Workbook();
+    // @ts-expect-error – see Buffer/Uint8Array compat note at top of file
     await wb.xlsx.load(bytes);
     const ws = wb.getWorksheet(SHEET_NAMES.activities);
     if (!ws) throw new Error("activities sheet missing");
@@ -201,6 +215,7 @@ describe("buildPortfolioWorkbook", () => {
     });
     const bytes = await buildPortfolioWorkbook(input);
     const wb = new ExcelJS.Workbook();
+    // @ts-expect-error – see Buffer/Uint8Array compat note at top of file
     await wb.xlsx.load(bytes);
     const ws = wb.getWorksheet(SHEET_NAMES.summary);
     if (!ws) throw new Error("summary sheet missing");
@@ -223,6 +238,7 @@ describe("buildPortfolioWorkbook", () => {
       makeInput({ accounts: [], activities: [], holdings: [], goals: [], portfolioHistory: [] }),
     );
     const wb = new ExcelJS.Workbook();
+    // @ts-expect-error – see Buffer/Uint8Array compat note at top of file
     await wb.xlsx.load(bytes);
     expect(wb.worksheets).toHaveLength(6);
     // Every data sheet should have at least the header row.
