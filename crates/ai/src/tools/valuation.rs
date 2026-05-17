@@ -3,6 +3,7 @@
 use chrono::NaiveDate;
 use rig::{completion::ToolDefinition, tool::Tool};
 use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -142,7 +143,10 @@ impl<E: AiEnvironment + 'static> Tool for GetValuationHistoryTool<E> {
                 .get_active_accounts()
                 .map_err(|e| AiError::ToolExecutionFailed(e.to_string()))?;
 
-            let mut aggregated: HashMap<NaiveDate, (f64, f64)> = HashMap::new();
+            // Aggregate in Decimal so multi-account totals don't accumulate
+            // float rounding error. The conversion to f64 happens once, at
+            // the JSON DTO boundary below.
+            let mut aggregated: HashMap<NaiveDate, (Decimal, Decimal)> = HashMap::new();
 
             for account in accounts {
                 let account_valuations = self
@@ -152,31 +156,27 @@ impl<E: AiEnvironment + 'static> Tool for GetValuationHistoryTool<E> {
                     .map_err(|e| AiError::ToolExecutionFailed(e.to_string()))?;
 
                 for v in account_valuations {
-                    let Some(fx_rate) = v.fx_rate_to_base.to_f64() else {
-                        log::warn!(
-                            "Dropping valuation for account {} on {} from AI valuation: invalid FX rate",
-                            v.account_id,
-                            v.valuation_date
-                        );
-                        continue;
-                    };
-                    let entry = aggregated.entry(v.valuation_date).or_insert((0.0, 0.0));
-                    // Convert to base currency using fx_rate
-                    let total_in_base = v.total_value.to_f64().unwrap_or(0.0) * fx_rate;
-                    let contribution_in_base = v.net_contribution.to_f64().unwrap_or(0.0) * fx_rate;
+                    // Convert account-currency amounts to base currency in
+                    // Decimal — lossless multiply, no float drift.
+                    let total_in_base = v.total_value * v.fx_rate_to_base;
+                    let contribution_in_base = v.net_contribution * v.fx_rate_to_base;
+                    let entry = aggregated
+                        .entry(v.valuation_date)
+                        .or_insert((Decimal::ZERO, Decimal::ZERO));
                     entry.0 += total_in_base;
                     entry.1 += contribution_in_base;
                 }
             }
 
-            // Convert aggregated data to sorted vector
+            // Convert aggregated data to sorted vector. f64 conversion
+            // happens here, once per date, never compounded.
             let mut result: Vec<ValuationPointDto> = aggregated
                 .into_iter()
                 .map(
                     |(date, (total_value, net_contribution))| ValuationPointDto {
                         date: date.format("%Y-%m-%d").to_string(),
-                        total_value,
-                        net_contribution,
+                        total_value: total_value.to_f64().unwrap_or(0.0),
+                        net_contribution: net_contribution.to_f64().unwrap_or(0.0),
                         currency: self.base_currency.clone(),
                     },
                 )
@@ -193,24 +193,17 @@ impl<E: AiEnvironment + 'static> Tool for GetValuationHistoryTool<E> {
 
             account_valuations
                 .into_iter()
-                .filter_map(|v| {
-                    let Some(fx_rate) = v.fx_rate_to_base.to_f64() else {
-                        log::warn!(
-                            "Dropping valuation for account {} on {} from AI valuation: invalid FX rate",
-                            v.account_id,
-                            v.valuation_date
-                        );
-                        return None;
-                    };
-                    let total_in_base = v.total_value.to_f64().unwrap_or(0.0) * fx_rate;
-                    let contribution_in_base =
-                        v.net_contribution.to_f64().unwrap_or(0.0) * fx_rate;
-                    Some(ValuationPointDto {
+                .map(|v| {
+                    // Multiply in Decimal first, convert to f64 only at the
+                    // JSON boundary so per-row precision is preserved.
+                    let total_in_base = v.total_value * v.fx_rate_to_base;
+                    let contribution_in_base = v.net_contribution * v.fx_rate_to_base;
+                    ValuationPointDto {
                         date: v.valuation_date.format("%Y-%m-%d").to_string(),
-                        total_value: total_in_base,
-                        net_contribution: contribution_in_base,
+                        total_value: total_in_base.to_f64().unwrap_or(0.0),
+                        net_contribution: contribution_in_base.to_f64().unwrap_or(0.0),
                         currency: self.base_currency.clone(),
-                    })
+                    }
                 })
                 .collect()
         };
@@ -302,5 +295,73 @@ mod tests {
         assert_eq!(output.currency, "EUR");
         assert_eq!(output.start_date, "2024-06-01");
         assert_eq!(output.end_date, "2024-06-30");
+    }
+
+    /// Regression test for the f64-aggregation precision bug.
+    ///
+    /// Before the fix, TOTAL aggregation across accounts did:
+    ///   total += account_value.to_f64() * fx_rate.to_f64()
+    /// which compounded float-rounding error across N accounts. With
+    /// even a modestly-decimal FX rate (1.07) and 100 accounts each
+    /// holding 100.10 EUR, the sum in f64 drifts off the true integer-cent
+    /// answer in the last bit. After the fix, multiplication and
+    /// accumulation stay in Decimal — exact — and to_f64 happens once,
+    /// at the JSON boundary.
+    #[tokio::test]
+    async fn aggregates_decimal_then_converts_to_f64_once() {
+        use crate::env::test_env::{MockAccountService, MockEnvironment, MockValuationService};
+        use mizan_core::accounts::Account;
+        use mizan_core::portfolio::valuation::DailyAccountValuation;
+
+        let date = NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        // Same valuation returned for every account by MockValuationService
+        // (it ignores the account_id arg). 100 accounts × 100.10 EUR × 1.07
+        // USD/EUR = 10,710.70 USD exactly, and 100 × 80 × 1.07 = 8,560.00.
+        let fixture = DailyAccountValuation {
+            id: "v1".into(),
+            account_id: "ignored".into(),
+            valuation_date: date,
+            account_currency: "EUR".into(),
+            base_currency: "USD".into(),
+            fx_rate_to_base: Decimal::new(107, 2), // 1.07
+            cash_balance: Decimal::ZERO,
+            investment_market_value: Decimal::new(10010, 2), // 100.10
+            total_value: Decimal::new(10010, 2),             // 100.10
+            cost_basis: Decimal::new(50, 0),                 // 50
+            net_contribution: Decimal::new(80, 0),           // 80
+            calculated_at: chrono::Utc::now(),
+        };
+
+        let accounts: Vec<Account> = (0..100)
+            .map(|i| Account {
+                id: format!("a{i}"),
+                is_active: true,
+                currency: "EUR".into(),
+                ..Default::default()
+            })
+            .collect();
+
+        let mut env = MockEnvironment::new();
+        env.account_service = Arc::new(MockAccountService { accounts });
+        env.valuation_service = Arc::new(MockValuationService {
+            valuations: vec![fixture],
+        });
+
+        let tool = GetValuationHistoryTool::new(Arc::new(env), "USD".to_string());
+        let out = tool
+            .call(GetValuationHistoryArgs {
+                account_id: "TOTAL".to_string(),
+                start_date: Some("2025-01-01".to_string()),
+                end_date: Some("2025-01-01".to_string()),
+            })
+            .await
+            .expect("tool call");
+
+        assert_eq!(out.valuations.len(), 1);
+        // Bit-exact equality: 10710.70 has a unique nearest f64, and
+        // Decimal::to_f64 rounds to that same f64. Any float drift in the
+        // aggregation would land us on a different bit pattern.
+        assert_eq!(out.valuations[0].total_value, 10710.70_f64);
+        assert_eq!(out.valuations[0].net_contribution, 8560.00_f64);
     }
 }
