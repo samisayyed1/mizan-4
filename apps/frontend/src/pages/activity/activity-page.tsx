@@ -9,7 +9,7 @@ import type { SortingState } from "@tanstack/react-table";
 import { Button, Icons, Page, PageContent, PageHeader } from "@mizan/ui";
 import { debounce } from "lodash";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { getActivityRestrictionLevel } from "@/lib/activity-restrictions";
 import { ActivityDeleteModal } from "./components/activity-delete-modal";
 import { ActivityDataGrid } from "./components/activity-data-grid/activity-data-grid";
@@ -72,6 +72,22 @@ const ActivityPage = () => {
 
   const isMobileViewport = useIsMobileViewport();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // When the user lands here via a "Review" link from Mizan Connect
+  // (Sync History / Import Runs), the URL carries `?account=X`. Seed
+  // the persistent account filter from that param so the page
+  // actually shows the filtered subset the link promised — and then
+  // strip the param so a later filter tweak isn't fought by the URL
+  // on the next re-render.
+  useEffect(() => {
+    const accountParam = searchParams.get("account");
+    if (!accountParam) return;
+    setSelectedAccounts([accountParam]);
+    const next = new URLSearchParams(searchParams);
+    next.delete("account");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, setSelectedAccounts]);
 
   // Debounced search handler
   const debouncedUpdateSearch = useMemo(
