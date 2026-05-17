@@ -422,9 +422,13 @@ export function formatQuantity(quantity: number | string | null | undefined): st
   const numQuantity = typeof quantity === "string" ? parseFloat(quantity) : quantity;
   if (!Number.isFinite(numQuantity)) return "-";
 
+  // Crypto holdings can be tiny — a holding of 0.00000001 BTC must
+  // render as "0.00000001", not "0". For sub-unit quantities allow up
+  // to 8 decimals; for whole-share-and-up keep the tidier 4-dp ceiling.
+  const maxDecimals = Math.abs(numQuantity) < 1 ? 8 : 4;
   return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 0,
-    maximumFractionDigits: 4,
+    maximumFractionDigits: maxDecimals,
     useGrouping: true,
   }).format(numQuantity);
 }
