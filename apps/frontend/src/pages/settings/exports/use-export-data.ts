@@ -136,7 +136,11 @@ export function useExportData() {
         return { mode: "sqlite", target: "local" as const, value: filename };
       } else {
         let exportedData: string | undefined;
-        let fileName: string;
+        // Initialise so TS can prove definite assignment. Every switch
+        // arm below that sets exportedData also sets fileName, so the
+        // `if (exportedData)` guard guarantees fileName is the real
+        // value at the openFileSaveDialog call site.
+        let fileName = "";
         let datasetLabel: string | null = null;
 
         const currentDate = new Date().toISOString().split("T")[0];
