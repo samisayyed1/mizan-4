@@ -11,7 +11,12 @@ export function MobileNavigationContainer() {
   const onRefresh = useCallback(async () => {
     await updatePortfolio();
     await queryClient.invalidateQueries();
-    await syncTriggerCycle().catch(() => undefined);
+    // Sync is best-effort — the portfolio update + cache invalidation
+    // above have already given the user fresh data. But a silent
+    // syncTriggerCycle failure was masking real backend issues, so log it.
+    await syncTriggerCycle().catch((err) => {
+      console.error("Pull-to-refresh sync failed:", err);
+    });
   }, [queryClient]);
   const [isRefreshing, pullToRefreshHandlers, ptr] = usePullToRefresh({ onRefresh });
 
