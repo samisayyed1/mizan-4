@@ -280,7 +280,9 @@ export function AddExchangeRateForm({ onSubmit, onCancel }: AddExchangeRateFormP
               Cancel
             </Button>
           </DialogTrigger>
-          <Button type="submit">
+          {/* Disable while the async submit is in flight to prevent
+              duplicate-rate submissions on double-click. */}
+          <Button type="submit" disabled={form.formState.isSubmitting}>
             <Icons.Plus className="h-4 w-4" />
             <span className="hidden sm:ml-2 sm:inline">Add Exchange Rate</span>
           </Button>

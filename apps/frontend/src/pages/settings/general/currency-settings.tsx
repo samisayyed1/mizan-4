@@ -56,7 +56,11 @@ export function BaseCurrencyForm() {
             </FormItem>
           )}
         />
-        <Button type="submit">Save Currency</Button> {/* Changed button text slightly */}
+        {/* Disable while the async submit is in flight so the user
+            can't fire two settings updates by double-clicking. */}
+        <Button type="submit" disabled={form.formState.isSubmitting}>
+          Save Currency
+        </Button>
       </form>
     </Form>
   );
