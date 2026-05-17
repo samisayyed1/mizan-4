@@ -242,6 +242,7 @@ function ProviderSettings({
                 variant="ghost"
                 size="icon"
                 className="text-muted-foreground hover:text-foreground h-8 w-8"
+                aria-label="Provider settings"
               >
                 <Icons.Settings className="h-4 w-4" />
               </Button>
@@ -387,6 +388,7 @@ function ProviderSettings({
                         variant="outline"
                         size="icon"
                         className="h-7 w-7 rounded-r-none"
+                        aria-label="Decrease priority"
                         onClick={() => {
                           const newVal = Math.max(1, (priorityValue ?? 1) - 1);
                           onPriorityChange(String(newVal));
@@ -402,6 +404,7 @@ function ProviderSettings({
                         variant="outline"
                         size="icon"
                         className="h-7 w-7 rounded-l-none"
+                        aria-label="Increase priority"
                         onClick={() => {
                           const newVal = (priorityValue ?? 1) + 1;
                           onPriorityChange(String(newVal));
@@ -535,6 +538,7 @@ function CustomProviderCard({
             size="icon"
             className="text-muted-foreground hover:text-foreground h-8 w-8"
             onClick={onEdit}
+            aria-label="Edit credential"
           >
             <Icons.Pencil className="h-4 w-4" />
           </Button>
@@ -551,6 +555,7 @@ function CustomProviderCard({
                 variant="ghost"
                 size="icon"
                 className="text-muted-foreground hover:text-destructive h-8 w-8"
+                aria-label="Delete credential"
               >
                 <Icons.Trash className="h-4 w-4" />
               </Button>

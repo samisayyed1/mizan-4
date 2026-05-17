@@ -379,6 +379,7 @@ export default function ConnectPage() {
                         variant="ghost"
                         size="icon"
                         className="text-muted-foreground hover:text-foreground h-8 w-8 sm:hidden"
+                        aria-label="Connect settings"
                       >
                         <Icons.Settings className="h-4 w-4" />
                       </Button>

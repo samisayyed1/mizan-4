@@ -421,6 +421,7 @@ export function MultiSelectTaxonomy({
                   className="h-7 w-7 shrink-0"
                   onClick={() => handleRemoveCategory(assignment.id)}
                   disabled={isPending}
+                  aria-label="Remove category"
                 >
                   <Icons.Close className="h-3.5 w-3.5 opacity-60" />
                 </Button>

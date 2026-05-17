@@ -782,7 +782,12 @@ export const AssetProfilePage = () => {
                   ] satisfies ActionPaletteGroup[]
                 }
                 trigger={
-                  <Button variant="outline" size="icon" className="h-9 w-9">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9"
+                    aria-label="Asset actions"
+                  >
                     <Icons.DotsThreeVertical className="h-5 w-5" weight="fill" />
                   </Button>
                 }
@@ -1006,7 +1011,12 @@ export const AssetProfilePage = () => {
                     ] satisfies ActionPaletteGroup[])
               }
               trigger={
-                <Button variant="outline" size="icon" className="h-9 w-9">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9"
+                  aria-label="Asset actions"
+                >
                   <Icons.DotsThreeVertical className="h-5 w-5" weight="fill" />
                 </Button>
               }

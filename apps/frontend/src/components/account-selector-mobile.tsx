@@ -124,7 +124,13 @@ export const AccountSelectorMobile = forwardRef<HTMLButtonElement, AccountSelect
 
     if (isLoading) {
       return (
-        <Button variant="outline" className={cn("h-9 w-9 p-0", className)} size="icon" disabled>
+        <Button
+          variant="outline"
+          className={cn("h-9 w-9 p-0", className)}
+          size="icon"
+          disabled
+          aria-label="Loading account selector"
+        >
           <Skeleton className="h-4 w-4" />
         </Button>
       );
@@ -164,7 +170,8 @@ export const AccountSelectorMobile = forwardRef<HTMLButtonElement, AccountSelect
                     {accountsInGroup.map((account) => {
                       const IconComponent = accountTypeIcons[account.accountType] ?? Icons.Wallet;
                       return (
-                        <button type="button"
+                        <button
+                          type="button"
                           key={account.id}
                           onClick={() => handleAccountSelect(account)}
                           className="hover:bg-accent active:bg-accent/80 focus:border-primary flex w-full items-center gap-3 rounded-lg border border-transparent p-3 text-left transition-colors focus:outline-none"

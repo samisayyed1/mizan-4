@@ -50,6 +50,7 @@ const InputTags = React.forwardRef<HTMLInputElement, InputTagsProps>(
               onClick={() => {
                 onChange(value.filter((i: string) => i !== item));
               }}
+              aria-label={`Remove ${item}`}
             >
               <Icons.X className="w-3" />
             </Button>

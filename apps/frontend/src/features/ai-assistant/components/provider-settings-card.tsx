@@ -350,6 +350,7 @@ export function ProviderSettingsCard({
                 variant="ghost"
                 size="icon"
                 className="text-muted-foreground hover:text-foreground h-8 w-8"
+                aria-label="Provider settings"
               >
                 <Icons.Settings className="h-4 w-4" />
               </Button>
@@ -625,6 +626,7 @@ export function ProviderSettingsCard({
                                       handleToggleFavorite(model.id);
                                       if (isSelected) setSelectedModelForConfig(null);
                                     }}
+                                    aria-label="Remove model from favorites"
                                   >
                                     <Icons.X className="h-3.5 w-3.5" />
                                   </Button>

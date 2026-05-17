@@ -282,10 +282,22 @@ export const QuoteHistoryTable: React.FC<QuoteHistoryTableProps> = ({
                 const quote = info.row.original;
                 return editingId === quote.id ? (
                   <div className="flex space-x-2">
-                    <Button variant="ghost" size="icon" onClick={handleSave} className="h-8 w-8">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleSave}
+                      className="h-8 w-8"
+                      aria-label="Save quote"
+                    >
                       <Icons.Check className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={handleCancel} className="h-8 w-8">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleCancel}
+                      className="h-8 w-8"
+                      aria-label="Cancel edit"
+                    >
                       <Icons.Close className="h-4 w-4" />
                     </Button>
                   </div>
@@ -296,12 +308,18 @@ export const QuoteHistoryTable: React.FC<QuoteHistoryTableProps> = ({
                       size="icon"
                       onClick={() => handleEdit(quote)}
                       className="h-8 w-8"
+                      aria-label="Edit quote"
                     >
                       <Icons.Pencil className="h-4 w-4" />
                     </Button>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          aria-label="Delete quote"
+                        >
                           <Icons.Trash className="h-4 w-4" />
                         </Button>
                       </PopoverTrigger>
@@ -511,6 +529,7 @@ export const QuoteHistoryTable: React.FC<QuoteHistoryTableProps> = ({
                         size="icon"
                         onClick={handleAddNew}
                         className="h-8 w-8"
+                        aria-label="Add quote"
                       >
                         <Icons.Check className="h-4 w-4" />
                       </Button>
@@ -519,6 +538,7 @@ export const QuoteHistoryTable: React.FC<QuoteHistoryTableProps> = ({
                         size="icon"
                         onClick={() => setIsAddingQuote(false)}
                         className="h-8 w-8"
+                        aria-label="Cancel"
                       >
                         <Icons.Close className="h-4 w-4" />
                       </Button>
