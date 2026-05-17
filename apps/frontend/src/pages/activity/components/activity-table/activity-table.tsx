@@ -43,7 +43,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Button, formatAmount } from "@mizan/ui";
+import { Button } from "@mizan/ui";
 import { Link } from "react-router-dom";
 import { useActivityMutations } from "../../hooks/use-activity-mutations";
 import { ActivityOperations } from "../activity-operations";
@@ -314,7 +314,9 @@ export const ActivityTable = ({
             isCashTransfer(activityType, assetSymbol, row.original.assetId) ||
             (isIncomeActivity(activityType) && !isAssetBackedIncome)
           ) {
-            return <div className="text-right">{formatAmount(Number(amount), currency)}</div>;
+            // Cash flow amount — use formatPrice so sub-cent crypto
+            // dividends / micro-transfers don't render as "$0.00".
+            return <div className="text-right">{formatPrice(amount, currency)}</div>;
           }
 
           // Unit price needs sub-cent precision for crypto / penny tokens.
@@ -334,7 +336,7 @@ export const ActivityTable = ({
         ),
         cell: ({ row }) => {
           const activityType = String(row.getValue("activityType"));
-          const fee = Number(row.getValue("fee"));
+          const fee = row.getValue("fee") as string | number | null | undefined;
           const currencyVal = row.getValue("currency");
           const currency =
             typeof currencyVal === "string" && currencyVal
@@ -343,7 +345,10 @@ export const ActivityTable = ({
 
           return (
             <div className="text-right">
-              {activityType === "SPLIT" ? "-" : formatAmount(fee, currency)}
+              {/* Gas/network fees on crypto can be sub-cent — formatPrice
+                  preserves up to 8 dp where formatAmount would round
+                  them to "$0.00". */}
+              {activityType === "SPLIT" ? "-" : formatPrice(fee, currency)}
             </div>
           );
         },
@@ -369,7 +374,10 @@ export const ActivityTable = ({
           }
 
           const displayValue = calculateActivityValue(activity);
-          return <div className="pr-4 text-right">{formatAmount(displayValue, currency)}</div>;
+          // Total can be sub-cent for micro-transactions or qty × price
+          // where both are small. formatPrice preserves precision when
+          // the value is <$1; identical to formatAmount otherwise.
+          return <div className="pr-4 text-right">{formatPrice(displayValue, currency)}</div>;
         },
       },
       {
