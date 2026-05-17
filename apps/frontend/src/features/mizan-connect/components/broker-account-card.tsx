@@ -2,6 +2,7 @@ import { Card, CardContent } from "@mizan/ui/components/ui/card";
 import { Badge } from "@mizan/ui/components/ui/badge";
 import { Icons } from "@mizan/ui/components/ui/icons";
 import { formatDate } from "@/lib/utils";
+import { isValid } from "date-fns";
 import { useState } from "react";
 import type { BrokerAccount } from "../types";
 
@@ -25,11 +26,19 @@ function getLastSyncDate(account: BrokerAccount): string | null {
   const txDate = account.sync_status?.transactions?.last_successful_sync;
   const holdingsDate = account.sync_status?.holdings?.last_successful_sync;
 
-  // Get the most recent date
-  if (txDate && holdingsDate) {
+  // Pick the most recent of the two — but only after confirming each
+  // is a parseable date. A malformed string would otherwise compare
+  // `Invalid Date > Invalid Date` (always false) and silently drop
+  // the value we should have shown.
+  const txValid = !!txDate && isValid(new Date(txDate));
+  const holdingsValid = !!holdingsDate && isValid(new Date(holdingsDate));
+
+  if (txValid && holdingsValid) {
     return new Date(txDate) > new Date(holdingsDate) ? txDate : holdingsDate;
   }
-  return txDate || holdingsDate || null;
+  if (txValid) return txDate ?? null;
+  if (holdingsValid) return holdingsDate ?? null;
+  return null;
 }
 
 /**

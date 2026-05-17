@@ -1,7 +1,7 @@
 import { Badge } from "@mizan/ui/components/ui/badge";
 import { Card, CardContent } from "@mizan/ui/components/ui/card";
 import { Icons } from "@mizan/ui/components/ui/icons";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, isValid } from "date-fns";
 import { useState } from "react";
 import type { Account, Platform } from "@/lib/types";
 import type { BrokerSyncState, SyncStatus } from "../types";
@@ -42,6 +42,16 @@ const statusConfig: Record<
   },
 };
 
+// Format the "last synced" timestamp defensively. A truthy but
+// unparseable string would otherwise render the literal text
+// "Last synced Invalid Date" — visible to the user during a demo.
+function formatLastSyncedLabel(value: string | null | undefined): string {
+  if (!value) return "Never synced";
+  const d = new Date(value);
+  if (!isValid(d)) return "Never synced";
+  return `Last synced ${formatDistanceToNow(d, { addSuffix: true })}`;
+}
+
 export function BrokerSyncStateCard({ syncState, account, platform }: BrokerSyncStateCardProps) {
   const config = statusConfig[syncState.syncStatus];
   const accountName = account?.name || syncState.accountId;
@@ -75,9 +85,7 @@ export function BrokerSyncStateCard({ syncState, account, platform }: BrokerSync
               {config.icon}
             </div>
             <p className="text-muted-foreground text-sm">
-              {syncState.lastSuccessfulAt
-                ? `Last synced ${formatDistanceToNow(new Date(syncState.lastSuccessfulAt), { addSuffix: true })}`
-                : "Never synced"}
+              {formatLastSyncedLabel(syncState.lastSuccessfulAt)}
             </p>
           </div>
         </div>
