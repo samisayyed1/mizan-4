@@ -728,7 +728,12 @@ function EnabledMizanConnectProvider({ children }: { children: ReactNode }) {
       // Still clear local state even on unexpected errors
       setSession(null);
       setUser(null);
-      await storeTokens(null).catch(() => {});
+      await storeTokens(null).catch((tokenErr) => {
+        // Best-effort: we're already in the error path. Surface this
+        // failure separately so it doesn't mask the original sign-out
+        // error (preserved via setError/throw below).
+        console.error("storeTokens cleanup after sign-out failure also failed:", tokenErr);
+      });
       const message = err instanceof Error ? err.message : "Sign out failed";
       setError(message);
       throw err;

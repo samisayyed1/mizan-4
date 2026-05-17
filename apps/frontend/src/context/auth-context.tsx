@@ -142,7 +142,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       fetch("/api/v1/auth/logout", {
         method: "POST",
         credentials: "same-origin",
-      }).catch(() => {});
+      }).catch((err) => {
+        // Local state is cleared regardless (below), so a failed server
+        // logout doesn't strand the user — but it does mean the cookie
+        // session may persist server-side. Log so an operator can spot
+        // a misbehaving auth backend.
+        console.error("Server-side logout failed:", err);
+      });
     }
     setCookieSession(false);
     setLoginError(null);
