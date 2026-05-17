@@ -23,6 +23,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
+  getInitialIntervalData,
 } from "@mizan/ui";
 import { useMemo, useState } from "react";
 
@@ -73,7 +74,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@mizan/ui/components/ui/sheet";
-import { format, parseISO, subMonths } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { useNavigate, useParams } from "react-router-dom";
 import { AccountContributionLimit } from "./account-contribution-limit";
 import AccountHoldings from "./account-holdings";
@@ -96,11 +97,18 @@ const accountTypeIcons: Record<AccountType, Icon> = {
   CRYPTOCURRENCY: Icons.Bitcoin,
 };
 
-// Helper function to get the initial date range (copied from dashboard)
-const getInitialDateRange = (): DateRange => ({
-  from: subMonths(new Date(), 3),
-  to: new Date(),
-});
+// Initial date range comes from getInitialIntervalData so it lands on
+// day boundaries (matches IntervalSelector / DateRangeSelector). Using
+// subMonths(new Date(), 3) directly would set `from` to "3 months ago
+// at the current time of day", which causes the leftmost day of the
+// requested window to fall outside any client-side quote filter.
+const getInitialDateRange = (): DateRange => {
+  const range = getInitialIntervalData("3M").range;
+  return {
+    from: range?.from,
+    to: range?.to,
+  };
+};
 
 // Format date for display
 const formatDate = (dateStr: string): string => {
@@ -559,7 +567,8 @@ const AccountPage = () => {
                                 const IconComponent =
                                   accountTypeIcons[acc.accountType] ?? Icons.CreditCard;
                                 return (
-                                  <button type="button"
+                                  <button
+                                    type="button"
                                     key={acc.id}
                                     onClick={() => handleAccountSwitch(acc)}
                                     className={cn(

@@ -1,4 +1,4 @@
-import { isSameDay, startOfYear, subDays, subMonths, subYears } from "date-fns";
+import { endOfDay, isSameDay, startOfDay, startOfYear, subDays, subMonths, subYears } from "date-fns";
 import { DateRange as DayPickerDateRange } from "react-day-picker";
 import { cn } from "../../lib/utils";
 import { AnimatedToggleGroup } from "../ui/animated-toggle-group";
@@ -13,56 +13,65 @@ export interface DateRange {
   to: Date | undefined;
 }
 
+// Range computation note (see also IntervalSelector): every preset
+// snaps to day boundaries so "Last Week" means the seven calendar days
+// ending today (inclusive). Without `startOfDay`/`endOfDay`, the
+// `isSameDay` highlight check below would still match within a single
+// session — but for performance-page consumers that store the range
+// via `usePersistentState`, the persisted `from`/`to` are real Date
+// values used by the backend `format(..., "yyyy-MM-dd")` filter, and a
+// 23:50 time stamp can flip across the timezone-local day boundary
+// during DST or near midnight.
 const ranges = [
   {
     label: "1D",
     name: "Last Day",
-    getValue: () => ({ from: subDays(new Date(), 1), to: new Date() }),
+    getValue: () => ({ from: startOfDay(subDays(new Date(), 1)), to: endOfDay(new Date()) }),
   },
   {
     label: "1W",
     name: "Last Week",
-    getValue: () => ({ from: subDays(new Date(), 7), to: new Date() }),
+    getValue: () => ({ from: startOfDay(subDays(new Date(), 7)), to: endOfDay(new Date()) }),
   },
   {
     label: "1M",
     name: "Last Month",
-    getValue: () => ({ from: subMonths(new Date(), 1), to: new Date() }),
+    getValue: () => ({ from: startOfDay(subMonths(new Date(), 1)), to: endOfDay(new Date()) }),
   },
   {
     label: "3M",
     name: "Last 3 Months",
-    getValue: () => ({ from: subMonths(new Date(), 3), to: new Date() }),
+    getValue: () => ({ from: startOfDay(subMonths(new Date(), 3)), to: endOfDay(new Date()) }),
   },
   {
     label: "6M",
     name: "Last 6 Months",
-    getValue: () => ({ from: subMonths(new Date(), 6), to: new Date() }),
+    getValue: () => ({ from: startOfDay(subMonths(new Date(), 6)), to: endOfDay(new Date()) }),
   },
   {
     label: "YTD",
     name: "Year to Date",
-    getValue: () => ({ from: startOfYear(new Date()), to: new Date() }),
+    getValue: () => ({ from: startOfYear(new Date()), to: endOfDay(new Date()) }),
   },
   {
     label: "1Y",
     name: "Last Year",
-    getValue: () => ({ from: subYears(new Date(), 1), to: new Date() }),
+    getValue: () => ({ from: startOfDay(subYears(new Date(), 1)), to: endOfDay(new Date()) }),
   },
   {
     label: "3Y",
     name: "Last 3 Years",
-    getValue: () => ({ from: subYears(new Date(), 3), to: new Date() }),
+    getValue: () => ({ from: startOfDay(subYears(new Date(), 3)), to: endOfDay(new Date()) }),
   },
   {
     label: "5Y",
     name: "Last 5 Years",
-    getValue: () => ({ from: subYears(new Date(), 5), to: new Date() }),
+    getValue: () => ({ from: startOfDay(subYears(new Date(), 5)), to: endOfDay(new Date()) }),
   },
   {
     label: "ALL",
     name: "All Time",
-    getValue: () => ({ from: new Date(1970, 0, 1), to: new Date() }),
+    getValue: () => ({ from: new Date(1970, 0, 1), to: endOfDay(new Date()) }),
   },
 ];
 
