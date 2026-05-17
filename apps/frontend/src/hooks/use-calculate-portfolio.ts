@@ -31,7 +31,6 @@ export function useRecalculatePortfolioMutation() {
         description: "Please try again or report an issue if the problem persists.",
         variant: "destructive",
       });
-      console.warn("Error recalculating portfolio:", error);
       logger.error(`Error recalculating portfolio: ${String(error)}`);
     },
   });
