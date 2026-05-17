@@ -2306,63 +2306,6 @@ async fn stream_agent_response<M: CompletionModel + 'static, E: AiEnvironment + 
     Ok(())
 }
 
-// ============================================================================
-// History Building (for future use)
-// ============================================================================
-
-/// Build rig Message history from SimpleChatMessage list.
-#[allow(dead_code)]
-fn build_history(messages: &[SimpleChatMessage]) -> Result<(Message, Vec<Message>), AiError> {
-    let Some(last_user_index) = messages
-        .iter()
-        .rposition(|msg| msg.role.eq_ignore_ascii_case("user"))
-    else {
-        return Err(AiError::InvalidInput(
-            "A user message is required to start the chat".to_string(),
-        ));
-    };
-
-    let prompt_content = messages
-        .get(last_user_index)
-        .map(|msg| msg.content.clone())
-        .unwrap_or_default();
-
-    let prompt = Message::User {
-        content: OneOrMany::one(UserContent::Text(Text {
-            text: prompt_content,
-        })),
-    };
-
-    let mut history = Vec::new();
-
-    for (idx, msg) in messages.iter().enumerate() {
-        if idx == last_user_index {
-            continue;
-        }
-
-        match msg.role.as_str() {
-            role if role.eq_ignore_ascii_case("user") => {
-                history.push(Message::User {
-                    content: OneOrMany::one(UserContent::Text(Text {
-                        text: msg.content.clone(),
-                    })),
-                });
-            }
-            role if role.eq_ignore_ascii_case("assistant") => {
-                history.push(Message::Assistant {
-                    id: None,
-                    content: OneOrMany::one(AssistantContent::Text(Text {
-                        text: msg.content.clone(),
-                    })),
-                });
-            }
-            _ => {}
-        }
-    }
-
-    Ok((prompt, history))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2751,21 +2694,5 @@ mod tests {
             }
             _ => panic!("expected provider error"),
         }
-    }
-
-    #[test]
-    fn test_build_history() {
-        let messages = vec![
-            SimpleChatMessage::user("Hello"),
-            SimpleChatMessage::assistant("Hi there!"),
-            SimpleChatMessage::user("How are you?"),
-        ];
-
-        let result = build_history(&messages);
-        assert!(result.is_ok());
-
-        let (prompt, history) = result.unwrap();
-        assert!(matches!(prompt, Message::User { .. }));
-        assert_eq!(history.len(), 2);
     }
 }
