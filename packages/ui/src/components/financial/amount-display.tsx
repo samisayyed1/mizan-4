@@ -39,10 +39,15 @@ export function AmountDisplay({
     precision === "price"
       ? formatPrice(value, currency, displayCurrency)
       : formatAmount(value, currency, displayCurrency);
+  // Skip color tinting when the underlying value is missing or non-
+  // finite. Previously `Number(null) = 0` painted the "-" dash
+  // success-green and `Number(undefined) = NaN` painted it destructive-
+  // red — both misleading colour-cues on a no-data display.
   const numericValue = typeof value === "number" ? value : Number(value);
+  const hasNumericValue = value != null && Number.isFinite(numericValue);
   const positive = invertColor ? "text-destructive" : "text-success";
   const negative = invertColor ? "text-success" : "text-destructive";
-  const colorClass = colorFormat ? (Number.isFinite(numericValue) && numericValue >= 0 ? positive : negative) : "";
+  const colorClass = colorFormat && hasNumericValue ? (numericValue >= 0 ? positive : negative) : "";
 
   return <span className={cn(colorClass, className)}>{isHidden ? "••••" : formattedAmount}</span>;
 }
