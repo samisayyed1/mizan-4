@@ -16,7 +16,7 @@ import { parseOccSymbol } from "@/lib/occ-symbol";
 import { useSettingsContext } from "@/lib/settings-provider";
 import { ActivityDetails } from "@/lib/types";
 import { formatDateTime, formatPrice } from "@/lib/utils";
-import { formatAmount, Separator } from "@mizan/ui";
+import { Separator } from "@mizan/ui";
 import { Link } from "react-router-dom";
 import { ActivityOperations } from "../activity-operations";
 import { ActivityTypeBadge } from "../activity-type-badge";
@@ -91,7 +91,9 @@ export const ActivityTableMobile = ({
                           <p className="truncate font-semibold">{displaySymbol}</p>
                           {activity.activityType !== "SPLIT" && (
                             <span className="shrink-0 text-sm font-semibold">
-                              {formatAmount(displayValue, activity.currency)}
+                              {/* Sub-cent crypto micro-transactions should
+                                  render as their real value, not "$0.00". */}
+                              {formatPrice(displayValue, activity.currency)}
                             </span>
                           )}
                         </div>
@@ -242,7 +244,9 @@ export const ActivityTableMobile = ({
                               )) ||
                             isCashTransfer(activity.activityType, symbol, activity.assetId) ||
                             (isIncomeActivity(activity.activityType) && !isAssetBackedIncome)
-                          ? formatAmount(Number(activity.amount), activity.currency)
+                          ? // Cash flow amount — formatPrice so sub-cent
+                            // crypto dividends / micro-transfers survive.
+                            formatPrice(activity.amount, activity.currency)
                           : // Unit price needs sub-cent precision; formatPrice
                             // accepts string directly so we preserve the
                             // backend's full-precision value through display.
@@ -255,7 +259,8 @@ export const ActivityTableMobile = ({
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Fee</span>
                     <span className="font-medium">
-                      {formatAmount(Number(activity.fee), activity.currency)}
+                      {/* Gas fees on crypto can be sub-cent. */}
+                      {formatPrice(activity.fee, activity.currency)}
                     </span>
                   </div>
                 )}
@@ -265,7 +270,7 @@ export const ActivityTableMobile = ({
                   <div className="flex items-center justify-between border-t pt-1.5">
                     <span className="text-muted-foreground font-medium">Total Value</span>
                     <span className="font-semibold">
-                      {formatAmount(displayValue, activity.currency)}
+                      {formatPrice(displayValue, activity.currency)}
                     </span>
                   </div>
                 )}
