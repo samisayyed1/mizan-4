@@ -43,7 +43,7 @@ function walk(dir: string, out: string[] = []): string[] {
     const st = statSync(full);
     if (st.isDirectory()) walk(full, out);
     else if (st.isFile() && full.endsWith(".tsx")) {
-      if (/\.test\.tsx$/.test(full)) continue;
+      if (full.endsWith(".test.tsx")) continue;
       out.push(full);
     }
   }

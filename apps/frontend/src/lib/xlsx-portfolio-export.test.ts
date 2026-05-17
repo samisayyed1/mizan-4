@@ -223,14 +223,18 @@ describe("buildPortfolioWorkbook", () => {
     const pairs: Record<string, unknown> = {};
     for (let r = 2; r <= ws.rowCount; r++) {
       // Summary layout: column 1 = "Field", column 2 = "Value".
-      const field = String(ws.getRow(r).getCell(1).value ?? "");
+      // ExcelJS CellValue is a union (string | number | Date | RichText
+      // | …) so coerce only the string case — otherwise `String(obj)`
+      // would silently turn a stray object into "[object Object]".
+      const rawField = ws.getRow(r).getCell(1).value;
+      const field = typeof rawField === "string" ? rawField : "";
       const value = ws.getRow(r).getCell(2).value;
       if (field) pairs[field] = value;
     }
     expect(pairs["Base currency"]).toBe("USD");
     expect(pairs["Accounts (active / total)"]).toBe("1 / 2");
     expect(pairs["Activities rows"]).toBe(2);
-    expect(pairs["Goals"]).toBe(1);
+    expect(pairs.Goals).toBe(1);
   });
 
   it("renders an empty-but-valid workbook when the user has no data yet", async () => {
