@@ -36,7 +36,7 @@ import {
   TooltipTrigger,
 } from "@mizan/ui/components/ui/tooltip";
 import type { Account, ActivityImport } from "@/lib/types";
-import { cn, formatDateTime, toPascalCase } from "@/lib/utils";
+import { cn, formatDateTime, formatPrice, toPascalCase } from "@/lib/utils";
 import { useSettingsContext } from "@/lib/settings-provider";
 import { formatAmount } from "@mizan/ui";
 import { motion } from "motion/react";
@@ -484,7 +484,10 @@ function getColumns(accounts: Account[], baseCurrency: string): ColumnDef<Activi
                     const ratio = toNumber(unitPrice);
                     return ratio === undefined ? "-" : `${ratio.toFixed(0)} : 1`;
                   })()
-                : safeFormatAmount(unitPrice, currency)}
+                : // Per-unit prices need sub-cent precision so crypto /
+                  // penny tokens (e.g. BTC sats, SHIB at $0.00001234) don't
+                  // render as "$0.00" in the CSV preview.
+                  formatPrice(unitPrice, currency)}
             </div>
           </ErrorCell>
         );

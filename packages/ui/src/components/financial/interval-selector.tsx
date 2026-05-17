@@ -2,7 +2,7 @@ import { AnimatedToggleGroup } from "../ui/animated-toggle-group";
 import { useIsMobile } from "../../hooks/use-mobile";
 import { usePersistentState } from "../../hooks/use-persistent-state";
 import { cn } from "../../lib/utils";
-import { startOfYear, subDays, subMonths, subWeeks, subYears } from "date-fns";
+import { endOfDay, startOfDay, startOfYear, subDays, subMonths, subWeeks, subYears } from "date-fns";
 import React, { useCallback, useState } from "react";
 
 export type TimePeriod = "1D" | "1W" | "1M" | "3M" | "6M" | "YTD" | "1Y" | "5Y" | "ALL";
@@ -29,51 +29,59 @@ const intervalDescriptions: Record<TimePeriod, string> = {
   ALL: "All Time",
 };
 
+// Range computation note: clicking "1W" at 5pm used to set `from` to
+// "7 days ago at 5pm" and `to` to "now". Quotes are typically stamped
+// at market close on each day; comparing them against a same-day time
+// boundary caused the earliest-day data point to fall *outside* the
+// range, so the chart silently omitted the leftmost day every time.
+// Normalising both ends to day boundaries (startOfDay / endOfDay) makes
+// "past 1 week" mean "the seven calendar days ending today, inclusive"
+// — which matches what the user expects when they click the button.
 const intervals: IntervalData[] = [
   {
     code: "1D",
     description: intervalDescriptions["1D"],
-    calculateRange: () => ({ from: subDays(new Date(), 1), to: new Date() }),
+    calculateRange: () => ({ from: startOfDay(subDays(new Date(), 1)), to: endOfDay(new Date()) }),
   },
   {
     code: "1W",
     description: intervalDescriptions["1W"],
-    calculateRange: () => ({ from: subWeeks(new Date(), 1), to: new Date() }),
+    calculateRange: () => ({ from: startOfDay(subWeeks(new Date(), 1)), to: endOfDay(new Date()) }),
   },
   {
     code: "1M",
     description: intervalDescriptions["1M"],
-    calculateRange: () => ({ from: subMonths(new Date(), 1), to: new Date() }),
+    calculateRange: () => ({ from: startOfDay(subMonths(new Date(), 1)), to: endOfDay(new Date()) }),
   },
   {
     code: "3M",
     description: intervalDescriptions["3M"],
-    calculateRange: () => ({ from: subMonths(new Date(), 3), to: new Date() }),
+    calculateRange: () => ({ from: startOfDay(subMonths(new Date(), 3)), to: endOfDay(new Date()) }),
   },
   {
     code: "6M",
     description: intervalDescriptions["6M"],
-    calculateRange: () => ({ from: subMonths(new Date(), 6), to: new Date() }),
+    calculateRange: () => ({ from: startOfDay(subMonths(new Date(), 6)), to: endOfDay(new Date()) }),
   },
   {
     code: "YTD",
     description: intervalDescriptions.YTD,
-    calculateRange: () => ({ from: startOfYear(new Date()), to: new Date() }),
+    calculateRange: () => ({ from: startOfYear(new Date()), to: endOfDay(new Date()) }),
   },
   {
     code: "1Y",
     description: intervalDescriptions["1Y"],
-    calculateRange: () => ({ from: subYears(new Date(), 1), to: new Date() }),
+    calculateRange: () => ({ from: startOfDay(subYears(new Date(), 1)), to: endOfDay(new Date()) }),
   },
   {
     code: "5Y",
     description: intervalDescriptions["5Y"],
-    calculateRange: () => ({ from: subYears(new Date(), 5), to: new Date() }),
+    calculateRange: () => ({ from: startOfDay(subYears(new Date(), 5)), to: endOfDay(new Date()) }),
   },
   {
     code: "ALL",
     description: intervalDescriptions.ALL,
-    calculateRange: () => ({ from: new Date("1970-01-01"), to: new Date() }),
+    calculateRange: () => ({ from: new Date("1970-01-01"), to: endOfDay(new Date()) }),
   },
 ];
 

@@ -16,8 +16,9 @@ import {
   Icons,
   IntervalSelector,
   formatPercent,
+  getInitialIntervalData,
 } from "@mizan/ui";
-import { format, subMonths } from "date-fns";
+import { format } from "date-fns";
 import React, { useCallback, useMemo, useState } from "react";
 import { RefreshQuotesConfirmDialog } from "./refresh-quotes-confirm-dialog";
 
@@ -49,11 +50,16 @@ const AssetHistoryCard: React.FC<AssetHistoryProps> = ({
   }, [syncMarketDataMutation, assetId]);
 
   const [selectedIntervalCode, setSelectedIntervalCode] = useState<TimePeriod>("3M");
-  const [selectedIntervalDesc, setSelectedIntervalDesc] = useState<string>("past 3 months");
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: subMonths(new Date(), 3),
-    to: new Date(),
-  });
+  // Initial state comes from getInitialIntervalData so the very first
+  // render already uses day-boundary `from`/`to` — without this, the
+  // client-side quote filter below would miss the earliest day's quote
+  // until the user clicks an interval button. (See
+  // apps/frontend/src/lib/interval-selector-range.test.ts.)
+  const initialIntervalData = useMemo(() => getInitialIntervalData("3M"), []);
+  const [selectedIntervalDesc, setSelectedIntervalDesc] = useState<string>(
+    initialIntervalData.description,
+  );
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(initialIntervalData.range);
 
   const filteredData = useMemo(() => {
     if (!quoteHistory) return [];

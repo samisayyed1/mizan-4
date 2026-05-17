@@ -89,6 +89,62 @@ export function formatAmount(
   return getCurrencyFormatter(rawCurrency).format(displayAmount);
 }
 
+/**
+ * Format a per-unit price. Unlike `formatAmount` which rounds to the
+ * currency's display precision (2 dp), this preserves sub-cent precision
+ * for crypto / penny stocks / micro-priced tokens.
+ *
+ * Rule:
+ *   - |price| >= 1   → standard currency format (2 decimals).
+ *   - |price| < 1    → up to 8 decimals, trailing zeros past the
+ *                       2-decimal minimum are trimmed.
+ *   - non-finite / nullish / empty string → "-".
+ *
+ * Accepts string or number on input; a precision-preserving
+ * Decimal-as-string from the CSV import path survives until display.
+ */
+export function formatPrice(
+  price: number | string | null | undefined,
+  currency: string,
+  displayCurrency = true,
+): string {
+  if (price == null || price === "") return "-";
+  const numericPrice = typeof price === "string" ? Number(price) : price;
+  if (!Number.isFinite(numericPrice)) return "-";
+
+  if (Math.abs(numericPrice) >= 1) {
+    return formatAmount(numericPrice, currency, displayCurrency);
+  }
+
+  const rawCurrency = currency ?? "USD";
+  const isPenceCurrency = rawCurrency === "GBp" || rawCurrency === "GBX";
+
+  const precisionFormatter = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 8,
+    useGrouping: false,
+  });
+  const formattedNumber = precisionFormatter.format(numericPrice);
+
+  if (isPenceCurrency) {
+    return displayCurrency ? `${formattedNumber}p` : formattedNumber;
+  }
+  if (!displayCurrency) {
+    return formattedNumber;
+  }
+
+  try {
+    const parts = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: rawCurrency.toUpperCase(),
+    }).formatToParts(0);
+    const symbol = parts.find((p) => p.type === "currency")?.value ?? "";
+    return `${symbol}${formattedNumber}`;
+  } catch {
+    return formattedNumber;
+  }
+}
+
 export function formatCompactAmount(
   amount: number | string | null | undefined,
   currency: string,
