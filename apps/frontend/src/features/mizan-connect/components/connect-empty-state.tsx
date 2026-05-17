@@ -125,7 +125,7 @@ export function ConnectEmptyState() {
             appear here automatically.
           </p>
           <ExternalLink
-            href="https://mizan.app/connect/"
+            href="https://mizan-landing-rho.vercel.app"
             className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs transition-colors"
           >
             Learn more about Connect

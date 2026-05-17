@@ -1,11 +1,6 @@
-import { openUrlInBrowser } from "@/adapters";
 import { ComingSoonCard } from "@/components/coming-soon-card";
 import { ExternalLink } from "@/components/external-link";
 import { DeviceSyncSection } from "@/features/devices-sync";
-// TODO(chunk-4): drop MIZAN_CONNECT_PORTAL_URL entirely once the billing
-// surfaces below migrate into the app. The constant points at
-// https://connect.mizan.app, which is currently a parked domain.
-import { MIZAN_CONNECT_PORTAL_URL } from "@/lib/constants";
 import { QueryKeys } from "@/lib/query-keys";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ActionConfirm } from "@mizan/ui";
@@ -754,10 +749,18 @@ export function ConnectedView() {
                   Currently opens a parked-domain URL — the upsell card is
                   also gated by `hasSubscription && !showBrokerSync` which
                   is unreachable in Chunk 3 (no team data), so this button
-                  doesn't render today. Kept for the Chunk-4 swap. */}
+                  doesn't render today. Defensive: toast on click instead
+                  of opening a parked URL, so when Chunk 4 lights it up
+                  the UX stays honest. */}
               <Button
                 size="sm"
-                onClick={() => openUrlInBrowser(`${MIZAN_CONNECT_PORTAL_URL}/settings/billing`)}
+                onClick={() =>
+                  toast({
+                    title: "Billing portal coming soon",
+                    description:
+                      "Stripe checkout ships in the next release. We'll email you when it's ready.",
+                  })
+                }
               >
                 Upgrade
                 <Icons.ArrowRight className="ml-1 h-3.5 w-3.5" />
@@ -774,7 +777,7 @@ export function ConnectedView() {
           syncs securely via an aggregator to your local database. Device sync uses end-to-end
           encryption.{" "}
           <ExternalLink
-            href="https://mizan.app/privacy"
+            href="https://mizan-landing-rho.vercel.app"
             className="text-muted-foreground hover:text-foreground underline underline-offset-2"
           >
             Learn more

@@ -1,4 +1,4 @@
-import { openUrlInBrowser, syncTriggerCycle } from "@/adapters";
+import { syncTriggerCycle } from "@/adapters";
 import { Page, PageContent, PageHeader } from "@/components/page";
 import { useSyncStatus } from "@/features/devices-sync/hooks";
 import { useDevices } from "@/features/devices-sync/hooks";
@@ -12,7 +12,6 @@ import {
 import { useSyncBrokerData } from "@/features/mizan-connect/hooks/use-sync-broker-data";
 import { useMizanConnect } from "@/features/mizan-connect/providers/mizan-connect-provider";
 import { useAccounts } from "@/hooks/use-accounts";
-import { MIZAN_CONNECT_PORTAL_URL } from "@/lib/constants";
 import { QueryKeys } from "@/lib/query-keys";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ActionConfirm } from "@mizan/ui";
@@ -482,12 +481,18 @@ export default function ConnectPage() {
                       Connect your brokerage accounts for automatic portfolio syncing.
                     </p>
                   </div>
-                  {/* TODO(chunk-4): swap to in-app Stripe checkout once billing
-                      ships. mizan.app is currently parked, so this opens nothing
-                      useful — kept only as a placeholder until Chunk 4. */}
+                  {/* Billing portal is parked until Chunk 4 ships the
+                      in-app Stripe checkout. Toast on click instead of
+                      sending the user to a blank page. */}
                   <Button
                     size="sm"
-                    onClick={() => openUrlInBrowser(`${MIZAN_CONNECT_PORTAL_URL}/settings/billing`)}
+                    onClick={() =>
+                      toast({
+                        title: "Billing portal coming soon",
+                        description:
+                          "Stripe checkout ships in the next release. We'll email you when it's ready.",
+                      })
+                    }
                   >
                     Upgrade
                     <Icons.ArrowRight className="ml-1 h-3.5 w-3.5" />
