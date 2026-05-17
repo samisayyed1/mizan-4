@@ -48,6 +48,7 @@ export function SettingsHeader({
             size="icon"
             onClick={handleBack}
             className="ml-1 lg:hidden"
+            aria-label="Go back"
           >
             <Icons.ArrowLeft className="size-6" />
           </Button>

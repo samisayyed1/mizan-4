@@ -118,6 +118,7 @@ export default function IncomePage() {
             size="icon"
             className="bg-secondary/30 relative h-9 w-9 rounded-full border-none"
             onClick={() => setIsFilterSheetOpen(true)}
+            aria-label="Open filters"
           >
             <Icons.ListFilter className="h-4 w-4" />
             {selectedAccount?.id !== PORTFOLIO_ACCOUNT_ID && (
@@ -228,6 +229,7 @@ export default function IncomePage() {
             size="icon"
             className="bg-secondary/30 relative h-9 w-9 rounded-full border-none"
             onClick={() => setIsFilterSheetOpen(true)}
+            aria-label="Open filters"
           >
             <Icons.ListFilter className="h-4 w-4" />
             {selectedAccount?.id !== PORTFOLIO_ACCOUNT_ID && (

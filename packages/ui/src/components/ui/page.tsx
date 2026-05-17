@@ -162,7 +162,7 @@ export function PageHeader({
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 flex-1 items-center gap-2">
               {onBack && (
-                <Button variant="ghost" size="icon" onClick={onBack}>
+                <Button variant="ghost" size="icon" onClick={onBack} aria-label="Go back">
                   <Icons.ArrowLeft className="size-5" />
                 </Button>
               )}

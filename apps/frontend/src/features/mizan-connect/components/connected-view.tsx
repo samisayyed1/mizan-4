@@ -348,6 +348,7 @@ function BrokerConnectionsCard({
               className="text-muted-foreground hover:text-foreground h-8 w-8"
               onClick={onRefresh}
               disabled={isRefreshing}
+              aria-label="Refresh"
             >
               <Icons.RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             </Button>

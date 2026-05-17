@@ -147,6 +147,7 @@ export const HoldingsTableMobile = ({
               size="icon"
               className="relative size-9 shrink-0"
               onClick={() => setIsFilterSheetOpen(true)}
+              aria-label="Open filters"
             >
               <Icons.ListFilter className="h-4 w-4" />
               {hasActiveFilters && (

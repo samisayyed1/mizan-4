@@ -105,7 +105,7 @@ export default function AddonSettingsPage() {
         <div className="flex items-center gap-3">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" aria-label="Add-on info">
                 <Icons.Info className="h-4 w-4" />
               </Button>
             </PopoverTrigger>

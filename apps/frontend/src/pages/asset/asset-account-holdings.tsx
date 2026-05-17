@@ -432,6 +432,7 @@ export function AssetSnapshotHistory({
                   size="icon"
                   className="h-7 w-7"
                   onClick={() => handleEditSnapshot(snap.accountId, snap.snapshotDate)}
+                  aria-label="Edit snapshot"
                 >
                   <Icons.Pencil className="h-3.5 w-3.5" />
                 </Button>
@@ -439,6 +440,7 @@ export function AssetSnapshotHistory({
                   variant="ghost"
                   size="icon"
                   className="text-destructive h-7 w-7"
+                  aria-label="Delete snapshot"
                   onClick={() =>
                     setDeletingSnapshot({
                       accountId: snap.accountId,
@@ -506,6 +508,7 @@ export function AssetSnapshotHistory({
                         size="icon"
                         className="h-7 w-7"
                         onClick={() => handleEditSnapshot(snap.accountId, snap.snapshotDate)}
+                        aria-label="Edit snapshot"
                       >
                         <Icons.Pencil className="h-3.5 w-3.5" />
                       </Button>
@@ -513,6 +516,7 @@ export function AssetSnapshotHistory({
                         variant="ghost"
                         size="icon"
                         className="text-destructive h-7 w-7"
+                        aria-label="Delete snapshot"
                         onClick={() =>
                           setDeletingSnapshot({
                             accountId: snap.accountId,

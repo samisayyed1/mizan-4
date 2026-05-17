@@ -34,7 +34,7 @@ export function MobileActionsMenu({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetTrigger asChild>
-        <Button variant="outline" size="icon" className="h-9 w-9">
+        <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Open actions menu">
           <Icons.MoreVertical className="h-4 w-4" />
         </Button>
       </SheetTrigger>
@@ -47,7 +47,8 @@ export function MobileActionsMenu({
           {actions.map((action, index) => {
             const IconComponent = Icons[action.icon];
             return (
-              <button type="button"
+              <button
+                type="button"
                 key={index}
                 onClick={() => {
                   action.onClick();

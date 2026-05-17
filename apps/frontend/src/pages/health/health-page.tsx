@@ -150,6 +150,7 @@ function HealthIssueRow({
             onDismiss();
           }}
           disabled={isDismissing}
+          aria-label="Dismiss"
         >
           {isDismissing ? (
             <Icons.Spinner className="h-3.5 w-3.5 animate-spin" />
@@ -188,7 +189,8 @@ function StatusSummary({
         const isActive = selectedSeverity === severity;
 
         return (
-          <button type="button"
+          <button
+            type="button"
             key={severity}
             onClick={() => onSeverityClick(isActive ? null : severity)}
             className={cn(

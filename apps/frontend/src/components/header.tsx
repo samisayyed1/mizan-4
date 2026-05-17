@@ -34,12 +34,12 @@ export function ApplicationHeader({
         {displayBack ? (
           backUrl ? (
             <Link to={backUrl}>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" aria-label="Go back">
                 <Icons.ArrowLeft />
               </Button>
             </Link>
           ) : (
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Go back">
               <Icons.ArrowLeft />
             </Button>
           )

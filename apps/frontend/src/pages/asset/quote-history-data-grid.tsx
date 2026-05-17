@@ -230,6 +230,7 @@ export function QuoteHistoryDataGrid({
                     size="icon"
                     className="text-muted-foreground hover:text-destructive h-7 w-7"
                     onClick={() => handleDeleteRow(row.original)}
+                    aria-label="Delete quote"
                   >
                     <Icons.X className="h-4 w-4" />
                   </Button>
@@ -473,6 +474,7 @@ export function QuoteHistoryDataGrid({
                           size="icon"
                           className="h-7 w-7"
                           onClick={() => setMobileEditingId(null)}
+                          aria-label="Done editing"
                         >
                           <Icons.Check className="h-4 w-4" />
                         </Button>
@@ -595,6 +597,7 @@ export function QuoteHistoryDataGrid({
                             e.stopPropagation();
                             handleDeleteRow(entry);
                           }}
+                          aria-label="Delete quote"
                         >
                           <Icons.X className="h-3.5 w-3.5" />
                         </Button>

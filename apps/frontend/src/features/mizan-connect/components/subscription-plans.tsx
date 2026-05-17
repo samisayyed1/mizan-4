@@ -211,7 +211,10 @@ export function SubscriptionPlans({
               has expired.{" "}
               <Popover>
                 <PopoverTrigger asChild>
-                  <button type="button" className="text-muted-foreground hover:text-foreground underline underline-offset-2">
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground underline underline-offset-2"
+                  >
                     Contact support
                   </button>
                 </PopoverTrigger>
@@ -226,6 +229,7 @@ export function SubscriptionPlans({
                         navigator.clipboard.writeText("support@mizan.app");
                         toast.success("Email copied to clipboard");
                       }}
+                      aria-label="Copy support email"
                     >
                       <Icons.Copy className="h-3.5 w-3.5" />
                     </Button>
@@ -273,7 +277,10 @@ export function SubscriptionPlans({
               issue.{" "}
               <Popover>
                 <PopoverTrigger asChild>
-                  <button type="button" className="text-muted-foreground hover:text-foreground underline underline-offset-2">
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground underline underline-offset-2"
+                  >
                     Contact support
                   </button>
                 </PopoverTrigger>
@@ -288,6 +295,7 @@ export function SubscriptionPlans({
                         navigator.clipboard.writeText("support@mizan.app");
                         toast.success("Email copied to clipboard");
                       }}
+                      aria-label="Copy support email"
                     >
                       <Icons.Copy className="h-3.5 w-3.5" />
                     </Button>

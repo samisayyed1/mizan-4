@@ -65,15 +65,20 @@ export function RateCell({ rate, onUpdate }: RateCellProps) {
         <div className="flex space-x-1">
           {isEditing ? (
             <>
-              <Button variant="outline" size="icon" onClick={handleCancelEdit}>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleCancelEdit}
+                aria-label="Cancel rate edit"
+              >
                 <Icons.Close className="h-4 w-4" />
               </Button>
-              <Button size="icon" onClick={handleSubmit}>
+              <Button size="icon" onClick={handleSubmit} aria-label="Save rate">
                 <Icons.Check className="h-4 w-4" />
               </Button>
             </>
           ) : (
-            <Button variant="outline" size="icon" onClick={handleEdit}>
+            <Button variant="outline" size="icon" onClick={handleEdit} aria-label="Edit rate">
               <Icons.Pencil className="h-4 w-4" />
             </Button>
           )}

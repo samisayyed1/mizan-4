@@ -73,7 +73,7 @@ export function ActionPalette({
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         {trigger ?? (
-          <Button variant="outline" size="icon" className="h-9 w-9">
+          <Button variant="outline" size="icon" className="h-9 w-9" aria-label="More actions">
             <Icons.DotsThreeVertical className="h-5 w-5" weight="fill" />
           </Button>
         )}
@@ -94,7 +94,8 @@ export function ActionPalette({
         {title && (
           <div className="flex items-center justify-between px-5 pb-3 pt-5">
             <h3 className="text-foreground text-lg font-bold">{title}</h3>
-            <button type="button"
+            <button
+              type="button"
               onClick={handleClose}
               className={cn(
                 "flex h-8 w-8 items-center justify-center rounded-full",
@@ -127,7 +128,8 @@ export function ActionPalette({
                   return (
                     <React.Fragment key={itemIndex}>
                       {itemIndex > 0 && <div className="bg-border/70 mx-3 h-px" />}
-                      <button type="button"
+                      <button
+                        type="button"
                         onClick={() => handleItemClick(item)}
                         disabled={isDisabled}
                         aria-disabled={isDisabled}

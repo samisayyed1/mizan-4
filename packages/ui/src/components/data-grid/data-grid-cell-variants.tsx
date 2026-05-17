@@ -2424,6 +2424,7 @@ export function FileCell<TData>({
                             className="size-5 rounded-sm"
                             onClick={() => removeFile(file.id)}
                             disabled={isPending}
+                            aria-label="Remove file"
                           >
                             <Icons.X className="size-3" />
                           </Button>

@@ -558,6 +558,7 @@ export function DeviceSyncSection() {
                 className="text-muted-foreground hover:text-foreground h-8 w-8 sm:hidden"
                 onClick={handleToggleEngine}
                 disabled={isTogglingEngine}
+                aria-label="Toggle sync engine"
               >
                 {isTogglingEngine ? (
                   <Icons.Loader className="h-4 w-4 animate-spin" />
@@ -597,6 +598,7 @@ export function DeviceSyncSection() {
                 className="text-muted-foreground hover:text-foreground h-8 w-8"
                 onClick={handleRefreshDevices}
                 disabled={isRefreshing}
+                aria-label="Refresh devices"
               >
                 <Icons.RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
               </Button>
@@ -606,6 +608,7 @@ export function DeviceSyncSection() {
                 size="icon"
                 className="text-muted-foreground hover:text-foreground sm:hidden"
                 onClick={() => window.open(PORTAL_DEVICES_URL, "_blank")}
+                aria-label="Open device portal"
               >
                 <Icons.ExternalLink className="h-4 w-4" />
               </Button>
@@ -1314,6 +1317,7 @@ function DeviceCard({
                 className="h-7 w-7 shrink-0"
                 onClick={handleRename}
                 disabled={renameDevice.isPending}
+                aria-label="Save device name"
               >
                 {renameDevice.isPending ? (
                   <Icons.Spinner className="h-3.5 w-3.5 animate-spin" />
@@ -1326,6 +1330,7 @@ function DeviceCard({
                 variant="ghost"
                 className="h-7 w-7 shrink-0"
                 onClick={handleCancelRename}
+                aria-label="Cancel rename"
               >
                 <Icons.Close className="h-3.5 w-3.5" />
               </Button>

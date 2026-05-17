@@ -327,7 +327,13 @@ export function ImportHelpPopover({ defaultTab = "activities" }: ImportHelpPopov
     return (
       <Sheet>
         <SheetTrigger asChild>
-          <Button type="button" variant="ghost" size="icon" className="h-9 w-9">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9"
+            aria-label="Import help"
+          >
             <Icons.HelpCircle className="h-6 w-6" />
           </Button>
         </SheetTrigger>
