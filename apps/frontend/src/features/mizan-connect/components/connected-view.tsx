@@ -15,12 +15,12 @@ import { toast } from "@mizan/ui/components/ui/use-toast";
 import { formatDate } from "@/lib/utils";
 import { useCallback, useMemo, useState } from "react";
 import { useCreateBrokerLoginPortal } from "../hooks";
+import { useIsBrokerSyncRunning, useSyncBrokerData } from "../hooks/use-sync-broker-data";
 import { useMizanConnect } from "../providers/mizan-connect-provider";
 import {
   deleteBrokerConnection,
   listBrokerAccounts,
   listBrokerConnections,
-  syncBrokerData,
 } from "../services/broker-service";
 import { useQueryClient } from "@tanstack/react-query";
 import type { BrokerAccount, BrokerConnection } from "../types";
@@ -495,26 +495,18 @@ export function ConnectedView() {
     }
   }, [clearError, refetchUserInfo]);
 
-  // Sync accounts to local database
-  // Sync runs in background, global event listener handles toasts and query invalidation
-  const syncToLocalMutation = useMutation({
-    mutationFn: syncBrokerData,
-    onSuccess: () => {
-      toast.loading("Syncing broker data...", { id: "broker-sync-start" });
-    },
-    onError: (error) => {
-      // Tauri rejects Result<_, String> commands with a plain JS string,
-      // not an Error instance. Unwrap whichever shape we got so the user
-      // sees the real reason instead of "Unknown error".
-      const message =
-        error instanceof Error
-          ? error.message
-          : typeof error === "string"
-            ? error
-            : "Unknown error";
-      toast.error(`Failed to start sync: ${message}`);
-    },
-  });
+  // Sync accounts to local database. Sync runs in background, global
+  // event listener handles toasts and query invalidation.
+  //
+  // Previously this component declared its own inline `useMutation` for
+  // syncBrokerData, separate from the SyncButton's `useSyncBrokerData`
+  // hook. Two buttons → two mutations → two parallel /sync commands
+  // when the user clicked them in quick succession. Now both share
+  // the same hook (and `BROKER_SYNC_MUTATION_KEY`), and the global
+  // `useIsBrokerSyncRunning()` gate below disables every sync
+  // trigger in the tree while one is in flight.
+  const syncToLocalMutation = useSyncBrokerData();
+  const isBrokerSyncRunning = useIsBrokerSyncRunning();
 
   // Handlers
   const handleSignOut = useCallback(async () => {
@@ -555,7 +547,12 @@ export function ConnectedView() {
   }, [allConnections, allBrokerAccounts]);
   const isLoadingConnections = connectionsQuery.isLoading;
   const isLoadingAccounts = accountsQuery.isLoading;
-  const isSyncing = syncToLocalMutation.isPending;
+  // Use the global "any broker-sync mutation in flight" gate so the
+  // Sync Now button below disables even when the in-flight sync was
+  // triggered from the header SyncButton (or any other component).
+  // `syncToLocalMutation.isPending` would only catch syncs started
+  // through *this* component's call to `mutate()`.
+  const isSyncing = isBrokerSyncRunning || syncToLocalMutation.isPending;
 
   return (
     <div className="space-y-6">

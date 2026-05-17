@@ -4,6 +4,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@mizan/ui/components/ui
 import { formatDistanceToNow } from "date-fns";
 import { useMizanConnect } from "../providers/mizan-connect-provider";
 import { useAggregatedSyncStatus, useSyncBrokerData } from "../hooks";
+import { useIsBrokerSyncRunning } from "../hooks/use-sync-broker-data";
 import type { AggregatedSyncStatus } from "../types";
 
 interface SyncButtonProps {
@@ -31,6 +32,11 @@ export function SyncButton({ className, showLabel = false, size = "icon" }: Sync
   const { isEnabled, isConnected } = useMizanConnect();
   const { status, lastSyncTime } = useAggregatedSyncStatus();
   const { mutate: syncBrokerData, isPending: isSyncing } = useSyncBrokerData();
+  // Disable the button when *any* broker-sync mutation is in flight,
+  // not just this hook's own pending state. Prevents firing a second
+  // /sync command when the inline "Sync Now" button in ConnectedView
+  // (or any future trigger) is the one that started the sync.
+  const isAnySyncRunning = useIsBrokerSyncRunning();
 
   // TODO(chunk-4): restore plan-tier gating once /api/v1/user/me returns
   // team.plan. For Chunk 3 the broker UI shows whenever the user is
@@ -39,7 +45,7 @@ export function SyncButton({ className, showLabel = false, size = "icon" }: Sync
     return null;
   }
 
-  const isRunning = status === "running" || isSyncing;
+  const isRunning = status === "running" || isSyncing || isAnySyncRunning;
   const colorClass = statusColors[status];
 
   const tooltipContent = lastSyncTime
