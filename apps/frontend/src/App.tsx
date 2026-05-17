@@ -28,13 +28,21 @@ function App() {
         // their own onError keep their existing behaviour (we check
         // `mutation.options.onError` and bail so we don't double-toast).
         //
-        // We surface the *actual* backend message in the toast description
-        // when it looks useful — so a "Sync engine not configured" or
-        // "Encryption key missing" failure lands in the user's lap with
-        // the right next-step hint, not a generic "please try again".
+        // A second escape hatch is `meta.suppressDefaultError: true` —
+        // for mutations whose caller handles errors via a `try/catch`
+        // around `mutateAsync` and shows its own toast. Without the
+        // opt-out the user would see *two* destructive toasts on the
+        // same failure (one from the cache here, one from the caller).
+        //
+        // When we do toast, we surface the actual backend message when
+        // it looks useful — so "Sync engine not configured" or
+        // "Encryption key missing" reaches the user verbatim, not as
+        // a generic "please try again".
         mutationCache: new MutationCache({
           onError: (error, _variables, _context, mutation) => {
             if (mutation.options.onError) return;
+            const meta = mutation.options.meta as { suppressDefaultError?: boolean } | undefined;
+            if (meta?.suppressDefaultError) return;
             const rawMessage = error instanceof Error ? error.message : String(error);
             logger.error(`Unhandled mutation failure: ${rawMessage}`);
             // Heuristic for "useful" — non-empty, not a stack-trace
