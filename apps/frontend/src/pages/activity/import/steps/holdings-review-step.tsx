@@ -155,6 +155,7 @@ export function HoldingsReviewStep() {
   // Backend check state
   const [checkResult, setCheckResult] = useState<CheckHoldingsImportResult | null>(null);
   const [checkLoading, setCheckLoading] = useState(false);
+  const [checkError, setCheckError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!accountId || snapshots.length === 0) {
@@ -164,6 +165,7 @@ export function HoldingsReviewStep() {
 
     let cancelled = false;
     setCheckLoading(true);
+    setCheckError(null);
     dispatch(setHoldingsCheckPassed(false));
     checkHoldingsImport(accountId, snapshots)
       .then((result) => {
@@ -174,11 +176,18 @@ export function HoldingsReviewStep() {
         // so only validation errors (bad dates, quantities) block progress.
         dispatch(setHoldingsCheckPassed(result.validationErrors.length === 0));
       })
-      .catch(() => {
-        if (!cancelled) {
-          setCheckResult(null);
-          dispatch(setHoldingsCheckPassed(false));
-        }
+      .catch((err) => {
+        if (cancelled) return;
+        // Previously: catch swallowed the error and set checkResult=null.
+        // That landed the UI on the "Ready to Import" success banner with
+        // a silently-disabled Next button — a confusing dead-end. Now we
+        // surface the failure so the user knows to retry.
+        console.error("checkHoldingsImport failed:", err);
+        setCheckResult(null);
+        setCheckError(
+          err instanceof Error ? err.message : "Couldn't validate import — please retry.",
+        );
+        dispatch(setHoldingsCheckPassed(false));
       })
       .finally(() => {
         if (!cancelled) setCheckLoading(false);
@@ -249,6 +258,15 @@ export function HoldingsReviewStep() {
         />
         {checkLoading ? (
           <Skeleton className="h-[60px] rounded-lg" />
+        ) : checkError ? (
+          <ImportAlert
+            variant="destructive"
+            size="sm"
+            title="Validation Failed"
+            description={checkError}
+            icon={Icons.AlertTriangle}
+            className="mb-0"
+          />
         ) : checkResult?.validationErrors.length ? (
           <ImportAlert
             variant="destructive"
