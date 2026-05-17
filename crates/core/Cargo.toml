@@ -16,8 +16,6 @@ tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 diesel = { workspace = true }
-diesel_migrations = { workspace = true }
-rusqlite = { workspace = true }
 r2d2 = { workspace = true }
 chrono = { workspace = true }
 thiserror = { workspace = true }
@@ -40,8 +38,6 @@ regex = "1.10"
 rand = { workspace = true }
 rand_distr = "0.4"
 rayon = "1"
-dashmap = "6.1"
-serde_with = "3"
 urlencoding = "2"
 csv = "1.4.0"
 chardetng = "0.1"
