@@ -35,7 +35,24 @@ export function SyncHistory({ pageSize = 10 }: SyncHistoryProps) {
 
   const runs = useMemo(() => {
     if (!data?.pages) return [];
-    return data.pages.flat();
+    // Sort newest-first, defensive against backends that don't
+    // guarantee order. Pages come back in fetch order from the
+    // infinite query, but the underlying SQL might not be ORDER BY
+    // started_at DESC — and even if it is, we want one consistent
+    // sort across all pages without depending on the backend.
+    return data.pages
+      .flat()
+      .slice()
+      .sort((a, b) => {
+        const aTime = new Date(a.startedAt).getTime();
+        const bTime = new Date(b.startedAt).getTime();
+        const aValid = Number.isFinite(aTime);
+        const bValid = Number.isFinite(bTime);
+        if (!aValid && !bValid) return 0;
+        if (!aValid) return 1;
+        if (!bValid) return -1;
+        return bTime - aTime;
+      });
   }, [data]);
 
   if (isLoading) {
@@ -126,15 +143,29 @@ function SyncRunItem({ run }: { run: ImportRun }) {
   const StatusIcon = config.icon;
   const hasWarnings = run.warnings && run.warnings.length > 0;
 
+  // All three Date() calls below guard against malformed / missing
+  // backend timestamps so a single bad row doesn't render "Invalid
+  // Date" or NaN-s during a live demo.
   const duration = useMemo(() => {
     if (!run.finishedAt) return null;
-    const ms = new Date(run.finishedAt).getTime() - new Date(run.startedAt).getTime();
+    const start = new Date(run.startedAt).getTime();
+    const finish = new Date(run.finishedAt).getTime();
+    if (!Number.isFinite(start) || !Number.isFinite(finish)) return null;
+    const ms = Math.max(0, finish - start);
     if (ms < 1000) return "<1s";
     return `${Math.round(ms / 1000)}s`;
   }, [run.startedAt, run.finishedAt]);
 
   const timeAgo = useMemo(() => {
-    return formatDistanceToNow(new Date(run.startedAt), { addSuffix: true });
+    const t = new Date(run.startedAt);
+    if (!Number.isFinite(t.getTime())) return "—";
+    return formatDistanceToNow(t, { addSuffix: true });
+  }, [run.startedAt]);
+
+  const startedAtAbsolute = useMemo(() => {
+    const t = new Date(run.startedAt);
+    if (!Number.isFinite(t.getTime())) return "—";
+    return format(t, "MMM d, HH:mm");
   }, [run.startedAt]);
 
   return (
@@ -175,7 +206,7 @@ function SyncRunItem({ run }: { run: ImportRun }) {
             <div className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
               <span>{timeAgo}</span>
               <span className="text-muted-foreground/50">&middot;</span>
-              <span>{format(new Date(run.startedAt), "MMM d, HH:mm")}</span>
+              <span>{startedAtAbsolute}</span>
               {duration && (
                 <>
                   <span className="text-muted-foreground/50">&middot;</span>
