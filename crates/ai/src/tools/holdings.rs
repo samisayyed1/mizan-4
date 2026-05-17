@@ -150,11 +150,24 @@ impl<E: AiEnvironment + 'static> Tool for GetHoldingsTool<E> {
 
         let original_count = holdings.len();
 
-        // Convert to DTOs, filtering out cash positions, and apply limit
-        let holdings_dto: Vec<HoldingDto> = holdings
+        // Filter + truncate once, then both fold the Decimal totals and
+        // build the f64 DTOs from the same source. Previously the total
+        // was summed *after* each holding's Decimal value had been
+        // converted to f64 — for a portfolio with many positions, that
+        // sum drifts by a few ULP and the LLM-facing `total_value`
+        // visibly diverges from the dashboard's own total. Same shape
+        // as the PR #37 / PR #53 fixes.
+        let filtered: Vec<mizan_core::holdings::Holding> = holdings
             .into_iter()
             .filter(|h| h.holding_type != mizan_core::holdings::HoldingType::Cash)
             .take(MAX_HOLDINGS)
+            .collect();
+
+        let total_value_decimal: rust_decimal::Decimal =
+            filtered.iter().map(|h| h.market_value.base).sum();
+
+        let holdings_dto: Vec<HoldingDto> = filtered
+            .into_iter()
             .map(|h| {
                 // Extract symbol and name from instrument
                 let (symbol, name) = h
@@ -192,7 +205,7 @@ impl<E: AiEnvironment + 'static> Tool for GetHoldingsTool<E> {
             .collect();
 
         let returned_count = holdings_dto.len();
-        let total_value: f64 = holdings_dto.iter().map(|h| h.market_value_base).sum();
+        let total_value: f64 = total_value_decimal.to_f64().unwrap_or(0.0);
         let truncated = original_count > returned_count;
 
         Ok(GetHoldingsOutput {
