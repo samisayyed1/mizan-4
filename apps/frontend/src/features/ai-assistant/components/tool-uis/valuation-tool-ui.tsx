@@ -3,8 +3,16 @@ import { HistoryChart } from "@/components/history-chart";
 import { PORTFOLIO_ACCOUNT_ID } from "@/lib/constants";
 import { DateRange, TimePeriod } from "@/lib/types";
 import { makeAssistantToolUI } from "@assistant-ui/react";
-import { Badge, Card, CardContent, CardHeader, CardTitle, IntervalSelector } from "@mizan/ui";
-import { isAfter, parseISO, subMonths } from "date-fns";
+import {
+  Badge,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  IntervalSelector,
+  getInitialIntervalData,
+} from "@mizan/ui";
+import { isAfter, parseISO } from "date-fns";
 import { memo, useMemo, useState } from "react";
 
 import { Icons } from "@mizan/ui/components/ui/icons";
@@ -32,10 +40,11 @@ interface ValuationResult {
   valuations: ValuationPoint[];
 }
 
-const getInitialDateRange = (): DateRange => ({
-  from: subMonths(new Date(), 3),
-  to: new Date(),
-});
+// Day-boundary initial range, matching IntervalSelector's contract.
+const getInitialDateRange = (): DateRange => {
+  const range = getInitialIntervalData("3M").range;
+  return { from: range?.from, to: range?.to };
+};
 
 /**
  * Normalize backend result to consistent shape, handling both camelCase and snake_case.

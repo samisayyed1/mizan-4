@@ -38,7 +38,7 @@ import {
   Icons,
   Separator,
 } from "@mizan/ui";
-import { subMonths } from "date-fns";
+import { endOfDay, startOfDay, subMonths } from "date-fns";
 import { useMemo, useState } from "react";
 import { AccountSelector } from "../../components/account-selector";
 import { AccountSelectorMobile } from "../../components/account-selector-mobile";
@@ -216,9 +216,11 @@ export default function PerformancePage() {
   );
   const [dateRange, setDateRange] = usePersistentState<DateRange | undefined>(
     "performance:dateRange",
+    // Day-boundary defaults so the persisted range can't drift on first
+    // load (matches the IntervalSelector / DateRangeSelector contract).
     {
-      from: subMonths(new Date(), 12),
-      to: new Date(),
+      from: startOfDay(subMonths(new Date(), 12)),
+      to: endOfDay(new Date()),
     },
   );
 
