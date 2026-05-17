@@ -5,7 +5,7 @@ import {
   Icons,
   Input,
   useDataGrid,
-  formatAmount,
+  formatPrice,
 } from "@mizan/ui";
 import { useCallback, useMemo, useState } from "react";
 import { createColumnHelper } from "@tanstack/react-table";
@@ -20,13 +20,18 @@ const normalizeDate = (value: Date | string): Date => {
   return new Date(value);
 };
 
-// Get decimal precision based on asset kind
+// Get decimal precision based on asset kind. Default is 8 dp so
+// sub-cent crypto and penny-token OHLC values (e.g. BTC at $0.00001234,
+// SHIB at $0.00000812) survive the round-and-store step that runs
+// before the row is rendered. For ≥$1 prices the display formatter
+// (formatPrice) trims trailing zeros so a $150.25 stock still renders
+// as "150.25". FX retains the historical 6 dp.
 const getDecimalPrecision = (assetKind?: AssetKind | null): number => {
   switch (assetKind) {
     case "FX":
-      return 6; // FX rates need high precision
+      return 6; // FX rates rarely need more than 6 dp.
     default:
-      return 2; // Standard precision for stocks, ETFs, etc.
+      return 8; // Crypto, penny tokens, micro-priced instruments need 8.
   }
 };
 
@@ -586,7 +591,7 @@ export function QuoteHistoryDataGrid({
                     <span className="text-sm font-medium">{format(entry.date, "yyyy-MM-dd")}</span>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold">
-                        {formatAmount(entry.close, entry.currency, false)}
+                        {formatPrice(entry.close, entry.currency, false)}
                       </span>
                       {isManualDataSource && (
                         <Button
@@ -608,19 +613,19 @@ export function QuoteHistoryDataGrid({
                     <div>
                       <span className="block">Open</span>
                       <span className="text-foreground">
-                        {formatAmount(entry.open, entry.currency, false)}
+                        {formatPrice(entry.open, entry.currency, false)}
                       </span>
                     </div>
                     <div>
                       <span className="block">High</span>
                       <span className="text-foreground">
-                        {formatAmount(entry.high, entry.currency, false)}
+                        {formatPrice(entry.high, entry.currency, false)}
                       </span>
                     </div>
                     <div>
                       <span className="block">Low</span>
                       <span className="text-foreground">
-                        {formatAmount(entry.low, entry.currency, false)}
+                        {formatPrice(entry.low, entry.currency, false)}
                       </span>
                     </div>
                     <div>
