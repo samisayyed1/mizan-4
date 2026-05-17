@@ -4,7 +4,7 @@
   <h3 align="center">Mizan</h3>
 
   <p align="center">
-    A beautiful and boring desktop investment tracker. Local-first. No cloud.
+    A beautiful, private desktop investment tracker. Local-first. No cloud.
     <br />
     <br />
     <a href="https://mizan-landing-rho.vercel.app">Website</a>
