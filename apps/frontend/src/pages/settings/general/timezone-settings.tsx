@@ -127,7 +127,11 @@ export function TimezoneSettings() {
                 </FormItem>
               )}
             />
-            <Button type="submit">Save Timezone</Button>
+            {/* Disable while the async submit is in flight so the user
+                can't fire two settings updates by double-clicking. */}
+            <Button type="submit" disabled={form.formState.isSubmitting}>
+              Save Timezone
+            </Button>
           </form>
         </Form>
       </CardContent>
