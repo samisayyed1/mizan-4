@@ -83,12 +83,23 @@ export default function ConnectPage() {
   const { data: importRunsData } = useImportRunsInfinite({ pageSize: 10, enabled: showBrokerSync });
   const { accounts: localAccounts } = useAccounts({ filterActive: false, includeArchived: false });
 
-  const { data: brokerConnections = [] } = useQuery({
+  const { data: allBrokerConnections = [] } = useQuery({
     queryKey: [QueryKeys.BROKER_CONNECTIONS],
     queryFn: listBrokerConnections,
     enabled: isConnected && showBrokerSync,
     staleTime: 30000,
   });
+  // Backend soft-deletes (sets `disabled = true` + `disabled_date`)
+  // when the user disconnects a broker, so a disconnect doesn't drop
+  // the row from /connections. Filter here so the connect-page UI
+  // — and the per-connection account counts derived from
+  // `brokerAccounts` — match what the user expects after they click
+  // the trash icon. Same filter logic lives in connected-view.tsx;
+  // keep the two in sync if you change one.
+  const brokerConnections = useMemo(
+    () => allBrokerConnections.filter((c) => !c.disabled && !c.disabled_date),
+    [allBrokerConnections],
+  );
 
   const [showNewAccountsModal, setShowNewAccountsModal] = useState(false);
   const [pendingNewAccounts, setPendingNewAccounts] = useState<Account[]>([]);
