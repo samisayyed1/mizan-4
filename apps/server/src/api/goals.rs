@@ -189,16 +189,18 @@ async fn build_valuation_map(state: &AppState) -> ApiResult<HashMap<String, f64>
 
     let mut map = HashMap::new();
     for v in &valuations {
-        let total = v.total_value.to_f64().ok_or_else(|| {
-            ApiError::Internal(format!(
-                "Invalid valuation total for account {}",
-                v.account_id
-            ))
-        })?;
-        let fx = v.fx_rate_to_base.to_f64().ok_or_else(|| {
-            ApiError::Internal(format!("Invalid FX rate for account {}", v.account_id))
-        })?;
-        let value_in_base = total * fx;
+        // Multiply in Decimal (lossless), convert to f64 once at the
+        // map boundary. Mirrors the PR #37 fix in the AI valuation
+        // tool — keeps the f64-typed output map but stops the per-row
+        // multiply-in-f64 from drifting the goal/retirement numbers.
+        let value_in_base = (v.total_value * v.fx_rate_to_base)
+            .to_f64()
+            .ok_or_else(|| {
+                ApiError::Internal(format!(
+                    "Invalid base-currency valuation for account {}",
+                    v.account_id
+                ))
+            })?;
         map.insert(v.account_id.clone(), value_in_base);
     }
     Ok(map)

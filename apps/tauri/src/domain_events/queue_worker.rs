@@ -495,21 +495,18 @@ async fn refresh_all_goal_summaries(context: &Arc<ServiceContext>) {
 
     let mut valuation_map = std::collections::HashMap::new();
     for v in &valuations {
-        let Some(total) = v.total_value.to_f64() else {
+        // Multiply in Decimal (lossless) then convert to f64 once at
+        // the map-storage boundary. See PR #37 — `Decimal × Decimal`
+        // is exact whereas `f64 × f64` accumulates ULP drift across
+        // many accounts and visibly shifts the goal progress numbers
+        // shown to the user after a refresh.
+        let Some(value_in_base) = (v.total_value * v.fx_rate_to_base).to_f64() else {
             warn!(
-                "Skipping goal summary refresh: invalid valuation total for account {}",
+                "Skipping goal summary refresh: invalid base-currency valuation for account {}",
                 v.account_id
             );
             return;
         };
-        let Some(fx) = v.fx_rate_to_base.to_f64() else {
-            warn!(
-                "Skipping goal summary refresh: invalid FX rate for account {}",
-                v.account_id
-            );
-            return;
-        };
-        let value_in_base = total * fx;
         valuation_map.insert(v.account_id.clone(), value_in_base);
     }
 

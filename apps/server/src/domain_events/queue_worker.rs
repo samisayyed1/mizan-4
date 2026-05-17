@@ -479,21 +479,19 @@ async fn refresh_all_goal_summaries(deps: Arc<QueueWorkerDeps>) {
 
     let mut valuation_map = std::collections::HashMap::new();
     for valuation in &valuations {
-        let Some(total) = valuation.total_value.to_f64() else {
+        // Multiply in Decimal first; convert to f64 once at the map
+        // boundary. See PR #37 in crates/ai/src/tools/valuation.rs —
+        // `f64 × f64` accumulates ULP drift across accounts and
+        // visibly shifts the goal progress numbers refreshed here.
+        let Some(value_in_base) = (valuation.total_value * valuation.fx_rate_to_base).to_f64()
+        else {
             tracing::warn!(
-                "Skipping goal summary refresh: invalid valuation total for account {}",
+                "Skipping goal summary refresh: invalid base-currency valuation for account {}",
                 valuation.account_id
             );
             return;
         };
-        let Some(fx) = valuation.fx_rate_to_base.to_f64() else {
-            tracing::warn!(
-                "Skipping goal summary refresh: invalid FX rate for account {}",
-                valuation.account_id
-            );
-            return;
-        };
-        valuation_map.insert(valuation.account_id.clone(), total * fx);
+        valuation_map.insert(valuation.account_id.clone(), value_in_base);
     }
 
     for goal in active_goals {
