@@ -462,7 +462,8 @@ export function SellForm({
               <AmountInput
                 name="unitPrice"
                 label={priceLabel}
-                maxDecimalPlaces={4}
+                // 8 dp (the default) covers BTC-satoshi and SHIB-scale
+                // prices — 4 dp would silently truncate sub-cent values.
                 currency={currency}
               />
               <AmountInput name="fee" label="Fee" currency={currency} />

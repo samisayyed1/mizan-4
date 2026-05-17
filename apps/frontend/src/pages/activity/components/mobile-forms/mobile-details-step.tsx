@@ -592,7 +592,10 @@ export function MobileDetailsStep({ accounts, activityType, isEditing }: MobileD
                         value={field.value}
                         onValueChange={field.onChange}
                         placeholder="0.00"
-                        maxDecimalPlaces={4}
+                        // 8 dp matches the desktop forms and the storage
+                        // backend's Decimal precision — 4 dp silently
+                        // truncated sub-cent crypto prices.
+                        maxDecimalPlaces={8}
                         className="h-12 text-base sm:text-sm"
                       />
                     </FormControl>
@@ -704,7 +707,8 @@ function MobileAccountSheet({ accounts, open, onOpenChange, onSelect }: MobileAc
         <ScrollArea className="h-[calc(70vh-5rem)] px-6 py-4">
           <div className="space-y-2">
             {accounts.map((account) => (
-              <button type="button"
+              <button
+                type="button"
                 key={account.value}
                 onClick={() => handleAccountSelect(account)}
                 className="card-mobile hover:bg-accent active:bg-accent/80 focus:border-primary flex w-full items-center gap-3 border border-transparent text-left transition-colors focus:outline-none"
