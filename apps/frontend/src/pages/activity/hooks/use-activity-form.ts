@@ -4,7 +4,6 @@ import { ActivityType } from "@/lib/constants";
 import { generateId } from "@/lib/id";
 import type { ActivityCreate, ActivityDetails } from "@/lib/types";
 import { useCallback, useMemo } from "react";
-import { toast } from "sonner";
 import type { AccountSelectOption } from "../components/forms/fields";
 import type { NewActivityFormValues } from "../components/forms/schemas";
 import type { TransferFormValues } from "../components/forms/transfer-form";
@@ -17,17 +16,6 @@ import { useActivityMutations } from "./use-activity-mutations";
 
 function generateSourceGroupId(): string {
   return generateId("wf-transfer");
-}
-
-function extractErrorMessage(error: unknown): string {
-  if (typeof error === "string" && error.trim()) return error;
-  if (error instanceof Error && error.message.trim()) return error.message;
-  if (error && typeof error === "object") {
-    const raw = error as Record<string, unknown>;
-    if (typeof raw.error === "string" && raw.error.trim()) return raw.error;
-    if (typeof raw.message === "string" && raw.message.trim()) return raw.message;
-  }
-  return "Failed to save activity. Please check your inputs and try again.";
 }
 
 export interface UseActivityFormParams {
@@ -220,8 +208,11 @@ export function useActivityForm({
           await addActivityMutation.mutateAsync(submitData);
         }
       } catch (err) {
-        const message = extractErrorMessage(err);
-        toast.error("Failed to save activity", { description: message });
+        // The mutation's own onError already shows a destructive toast
+        // ("Failed adding/updating activity" + the backend message) via
+        // createMutationOptions in use-activity-mutations.ts. We don't
+        // double-toast here — just log the rich formData context that's
+        // only available in this scope, for post-hoc debugging.
         logger.error(`Activity Form Submit Error: ${JSON.stringify({ error: err, formData })}`);
       }
     },
