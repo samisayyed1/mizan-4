@@ -72,6 +72,48 @@ describe("parseNumericValue", () => {
       expect(parseNumericValue("-1.5e3", auto, none)).toBe("1.5e3");
     });
   });
+
+  describe("sub-cent precision preservation", () => {
+    // The CSV import preview was rendering crypto / penny-token prices
+    // as "$0.00" because downstream display rounded to 2 dp. The fix
+    // (PR #46) added formatPrice, but it only matters if parseNumericValue
+    // keeps the precision string intact through to the import context.
+    // These tests lock in that contract.
+
+    it("returns the literal string at 8 dp without truncation", () => {
+      // BTC at $0.00001234 — every digit must round-trip.
+      expect(parseNumericValue("0.00001234", auto, none)).toBe("0.00001234");
+    });
+
+    it("preserves trailing zeros past 2 dp when the user types them", () => {
+      // "0.10000000" should stay as-is so the import context sees the
+      // exact user intent. Number() would coerce this to 0.1 and drop
+      // the meaningful precision.
+      expect(parseNumericValue("0.10000000", auto, none)).toBe("0.10000000");
+    });
+
+    it("preserves precision past f64's 15-17 significant digit limit", () => {
+      // More digits than f64 can represent exactly. parseNumericValue
+      // must return the raw string — the conversion to f64 happens
+      // only at the JSON / display boundary downstream.
+      expect(parseNumericValue("0.123456789012345678", auto, none)).toBe("0.123456789012345678");
+    });
+
+    it("preserves precision with a currency symbol prefix", () => {
+      expect(parseNumericValue("$0.00001234", auto, none)).toBe("0.00001234");
+    });
+
+    it("preserves precision with European decimal separator", () => {
+      // Comma-decimal locale: "0,00001234" → "0.00001234".
+      expect(parseNumericValue("0,00001234", ",", "none")).toBe("0.00001234");
+    });
+
+    it("handles 1 satoshi (BTC's atomic unit) without losing the trailing 1", () => {
+      // 0.00000001 BTC. JS Number() can represent this fine, but the
+      // contract is "preserve the string", not "round-trip through f64".
+      expect(parseNumericValue("0.00000001", auto, none)).toBe("0.00000001");
+    });
+  });
 });
 
 describe("toNumber", () => {
