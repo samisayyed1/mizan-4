@@ -208,8 +208,12 @@ export function SymbolSearch<TFieldValues extends FieldValues = FieldValues>({
             }
           }
         })
-        .catch(() => {
+        .catch((err) => {
           if (requestId !== latestResolveRequestId.current) return;
+          // Falling back to no price is correct UX (the form still works
+          // with whatever currency was inferred at selection time), but
+          // log so we can spot a misbehaving quote provider.
+          console.error("Symbol quote resolution failed:", err);
           setQuoteDisplay({ price: null, isLoading: false });
         });
     } else {
