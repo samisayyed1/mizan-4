@@ -211,7 +211,7 @@ export function SubscriptionPlans({
               has expired.{" "}
               <Popover>
                 <PopoverTrigger asChild>
-                  <button className="text-muted-foreground hover:text-foreground underline underline-offset-2">
+                  <button type="button" className="text-muted-foreground hover:text-foreground underline underline-offset-2">
                     Contact support
                   </button>
                 </PopoverTrigger>
@@ -273,7 +273,7 @@ export function SubscriptionPlans({
               issue.{" "}
               <Popover>
                 <PopoverTrigger asChild>
-                  <button className="text-muted-foreground hover:text-foreground underline underline-offset-2">
+                  <button type="button" className="text-muted-foreground hover:text-foreground underline underline-offset-2">
                     Contact support
                   </button>
                 </PopoverTrigger>

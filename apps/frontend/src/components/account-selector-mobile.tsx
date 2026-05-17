@@ -164,7 +164,7 @@ export const AccountSelectorMobile = forwardRef<HTMLButtonElement, AccountSelect
                     {accountsInGroup.map((account) => {
                       const IconComponent = accountTypeIcons[account.accountType] ?? Icons.Wallet;
                       return (
-                        <button
+                        <button type="button"
                           key={account.id}
                           onClick={() => handleAccountSelect(account)}
                           className="hover:bg-accent active:bg-accent/80 focus:border-primary flex w-full items-center gap-3 rounded-lg border border-transparent p-3 text-left transition-colors focus:outline-none"

@@ -336,7 +336,7 @@ export const SymbolSelectorMobile = forwardRef<HTMLButtonElement, SymbolSelector
                       searchQuery.length > 1 && (
                         <div className="space-y-2">
                           {sortedSearchResults.slice(0, 20).map((ticker) => (
-                            <button
+                            <button type="button"
                               key={ticker.symbol}
                               onClick={() => handleSymbolSelect(ticker)}
                               className="card-mobile hover:bg-accent active:bg-accent/80 focus:border-primary flex w-full items-center gap-3 border border-transparent text-left transition-colors focus:outline-none"
@@ -396,7 +396,7 @@ export const SymbolSelectorMobile = forwardRef<HTMLButtonElement, SymbolSelector
                     {searchQuery.length > 0 && !isLoading && (
                       <>
                         {sortedSearchResults.length > 0 && <Separator className="my-4" />}
-                        <button
+                        <button type="button"
                           onClick={handleShowCustomAssetForm}
                           className="card-mobile hover:bg-accent active:bg-accent/80 focus:border-primary flex w-full items-center gap-3 border border-dashed text-left transition-colors focus:outline-none"
                         >

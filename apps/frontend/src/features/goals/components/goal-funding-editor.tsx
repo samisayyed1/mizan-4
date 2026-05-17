@@ -467,7 +467,7 @@ export function GoalFundingEditor({
 
                           {/* Tax bucket pill (retirement only) */}
                           {isRetirement && !isDcLinked && (
-                            <button
+                            <button type="button"
                               onClick={() => cycleTaxBucket(a.id)}
                               className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors ${
                                 tb
@@ -512,7 +512,7 @@ export function GoalFundingEditor({
 
                           {/* Remove button */}
                           {!isDcLinked && (
-                            <button
+                            <button type="button"
                               onClick={() => removeAccount(a.id)}
                               className="text-muted-foreground hover:text-foreground shrink-0 rounded-md p-1 transition-colors"
                               aria-label={`Remove ${a.name}`}
@@ -562,7 +562,7 @@ export function GoalFundingEditor({
                     Add accounts
                   </p>
                   {availableAccounts.map((a) => (
-                    <button
+                    <button type="button"
                       key={a.id}
                       onClick={() => addAccount(a.id)}
                       className="hover:bg-muted/50 flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition-colors"
@@ -593,7 +593,7 @@ export function GoalFundingEditor({
               {includedAccounts.length === 0 ? (
                 <p className="text-muted-foreground py-2 text-xs">
                   No accounts assigned.{" "}
-                  <button
+                  <button type="button"
                     className="text-foreground underline underline-offset-2"
                     onClick={() => setEditing(true)}
                   >

@@ -325,7 +325,7 @@ export const OnboardingStep2 = forwardRef<OnboardingStep2Handle, OnboardingStep2
               <div className="p-6">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-xl font-bold">Select Currency</h3>
-                  <button
+                  <button type="button"
                     onClick={() => {
                       setShowCurrencySearch(false);
                       setCurrencySearch("");
@@ -350,7 +350,7 @@ export const OnboardingStep2 = forwardRef<OnboardingStep2Handle, OnboardingStep2
 
                 <div className="max-h-96 space-y-1 overflow-y-auto pr-2">
                   {filteredCurrencies.map((curr) => (
-                    <button
+                    <button type="button"
                       key={curr.value}
                       onClick={() => handleCurrencySelect(curr.value)}
                       className={`flex w-full items-center justify-between rounded-lg p-3 transition-all ${
@@ -385,7 +385,7 @@ export const OnboardingStep2 = forwardRef<OnboardingStep2Handle, OnboardingStep2
               <div className="p-6">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-xl font-bold">Select Timezone</h3>
-                  <button
+                  <button type="button"
                     onClick={() => {
                       setShowTimezoneSearch(false);
                       setTimezoneSearch("");
@@ -410,7 +410,7 @@ export const OnboardingStep2 = forwardRef<OnboardingStep2Handle, OnboardingStep2
 
                 <div className="max-h-96 space-y-1 overflow-y-auto pr-2">
                   {filteredTimezones.map((tz) => (
-                    <button
+                    <button type="button"
                       key={tz}
                       onClick={() => handleTimezoneSelect(tz)}
                       className={`flex w-full items-center justify-between rounded-lg p-3 transition-all ${

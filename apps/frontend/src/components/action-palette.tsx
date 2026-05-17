@@ -94,7 +94,7 @@ export function ActionPalette({
         {title && (
           <div className="flex items-center justify-between px-5 pb-3 pt-5">
             <h3 className="text-foreground text-lg font-bold">{title}</h3>
-            <button
+            <button type="button"
               onClick={handleClose}
               className={cn(
                 "flex h-8 w-8 items-center justify-center rounded-full",
@@ -127,7 +127,7 @@ export function ActionPalette({
                   return (
                     <React.Fragment key={itemIndex}>
                       {itemIndex > 0 && <div className="bg-border/70 mx-3 h-px" />}
-                      <button
+                      <button type="button"
                         onClick={() => handleItemClick(item)}
                         disabled={isDisabled}
                         aria-disabled={isDisabled}

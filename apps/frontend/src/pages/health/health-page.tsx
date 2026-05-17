@@ -188,7 +188,7 @@ function StatusSummary({
         const isActive = selectedSeverity === severity;
 
         return (
-          <button
+          <button type="button"
             key={severity}
             onClick={() => onSeverityClick(isActive ? null : severity)}
             className={cn(
