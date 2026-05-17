@@ -15,7 +15,7 @@ import { ActivityType, ActivityTypeNames } from "@/lib/constants";
 import { parseOccSymbol } from "@/lib/occ-symbol";
 import { useSettingsContext } from "@/lib/settings-provider";
 import { ActivityDetails } from "@/lib/types";
-import { formatDateTime } from "@/lib/utils";
+import { formatDateTime, formatPrice } from "@/lib/utils";
 import { formatAmount, Separator } from "@mizan/ui";
 import { Link } from "react-router-dom";
 import { ActivityOperations } from "../activity-operations";
@@ -243,7 +243,10 @@ export const ActivityTableMobile = ({
                             isCashTransfer(activity.activityType, symbol, activity.assetId) ||
                             (isIncomeActivity(activity.activityType) && !isAssetBackedIncome)
                           ? formatAmount(Number(activity.amount), activity.currency)
-                          : formatAmount(Number(activity.unitPrice), activity.currency)}
+                          : // Unit price needs sub-cent precision; formatPrice
+                            // accepts string directly so we preserve the
+                            // backend's full-precision value through display.
+                            formatPrice(activity.unitPrice, activity.currency)}
                   </span>
                 </div>
 

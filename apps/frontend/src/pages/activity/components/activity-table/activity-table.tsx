@@ -31,7 +31,7 @@ import {
 } from "@/lib/activity-utils";
 import { ActivityType, getExchangeDisplayName } from "@/lib/constants";
 import { ActivityDetails } from "@/lib/types";
-import { formatDateTime } from "@/lib/utils";
+import { formatDateTime, formatPrice } from "@/lib/utils";
 import { useSettingsContext } from "@/lib/settings-provider";
 import {
   type OnChangeFn,
@@ -317,7 +317,8 @@ export const ActivityTable = ({
             return <div className="text-right">{formatAmount(Number(amount), currency)}</div>;
           }
 
-          return <div className="text-right">{formatAmount(unitPrice, currency)}</div>;
+          // Unit price needs sub-cent precision for crypto / penny tokens.
+          return <div className="text-right">{formatPrice(unitPrice, currency)}</div>;
         },
       },
       {

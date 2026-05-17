@@ -6,6 +6,7 @@ import { memo, useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useBalancePrivacy } from "@/hooks/use-balance-privacy";
 import { useSettingsContext } from "@/lib/settings-provider";
+import { formatPrice } from "@/lib/utils";
 import { updateToolResult } from "@/adapters";
 import { ActivityType, ACTIVITY_TYPE_DISPLAY_NAMES, QuoteMode } from "@/lib/constants";
 import type { ActivityDetails } from "@/lib/types";
@@ -626,6 +627,17 @@ function DraftReview({
     },
     [draft.currency, isBalanceHidden],
   );
+  // Unit prices need sub-cent precision \u2014 formatAmount above uses
+  // currency-style formatting which rounds to 2 dp and would render
+  // a crypto/penny-token price as the wrong number in the AI review.
+  const formatPriceLocal = useCallback(
+    (value: number | undefined) => {
+      if (value === undefined) return "-";
+      if (isBalanceHidden) return "\u2022\u2022\u2022\u2022\u2022";
+      return formatPrice(value, draft.currency);
+    },
+    [draft.currency, isBalanceHidden],
+  );
 
   const assetSummary = getAssetSummary(draft, resolvedAsset);
 
@@ -655,7 +667,7 @@ function DraftReview({
           <ReviewField label="Quantity" value={String(draft.quantity)} />
         )}
         {draft.unitPrice !== undefined && (
-          <ReviewField label="Unit price" value={formatAmount(draft.unitPrice)} />
+          <ReviewField label="Unit price" value={formatPriceLocal(draft.unitPrice)} />
         )}
         {draft.amount !== undefined && (
           <ReviewField label="Amount" value={formatAmount(draft.amount)} />
