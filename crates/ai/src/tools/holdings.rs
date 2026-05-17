@@ -265,4 +265,80 @@ mod tests {
         assert_eq!(output.account_scope, "acc-123");
         assert_eq!(output.view_mode, "table");
     }
+
+    /// Regression test for the holdings-total Decimal-sum-in-f64 bug.
+    ///
+    /// Pre-fix, the tool summed each holding's `market_value.base` after
+    /// converting individually to f64. For MAX_HOLDINGS holdings each
+    /// worth 0.10 USD (a value that's not exactly representable in
+    /// binary floating point), the cumulative f64 sum drifts away from
+    /// the integer-cent total — and the LLM-facing `total_value`
+    /// visibly disagrees with the dashboard's own Decimal-summed total.
+    ///
+    /// After the fix, market values are summed as Decimal and converted
+    /// to f64 once, so the answer is exactly 10.0 (its nearest f64).
+    #[tokio::test]
+    async fn aggregates_total_value_in_decimal_not_in_f64() {
+        use crate::env::test_env::{MockEnvironment, MockHoldingsService};
+        use mizan_core::holdings::{Holding, HoldingType};
+        use mizan_core::portfolio::holdings::MonetaryValue;
+        use rust_decimal::Decimal;
+
+        // MAX_HOLDINGS (100) × 0.10 USD = 10.00 USD exactly. (The tool
+        // applies `.take(MAX_HOLDINGS)` so any extras are truncated.)
+        let cents = Decimal::new(10, 2); // 0.10
+        let holdings: Vec<Holding> = (0..MAX_HOLDINGS)
+            .map(|i| Holding {
+                id: format!("h{i}"),
+                account_id: "acc-1".into(),
+                holding_type: HoldingType::Security,
+                quantity: Decimal::ONE,
+                local_currency: "USD".into(),
+                base_currency: "USD".into(),
+                cost_basis: None,
+                instrument: None,
+                asset_kind: None,
+                open_date: None,
+                lots: None,
+                contract_multiplier: Decimal::ONE,
+                weight: Decimal::ZERO,
+                as_of_date: chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                market_value: MonetaryValue {
+                    local: cents,
+                    base: cents,
+                },
+                price: None,
+                purchase_price: None,
+                fx_rate: None,
+                unrealized_gain: None,
+                unrealized_gain_pct: None,
+                day_change: None,
+                day_change_pct: None,
+                prev_close_value: None,
+                realized_gain: None,
+                realized_gain_pct: None,
+                total_gain: None,
+                total_gain_pct: None,
+                metadata: None,
+            })
+            .collect();
+
+        let mut env = MockEnvironment::new();
+        env.holdings_service = Arc::new(MockHoldingsService { holdings });
+        let tool = GetHoldingsTool::new(Arc::new(env), "USD".to_string());
+
+        let out = tool
+            .call(GetHoldingsArgs {
+                account_id: "TOTAL".to_string(),
+                view_mode: "table".to_string(),
+            })
+            .await
+            .expect("tool call");
+
+        // Bit-exact: 10.0 is representable in f64, and Decimal::to_f64
+        // returns the nearest f64. The old `sum-in-f64` path landed on
+        // ~9.999999999999986 instead (every "+= 0.10" in f64 inherits
+        // the same 1e-17 representation error and it accumulates).
+        assert_eq!(out.total_value, 10.0_f64);
+    }
 }
