@@ -211,7 +211,10 @@ export function AdvancedOptionsSection<TFieldValues extends FieldValues = FieldV
                       value={field.value}
                       onValueChange={field.onChange}
                       placeholder="1.0000"
-                      maxDecimalPlaces={6}
+                      // 8 dp matches the FX storage precision — major
+                      // pairs round nicely at 4, but exotic crosses
+                      // (e.g. JPY/IDR, KRW pairs) need more digits.
+                      maxDecimalPlaces={8}
                       className="w-full"
                       data-testid="fx-rate-input"
                     />
