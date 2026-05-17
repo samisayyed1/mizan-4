@@ -204,10 +204,12 @@ export function ActivityDetailSheet({ activity, open, onOpenChange }: ActivityDe
               <DetailRow
                 label="Strike Price"
                 value={
+                  // Strike is per-unit on the underlying — needs price precision.
                   <AmountDisplay
                     value={parsedOption.strikePrice}
                     currency={activity.currency}
                     isHidden={isBalanceHidden}
+                    precision="price"
                   />
                 }
               />
@@ -230,10 +232,13 @@ export function ActivityDetailSheet({ activity, open, onOpenChange }: ActivityDe
               <DetailRow
                 label={isOption ? "Premium/Share" : "Unit Price"}
                 value={
+                  // Per-unit price: pass the string directly to preserve
+                  // sub-cent precision for crypto / penny tokens.
                   <AmountDisplay
-                    value={Number(activity.unitPrice)}
+                    value={activity.unitPrice}
                     currency={activity.currency}
                     isHidden={isBalanceHidden}
+                    precision="price"
                   />
                 }
               />

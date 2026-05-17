@@ -72,7 +72,15 @@ const AssetDetailCard: React.FC<AssetDetailProps> = ({ assetData, className }) =
     },
     {
       label: "Average cost",
-      value: <AmountDisplay value={averagePrice} currency={currency} isHidden={isBalanceHidden} />,
+      // Per-unit cost basis — needs sub-cent precision for crypto / penny tokens.
+      value: (
+        <AmountDisplay
+          value={averagePrice}
+          currency={currency}
+          isHidden={isBalanceHidden}
+          precision="price"
+        />
+      ),
     },
     { label: "% of my portfolio", value: formatPercent(portfolioPercent) },
     ...(todaysReturn !== null && todaysReturnPercent !== null
