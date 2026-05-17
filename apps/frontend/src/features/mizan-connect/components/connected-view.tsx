@@ -18,7 +18,7 @@ import { Skeleton } from "@mizan/ui/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@mizan/ui/components/ui/tooltip";
 import { toast } from "@mizan/ui/components/ui/use-toast";
 import { formatDate } from "@/lib/utils";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useCreateBrokerLoginPortal } from "../hooks";
 import { useMizanConnect } from "../providers/mizan-connect-provider";
 import {
@@ -237,16 +237,43 @@ function BrokerConnectionRow({ connection }: { connection: BrokerConnection }) {
 
   const disconnect = useMutation({
     mutationFn: () => deleteBrokerConnection(connection.id),
+    // Optimistically mark the connection disabled in the cache so the
+    // row disappears from the UI the moment the user confirms the
+    // disconnect dialog — before the round-trip to /connections
+    // completes. The downstream filter in `ConnectedView` (and
+    // `ConnectPage`) drops rows where `disabled === true`, so a
+    // shallow patch is enough; no need to splice the array.
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: [QueryKeys.BROKER_CONNECTIONS] });
+      const previous =
+        queryClient.getQueryData<BrokerConnection[]>([QueryKeys.BROKER_CONNECTIONS]) ?? [];
+      queryClient.setQueryData<BrokerConnection[]>([QueryKeys.BROKER_CONNECTIONS], (current) =>
+        (current ?? []).map((c) =>
+          c.id === connection.id
+            ? { ...c, disabled: true, disabled_date: new Date().toISOString() }
+            : c,
+        ),
+      );
+      return { previous };
+    },
     onSuccess: () => {
-      // Refresh both the connection list and the live accounts list so
-      // the disconnected broker disappears from both surfaces immediately.
+      // Authoritative refresh — backend may have changed other fields
+      // (status, updated_at) we haven't mirrored optimistically. Also
+      // refresh the accounts list so accounts tied to this connection
+      // drop out of the orphan filter on the next render.
       void queryClient.invalidateQueries({ queryKey: [QueryKeys.BROKER_CONNECTIONS] });
       void queryClient.invalidateQueries({ queryKey: [QueryKeys.BROKER_ACCOUNTS] });
       toast.success(`Disconnected ${brokerageName}`, {
         description: "Your historical data is preserved locally.",
       });
     },
-    onError: (error) => {
+    onError: (error, _variables, context) => {
+      // Roll back the optimistic disable so the row reappears as it
+      // was — otherwise the user sees a "Disconnected" row even though
+      // the disconnect actually failed.
+      if (context?.previous) {
+        queryClient.setQueryData([QueryKeys.BROKER_CONNECTIONS], context.previous);
+      }
       const message =
         error instanceof Error
           ? error.message
@@ -507,9 +534,30 @@ export function ConnectedView() {
     }
   }, [clearError, signOut]);
 
-  // Derived state
-  const connections = connectionsQuery.data ?? [];
-  const brokerAccounts = accountsQuery.data ?? [];
+  // Derived state. The backend soft-deletes broker connections (sets
+  // `disabled = true` + `disabled_date`) rather than removing rows, so
+  // a disconnect leaves the row in the API response. Filter here so
+  // disconnected brokers — and any accounts tied to them — disappear
+  // from the UI the moment the disconnect mutation invalidates the
+  // queries, matching what the user expects when they click the trash
+  // icon. The active-id set is the single source of truth for both
+  // the connections card and the accounts card below.
+  const allConnections = connectionsQuery.data ?? [];
+  const allBrokerAccounts = accountsQuery.data ?? [];
+  const { connections, brokerAccounts } = useMemo(() => {
+    const activeConnections = allConnections.filter((c) => !c.disabled && !c.disabled_date);
+    const activeIds = new Set(activeConnections.map((c) => c.id));
+    return {
+      connections: activeConnections,
+      brokerAccounts: allBrokerAccounts.filter((a) =>
+        // Keep accounts whose authorization still points at a live
+        // connection. Defensive: orphan accounts (authorization missing
+        // or pointing at a deleted connection) are dropped too so the
+        // user never sees a card they can't act on.
+        a.brokerage_authorization ? activeIds.has(a.brokerage_authorization) : false,
+      ),
+    };
+  }, [allConnections, allBrokerAccounts]);
   const isLoadingConnections = connectionsQuery.isLoading;
   const isLoadingAccounts = accountsQuery.isLoading;
   const isSyncing = syncToLocalMutation.isPending;
