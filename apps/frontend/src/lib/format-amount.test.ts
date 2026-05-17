@@ -167,4 +167,13 @@ describe("formatQuantity", () => {
     expect(formatQuantity(1234567)).toMatch(/1,234,567/);
     expect(formatQuantity("250.5")).toMatch(/250\.5/);
   });
+
+  it("preserves sub-unit precision for tiny crypto holdings", () => {
+    // 1 satoshi = 0.00000001 BTC. The old 4-dp cap rounded this to "0";
+    // a user with a real satoshi-scale balance was seeing zero.
+    expect(formatQuantity(0.00000001)).toBe("0.00000001");
+    expect(formatQuantity("0.00000001")).toBe("0.00000001");
+    // Slightly bigger sub-unit values still trim trailing zeros.
+    expect(formatQuantity(0.5)).toBe("0.5");
+  });
 });
