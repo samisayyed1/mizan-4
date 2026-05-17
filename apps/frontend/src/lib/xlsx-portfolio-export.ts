@@ -16,11 +16,11 @@ import type { Account, AccountValuation, ActivityDetails, Goal, Holding } from "
 export interface PortfolioWorkbookInput {
   generatedAt: Date;
   baseCurrency: string;
-  accounts: ReadonlyArray<Account>;
-  activities: ReadonlyArray<ActivityDetails>;
-  holdings: ReadonlyArray<Holding>;
-  goals: ReadonlyArray<Goal>;
-  portfolioHistory: ReadonlyArray<AccountValuation>;
+  accounts: readonly Account[];
+  activities: readonly ActivityDetails[];
+  holdings: readonly Holding[];
+  goals: readonly Goal[];
+  portfolioHistory: readonly AccountValuation[];
 }
 
 /** Names of the sheets we produce. Stable contract for tests + UI. */
@@ -315,7 +315,7 @@ function writeHistory(wb: ExcelJS.Workbook, input: PortfolioWorkbookInput): void
 // Helpers (exported for tests)
 // ---------------------------------------------------------------------------
 
-export function sumLatestAccountValue(history: ReadonlyArray<AccountValuation>): number {
+export function sumLatestAccountValue(history: readonly AccountValuation[]): number {
   // For each account, take the most recent valuation row (by date) and
   // sum its `totalValue` in the base currency.
   const latestByAccount = new Map<string, AccountValuation>();

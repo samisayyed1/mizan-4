@@ -38,7 +38,7 @@ const ROOTS = [
 // If a future case is genuinely a never-private surface (e.g. a
 // public-facing marketing component, NOT a user dashboard surface),
 // add it here with a reason and a code comment in that file.
-const ALLOWLIST: ReadonlyArray<{ file: string; reason: string }> = [];
+const ALLOWLIST: readonly { file: string; reason: string }[] = [];
 
 function walk(dir: string, out: string[] = []): string[] {
   let entries: string[];
