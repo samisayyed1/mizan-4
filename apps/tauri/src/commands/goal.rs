@@ -271,15 +271,20 @@ async fn build_valuation_map(
 
     let mut map = std::collections::HashMap::new();
     for v in &valuations {
-        let total = v
-            .total_value
+        // Multiply in Decimal (lossless), convert to f64 only at the
+        // map-storage boundary. Mirrors the PR #37 fix in
+        // crates/ai/src/tools/valuation.rs — `Decimal × Decimal` is
+        // exact, while `f64 × f64` accumulates a few ULP of drift per
+        // row and visibly shifts goal/retirement projections across
+        // multi-account portfolios.
+        let value_in_base = (v.total_value * v.fx_rate_to_base)
             .to_f64()
-            .ok_or_else(|| format!("Invalid valuation total for account {}", v.account_id))?;
-        let fx = v
-            .fx_rate_to_base
-            .to_f64()
-            .ok_or_else(|| format!("Invalid FX rate for account {}", v.account_id))?;
-        let value_in_base = total * fx;
+            .ok_or_else(|| {
+                format!(
+                    "Invalid base-currency valuation for account {}",
+                    v.account_id
+                )
+            })?;
         map.insert(v.account_id.clone(), value_in_base);
     }
     Ok(map)
