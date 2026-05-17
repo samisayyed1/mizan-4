@@ -38,7 +38,6 @@ import {
 import type { Account, ActivityImport } from "@/lib/types";
 import { cn, formatDateTime, formatPrice, toPascalCase } from "@/lib/utils";
 import { useSettingsContext } from "@/lib/settings-provider";
-import { formatAmount } from "@mizan/ui";
 import { motion } from "motion/react";
 
 // Helper function to check if a field has errors
@@ -60,15 +59,6 @@ const toNumber = (value: string | number | null | undefined): number | undefined
   }
   const parsed = typeof value === "number" ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
-};
-
-// Helper function to safely format numbers, handling NaN/null/undefined values
-const safeFormatAmount = (value: string | number | null | undefined, currency: string): string => {
-  const parsed = toNumber(value);
-  if (parsed === undefined) {
-    return "-";
-  }
-  return formatAmount(parsed, currency);
 };
 
 // Helper function to safely display number values
@@ -516,7 +506,13 @@ function getColumns(accounts: Account[], baseCurrency: string): ColumnDef<Activi
         return (
           <ErrorCell hasError={hasError} errorMessages={errorMessages}>
             <div className="text-right font-medium tabular-nums">
-              {activityType === "SPLIT" ? "-" : safeFormatAmount(amount, currency)}
+              {activityType === "SPLIT"
+                ? "-"
+                : // Use formatPrice so sub-cent crypto amounts (e.g. a
+                  // $0.0001 USDT micro-transaction) don't render as
+                  // "$0.00" in the import preview. For ≥$1 amounts it
+                  // behaves identically to the old currency formatter.
+                  formatPrice(amount, currency)}
             </div>
           </ErrorCell>
         );
@@ -545,7 +541,11 @@ function getColumns(accounts: Account[], baseCurrency: string): ColumnDef<Activi
         return (
           <ErrorCell hasError={hasError} errorMessages={errorMessages}>
             <div className="text-muted-foreground text-right tabular-nums">
-              {activityType === "SPLIT" ? "-" : safeFormatAmount(fee, currency)}
+              {activityType === "SPLIT"
+                ? "-"
+                : // Use formatPrice so sub-cent gas fees on crypto
+                  // transactions don't render as "$0.00".
+                  formatPrice(fee, currency)}
             </div>
           </ErrorCell>
         );
