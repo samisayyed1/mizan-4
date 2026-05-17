@@ -324,6 +324,70 @@ export function formatAmount(
   return getCurrencyFormatter(rawCurrency).format(displayAmount);
 }
 
+/**
+ * Format a per-unit price. Unlike `formatAmount`, which rounds to the
+ * currency's display precision (typically 2 decimals), this preserves
+ * sub-cent precision for crypto / penny stocks / micro-priced tokens.
+ *
+ * Rule:
+ *   - |price| >= 1   → standard currency format (2 decimals).
+ *   - |price| < 1    → up to DECIMAL_PRECISION (8) decimals, trailing
+ *                       zeros trimmed so "0.10000000" renders as "0.1".
+ *   - non-finite / nullish / empty string → "-".
+ *
+ * Always accepts a string OR number on input so a precision-preserving
+ * Decimal-as-string from the CSV import path survives all the way to
+ * the cell. If the string has more than f64's 15-17 sig digs, the
+ * rounding happens here at the display boundary — not silently during
+ * an upstream Number() coercion.
+ */
+export function formatPrice(
+  price: number | string | null | undefined,
+  currency: string,
+  displayCurrency = true,
+): string {
+  if (price == null || price === "") return "-";
+  const numericPrice = typeof price === "string" ? Number(price) : price;
+  if (!Number.isFinite(numericPrice)) return "-";
+
+  // For prices >= $1, the standard 2-dp display is right.
+  if (Math.abs(numericPrice) >= 1) {
+    return formatAmount(numericPrice, currency, displayCurrency);
+  }
+
+  // For sub-dollar prices, show up to 8 decimal places, trimmed.
+  const rawCurrency = currency ?? "USD";
+  const isPenceCurrency = rawCurrency === "GBp" || rawCurrency === "GBX";
+
+  const precisionFormatter = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 8,
+    useGrouping: false,
+  });
+  const formattedNumber = precisionFormatter.format(numericPrice);
+
+  if (isPenceCurrency) {
+    return displayCurrency ? `${formattedNumber}p` : formattedNumber;
+  }
+  if (!displayCurrency) {
+    return formattedNumber;
+  }
+
+  // Attach the currency symbol manually so we preserve fraction digits
+  // — Intl's currency style would override maximumFractionDigits for
+  // currencies whose minor-unit precision is 2.
+  try {
+    const parts = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: rawCurrency.toUpperCase(),
+    }).formatToParts(0);
+    const symbol = parts.find((p) => p.type === "currency")?.value ?? "";
+    return `${symbol}${formattedNumber}`;
+  } catch {
+    return formattedNumber;
+  }
+}
+
 export function formatPercent(value: number | null | undefined) {
   if (value == null) return "-";
   // NaN / Infinity surface as "NaN%" / "Infinity%" if passed through to

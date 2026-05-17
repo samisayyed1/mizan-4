@@ -13,7 +13,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@mizan/ui/components/ui/alert-dialog";
-import { Icons, IntervalSelector, EmptyPlaceholder, AmountDisplay, formatPercent } from "@mizan/ui";
+import {
+  Icons,
+  IntervalSelector,
+  EmptyPlaceholder,
+  AmountDisplay,
+  formatPercent,
+  getInitialIntervalData,
+} from "@mizan/ui";
 import HistoryChart from "@/components/history-chart-symbol";
 import { ValueHistoryDataGrid } from "./alternative-assets";
 import {
@@ -53,10 +60,16 @@ export const AlternativeAssetContent: React.FC<AlternativeAssetContentProps> = (
 }) => {
   const { isBalanceHidden } = useBalancePrivacy();
 
-  // Chart state
+  // Chart state — initial range comes from getInitialIntervalData so
+  // the first render uses day-boundary `from`/`to` (the client-side
+  // quote filter below relies on inclusive day boundaries; see
+  // apps/frontend/src/lib/interval-selector-range.test.ts).
+  const initialIntervalData = useMemo(() => getInitialIntervalData("ALL"), []);
   const [selectedIntervalCode, setSelectedIntervalCode] = useState<TimePeriod>("ALL");
-  const [selectedIntervalDesc, setSelectedIntervalDesc] = useState<string>("all time");
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [selectedIntervalDesc, setSelectedIntervalDesc] = useState<string>(
+    initialIntervalData.description,
+  );
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(initialIntervalData.range);
 
   // Fetch linked liabilities for property/vehicle
   const isLinkableAsset =

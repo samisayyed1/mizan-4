@@ -16,7 +16,7 @@ import { describe, expect, it } from "vitest";
 // (TODO follow-up: collapse the duplication). Testing the in-app copy
 // transitively proves the algorithm — and the regression suite below
 // is the contract those edge cases must keep meeting.
-import { formatAmount, formatPercent, formatQuantity } from "./utils";
+import { formatAmount, formatPercent, formatPrice, formatQuantity } from "./utils";
 
 describe("formatAmount", () => {
   it("returns '-' for null/undefined", () => {
@@ -103,6 +103,56 @@ describe("formatPercent", () => {
     expect(formatPercent(0.0123)).toBe("1.23%");
     expect(formatPercent(-0.0789)).toBe("-7.89%");
     expect(formatPercent(1)).toBe("100.00%");
+  });
+});
+
+describe("formatPrice", () => {
+  // formatPrice exists because formatAmount rounds to 2 decimal places,
+  // which renders sub-cent crypto/penny-token prices like "$0.00".
+  // The CSV import preview shouldn't lie to the user about what they
+  // uploaded.
+
+  it("returns '-' for null/undefined/empty/NaN/Infinity", () => {
+    expect(formatPrice(null, "USD")).toBe("-");
+    expect(formatPrice(undefined, "USD")).toBe("-");
+    expect(formatPrice("", "USD")).toBe("-");
+    expect(formatPrice(Number.NaN, "USD")).toBe("-");
+    expect(formatPrice(Number.POSITIVE_INFINITY, "USD")).toBe("-");
+  });
+
+  it("uses currency-style formatting for prices >= $1", () => {
+    expect(formatPrice(150.25, "USD")).toMatch(/\$150\.25/);
+    expect(formatPrice("1.00", "USD")).toMatch(/\$1\.00/);
+  });
+
+  it("preserves sub-cent precision for prices below $1", () => {
+    // Without formatPrice the CSV preview rendered this as "$0.00".
+    expect(formatPrice(0.00001234, "USD")).toMatch(/\$0\.00001234/);
+    expect(formatPrice("0.000123", "USD")).toMatch(/\$0\.000123/);
+    expect(formatPrice(0.5, "USD")).toMatch(/\$0\.50/);
+  });
+
+  it("trims trailing zeros past 2 decimal places when the price is sub-dollar", () => {
+    // 0.10 must render as $0.10 (minimum 2 dp), but 0.1000000 shouldn't
+    // explode to $0.10000000.
+    expect(formatPrice(0.1, "USD")).toMatch(/\$0\.10/);
+    expect(formatPrice("0.10000000", "USD")).toMatch(/\$0\.10/);
+  });
+
+  it("omits currency symbol when displayCurrency=false", () => {
+    expect(formatPrice(0.00001234, "USD", false)).toBe("0.00001234");
+    expect(formatPrice(150.25, "USD", false)).toMatch(/^150\.25$/);
+  });
+
+  it("renders GBp pence prices with the p suffix at sub-cent precision", () => {
+    expect(formatPrice(0.00001234, "GBp")).toBe("0.00001234p");
+    expect(formatPrice(0.00001234, "GBp", false)).toBe("0.00001234");
+  });
+
+  it("accepts a Decimal-as-string without coercing through Number until display", () => {
+    // Documents the contract for the CSV import path: precision-string
+    // inputs are accepted and rendered as-is up to 8 decimals.
+    expect(formatPrice("0.12345678", "USD")).toMatch(/\$0\.12345678/);
   });
 });
 
