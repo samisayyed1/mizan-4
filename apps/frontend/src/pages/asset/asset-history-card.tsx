@@ -154,6 +154,7 @@ const AssetHistoryCard: React.FC<AssetHistoryProps> = ({
                       value={marketPrice}
                       currency={currency}
                       isHidden={isBalanceHidden}
+                      precision="price"
                     />
                   </p>
                   <p className={`text-sm ${ganAmount > 0 ? "text-success" : "text-destructive"}`}>

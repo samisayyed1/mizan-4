@@ -309,7 +309,7 @@ const getColumns = (
       const currency = holding.localCurrency;
       return (
         <div className="flex min-h-[40px] flex-col items-end justify-center px-4">
-          <AmountDisplay value={price} currency={currency} isHidden={isHidden} />
+          <AmountDisplay value={price} currency={currency} isHidden={isHidden} precision="price" />
           <GainPercent className="text-xs" value={holding.dayChangePct || 0} />
         </div>
       );

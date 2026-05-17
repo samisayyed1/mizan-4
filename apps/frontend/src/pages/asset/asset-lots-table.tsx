@@ -8,7 +8,7 @@ import {
 } from "@mizan/ui/components/ui/table";
 import { Lot } from "@/lib/types";
 import { formatAmount } from "@mizan/ui";
-import { formatDate, formatQuantity } from "@/lib/utils";
+import { formatDate, formatPrice, formatQuantity } from "@/lib/utils";
 import { Card, CardContent } from "@mizan/ui/components/ui/card";
 import { GainAmount } from "@mizan/ui";
 import { GainPercent } from "@mizan/ui";
@@ -56,7 +56,7 @@ export const AssetLotsTable = ({ lots, currency, marketPrice }: AssetLotsTablePr
                     <TableCell className="font-medium">{formatDate(lot.acquisitionDate)}</TableCell>
                     <TableCell className="text-right">{formatQuantity(lot.quantity)}</TableCell>
                     <TableCell className="text-right">
-                      {formatAmount(lot.acquisitionPrice, currency)}
+                      {formatPrice(lot.acquisitionPrice, currency)}
                     </TableCell>
                     <TableCell className="text-right">
                       {formatAmount(lot.acquisitionFees, currency)}
@@ -109,7 +109,7 @@ export const AssetLotsTable = ({ lots, currency, marketPrice }: AssetLotsTablePr
                   <span className="text-foreground text-right">{formatQuantity(lot.quantity)}</span>
                   <span>Acq. Price</span>
                   <span className="text-foreground text-right">
-                    {formatAmount(lot.acquisitionPrice, currency)}
+                    {formatPrice(lot.acquisitionPrice, currency)}
                   </span>
                   <span>Fees</span>
                   <span className="text-foreground text-right">
