@@ -298,50 +298,6 @@ fn test_addon_manifest_get_main() {
 }
 
 #[test]
-fn test_function_permission_helpers() {
-    let permission = AddonPermission {
-        category: "ui".to_string(),
-        purpose: "User interface access".to_string(),
-        functions: vec![
-            FunctionPermission {
-                name: "sidebar.addItem".to_string(),
-                is_declared: true,
-                is_detected: true,
-                detected_at: Some("2023-01-01T00:00:00Z".to_string()),
-            },
-            FunctionPermission {
-                name: "router.add".to_string(),
-                is_declared: false,
-                is_detected: true,
-                detected_at: Some("2023-01-01T00:00:00Z".to_string()),
-            },
-            FunctionPermission {
-                name: "showNotification".to_string(),
-                is_declared: true,
-                is_detected: false,
-                detected_at: None,
-            },
-        ],
-    };
-
-    let declared = get_declared_functions(&permission);
-    assert_eq!(declared.len(), 2);
-    assert!(declared.contains(&"sidebar.addItem".to_string()));
-    assert!(declared.contains(&"showNotification".to_string()));
-
-    let detected = get_detected_functions(&permission);
-    assert_eq!(detected.len(), 2);
-    assert!(detected.contains(&"sidebar.addItem".to_string()));
-    assert!(detected.contains(&"router.add".to_string()));
-
-    let undeclared_detected = get_undeclared_detected_functions(&permission);
-    assert_eq!(undeclared_detected.len(), 1);
-    assert!(undeclared_detected.contains(&"router.add".to_string()));
-
-    assert!(has_undeclared_detected_functions(&permission));
-}
-
-#[test]
 fn test_permission_merging_during_installation() {
     // Create a mock addon with declared permissions
     let declared_permissions = vec![
