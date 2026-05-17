@@ -2,6 +2,7 @@ import { Badge } from "@mizan/ui/components/ui/badge";
 import { Card, CardContent } from "@mizan/ui/components/ui/card";
 import { Icons } from "@mizan/ui/components/ui/icons";
 import { formatDistanceToNow } from "date-fns";
+import { useState } from "react";
 import type { Account, Platform } from "@/lib/types";
 import type { BrokerSyncState, SyncStatus } from "../types";
 
@@ -44,6 +45,11 @@ const statusConfig: Record<
 export function BrokerSyncStateCard({ syncState, account, platform }: BrokerSyncStateCardProps) {
   const config = statusConfig[syncState.syncStatus];
   const accountName = account?.name || syncState.accountId;
+  // Pre-fix the onError handler only hid the <img>, leaving the
+  // container empty when clearbit didn't have a logo for the broker.
+  // React-state fallback so the Wallet icon shows up in that case.
+  const [logoFailed, setLogoFailed] = useState(false);
+  const showLogo = !!platform?.url && !logoFailed;
 
   return (
     <Card>
@@ -51,14 +57,12 @@ export function BrokerSyncStateCard({ syncState, account, platform }: BrokerSync
         <div className="flex items-center gap-3">
           {/* Platform logo or fallback */}
           <div className="bg-muted flex h-10 w-10 items-center justify-center rounded-lg">
-            {platform?.url ? (
+            {showLogo ? (
               <img
-                src={`https://logo.clearbit.com/${new URL(platform.url).hostname}`}
-                alt={platform.name || "Platform"}
+                src={`https://logo.clearbit.com/${new URL(platform!.url!).hostname}`}
+                alt={platform!.name || "Platform"}
                 className="h-6 w-6"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                }}
+                onError={() => setLogoFailed(true)}
               />
             ) : (
               <Icons.Wallet className="text-muted-foreground h-5 w-5" />

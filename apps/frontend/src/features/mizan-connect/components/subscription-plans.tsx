@@ -1,4 +1,3 @@
-import { openUrlInBrowser } from "@/adapters";
 import { getSubscriptionPlans } from "../services/broker-service";
 import { useMizanConnect } from "../providers/mizan-connect-provider";
 import type { BillingPeriod, SubscriptionPlan } from "../types";
@@ -16,7 +15,6 @@ import { toast } from "@mizan/ui/components/ui/use-toast";
 import { Icons } from "@mizan/ui/components/ui/icons";
 import { Skeleton } from "@mizan/ui/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@mizan/ui/components/ui/toggle-group";
-import { MIZAN_CONNECT_PORTAL_URL } from "@/lib/constants";
 import { QueryKeys } from "@/lib/query-keys";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -107,9 +105,16 @@ function PlanCard({ plan, billingPeriod, isDefault, isComingSoon }: PlanCardProp
   };
 
   const handleGetStarted = () => {
-    // TODO(chunk-4): swap to in-app Stripe checkout once billing ships.
-    // mizan.app is currently parked, so this opens nothing useful.
-    openUrlInBrowser(`${MIZAN_CONNECT_PORTAL_URL}/onboarding?plan=${plan.id}`);
+    // Billing portal lives at connect.mizan.app/onboarding, but that
+    // domain is parked until the in-app Stripe checkout ships
+    // (tracked: Chunk 4). Opening the parked URL during a demo gives
+    // the user a blank page and zero idea what just happened. Show a
+    // toast so the click is acknowledged honestly — and so we don't
+    // claim a feature that isn't live yet.
+    toast({
+      title: "Billing portal coming soon",
+      description: "Stripe checkout ships in the next release. We'll email you when it's ready.",
+    });
   };
 
   // Use isComingSoon from API if available

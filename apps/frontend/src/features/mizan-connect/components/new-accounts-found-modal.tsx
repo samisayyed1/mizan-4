@@ -20,6 +20,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { Account, TrackingMode } from "@/lib/types";
 import { syncBrokerData } from "../services/broker-service";
+import { QueryKeys } from "@/lib/query-keys";
 
 export interface NewAccountInfo {
   localAccountId: string;
@@ -97,8 +98,14 @@ export function NewAccountsFoundModal({
         });
       }
 
-      // Invalidate queries and trigger sync
-      await queryClient.invalidateQueries();
+      // Scope the invalidation to the queries we actually changed.
+      // Blanket `invalidateQueries()` triggers cascading refetches
+      // across unrelated features (device sync, market data, addons)
+      // and can corrupt mid-flight mutation state.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: [QueryKeys.ACCOUNTS] }),
+        queryClient.invalidateQueries({ queryKey: [QueryKeys.BROKER_ACCOUNTS] }),
+      ]);
 
       toast.success("Accounts configured", {
         description: "Starting sync with your selected settings...",
@@ -107,8 +114,26 @@ export function NewAccountsFoundModal({
       onOpenChange(false);
       onComplete?.();
 
-      // Trigger broker sync to import data for the now-configured accounts
-      syncBrokerData();
+      // Trigger broker sync to import data for the now-configured
+      // accounts. Previously fire-and-forget: if the sync command
+      // rejected (e.g. backend down, rate-limited, encryption key
+      // missing) the modal already closed and the user thought setup
+      // succeeded. Now we surface the failure as a toast so they
+      // know to retry. Errors here don't roll back the account
+      // updates — those already succeeded.
+      try {
+        await syncBrokerData();
+      } catch (syncError) {
+        const message =
+          syncError instanceof Error
+            ? syncError.message
+            : typeof syncError === "string"
+              ? syncError
+              : "Unknown error";
+        toast.error("Accounts saved, but sync failed to start", {
+          description: `${message}. Pull-to-refresh or click Sync to retry.`,
+        });
+      }
     } catch (error) {
       toast.error("Failed to save accounts", {
         description: String(error),

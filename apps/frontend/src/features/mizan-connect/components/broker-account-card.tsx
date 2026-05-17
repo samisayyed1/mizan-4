@@ -2,6 +2,7 @@ import { Card, CardContent } from "@mizan/ui/components/ui/card";
 import { Badge } from "@mizan/ui/components/ui/badge";
 import { Icons } from "@mizan/ui/components/ui/icons";
 import { formatDate } from "@/lib/utils";
+import { useState } from "react";
 import type { BrokerAccount } from "../types";
 
 interface BrokerAccountCardProps {
@@ -43,6 +44,13 @@ export function BrokerAccountCard({ account }: BrokerAccountCardProps) {
   const lastSyncDate = getLastSyncDate(account);
   const isShared = account.owner && !account.owner.is_own_account;
   const ownerName = account.owner?.full_name;
+  // Pre-fix the <img> + <Icons.Wallet> were both rendered into the
+  // same 40×40 container — the Wallet icon was supposed to show "on
+  // error" via a CSS class toggle, but when the logo loaded both
+  // icons rendered overlapping. React-state fallback is cleaner and
+  // never overlaps.
+  const [logoFailed, setLogoFailed] = useState(false);
+  const showLogo = !!account.institution_name && !logoFailed;
 
   return (
     <Card>
@@ -50,18 +58,16 @@ export function BrokerAccountCard({ account }: BrokerAccountCardProps) {
         <div className="flex items-center gap-3">
           {/* Platform logo or fallback */}
           <div className="bg-muted flex h-10 w-10 items-center justify-center rounded-lg">
-            {account.institution_name ? (
+            {showLogo ? (
               <img
-                src={`https://logo.clearbit.com/${account.institution_name.toLowerCase().replace(/\s+/g, "")}.com`}
+                src={`https://logo.clearbit.com/${account.institution_name!.toLowerCase().replace(/\s+/g, "")}.com`}
                 alt={account.institution_name}
                 className="h-6 w-6"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                  e.currentTarget.parentElement?.classList.add("show-fallback");
-                }}
+                onError={() => setLogoFailed(true)}
               />
-            ) : null}
-            <Icons.Wallet className="text-muted-foreground h-5 w-5" />
+            ) : (
+              <Icons.Wallet className="text-muted-foreground h-5 w-5" />
+            )}
           </div>
 
           <div>
