@@ -615,14 +615,14 @@ export function NetWorthContent({ onAddAsset, onAddLiability }: NetWorthContentP
                     <Icons.ChevronRight className="h-4 w-4" />
                     Manage accounts
                   </Link>
-                  <button
+                  <button type="button"
                     onClick={onAddAsset}
                     className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm transition-colors"
                   >
                     <Icons.Plus className="h-4 w-4" />
                     Add asset
                   </button>
-                  <button
+                  <button type="button"
                     onClick={onAddLiability}
                     className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm transition-colors"
                   >

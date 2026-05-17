@@ -139,7 +139,7 @@ export function FloatingNavigationBar({ navigation }: FloatingNavigationBarProps
             {hasOverflow && (
               <DropdownMenu open={overflowOpen} onOpenChange={setOverflowOpen}>
                 <DropdownMenuTrigger asChild>
-                  <button aria-label="More navigation" className={baseButtonClass}>
+                  <button type="button" aria-label="More navigation" className={baseButtonClass}>
                     {overflowItems.some((item) => isPathActive(location.pathname, item.href)) && (
                       <motion.div
                         layoutId={`floating-nav-indicator-${uniqueId}`}
@@ -194,7 +194,7 @@ export function FloatingNavigationBar({ navigation }: FloatingNavigationBarProps
             {hasAddons && (
               <DropdownMenu open={addonsOpen} onOpenChange={setAddonsOpen}>
                 <DropdownMenuTrigger asChild>
-                  <button aria-label="Add-ons" className={baseButtonClass}>
+                  <button type="button" aria-label="Add-ons" className={baseButtonClass}>
                     {addonItems.some((item) => isPathActive(location.pathname, item.href)) && (
                       <motion.div
                         layoutId={`floating-nav-indicator-${uniqueId}`}

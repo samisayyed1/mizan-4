@@ -79,7 +79,7 @@ function ImportRunItem({ run }: { run: ImportRun }) {
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <div className="rounded-lg border">
         <CollapsibleTrigger asChild>
-          <button className="hover:bg-accent/50 flex w-full items-center justify-between p-3">
+          <button type="button" className="hover:bg-accent/50 flex w-full items-center justify-between p-3">
             <div className="flex items-center gap-3">
               <div className="text-left">
                 <p className="text-sm font-medium">

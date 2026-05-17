@@ -990,31 +990,31 @@ export function SidebarConfigurator({
               </p>
             )}
             <div className="grid grid-cols-2 gap-2 pt-3">
-              <button
+              <button type="button"
                 className="text-muted-foreground hover:text-foreground rounded-md border border-dashed py-1.5 text-xs transition-colors"
                 onClick={() => addExpenseItem("Living", { essential: true })}
               >
                 + Living
               </button>
-              <button
+              <button type="button"
                 className="text-muted-foreground hover:text-foreground rounded-md border border-dashed py-1.5 text-xs transition-colors"
                 onClick={() => addExpenseItem("Healthcare", { essential: true })}
               >
                 + Healthcare
               </button>
-              <button
+              <button type="button"
                 className="text-muted-foreground hover:text-foreground rounded-md border border-dashed py-1.5 text-xs transition-colors"
                 onClick={() => addExpenseItem("Housing", { essential: false })}
               >
                 + Housing
               </button>
-              <button
+              <button type="button"
                 className="text-muted-foreground hover:text-foreground rounded-md border border-dashed py-1.5 text-xs transition-colors"
                 onClick={() => addExpenseItem("Travel", { essential: false })}
               >
                 + Travel
               </button>
-              <button
+              <button type="button"
                 className="text-muted-foreground hover:text-foreground col-span-2 rounded-md border border-dashed py-1.5 text-xs transition-colors"
                 onClick={() => addExpenseItem("Other spending", { essential: false })}
               >
@@ -1304,13 +1304,13 @@ export function SidebarConfigurator({
                 </div>
               );
             })}
-            <button
+            <button type="button"
               className="text-muted-foreground hover:text-foreground flex w-full items-center justify-center gap-1 rounded-md border border-dashed py-1.5 text-xs transition-colors"
               onClick={() => addStream()}
             >
               <Icons.Plus className="h-3 w-3" /> Add retirement income
             </button>
-            <button
+            <button type="button"
               className="text-muted-foreground hover:text-foreground flex w-full items-center justify-center gap-1 rounded-md border border-dashed py-1.5 text-xs transition-colors"
               onClick={() =>
                 addStream({

@@ -559,7 +559,7 @@ const AccountPage = () => {
                                 const IconComponent =
                                   accountTypeIcons[acc.accountType] ?? Icons.CreditCard;
                                 return (
-                                  <button
+                                  <button type="button"
                                     key={acc.id}
                                     onClick={() => handleAccountSwitch(acc)}
                                     className={cn(

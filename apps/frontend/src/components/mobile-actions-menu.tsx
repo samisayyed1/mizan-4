@@ -47,7 +47,7 @@ export function MobileActionsMenu({
           {actions.map((action, index) => {
             const IconComponent = Icons[action.icon];
             return (
-              <button
+              <button type="button"
                 key={index}
                 onClick={() => {
                   action.onClick();

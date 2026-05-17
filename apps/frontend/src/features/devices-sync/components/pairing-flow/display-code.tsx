@@ -51,7 +51,7 @@ export function DisplayCode({ code, expiresAt, onCancel }: DisplayCodeProps) {
       </div>
 
       {/* Code + Copy - clickable row */}
-      <button
+      <button type="button"
         onClick={handleCopy}
         className="bg-muted hover:bg-muted/80 flex items-center gap-3 rounded-lg px-4 py-2.5 transition-colors"
       >

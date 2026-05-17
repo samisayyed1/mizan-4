@@ -704,7 +704,7 @@ function MobileAccountSheet({ accounts, open, onOpenChange, onSelect }: MobileAc
         <ScrollArea className="h-[calc(70vh-5rem)] px-6 py-4">
           <div className="space-y-2">
             {accounts.map((account) => (
-              <button
+              <button type="button"
                 key={account.value}
                 onClick={() => handleAccountSelect(account)}
                 className="card-mobile hover:bg-accent active:bg-accent/80 focus:border-primary flex w-full items-center gap-3 border border-transparent text-left transition-colors focus:outline-none"

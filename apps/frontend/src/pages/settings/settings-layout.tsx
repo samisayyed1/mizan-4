@@ -140,7 +140,7 @@ export default function SettingsLayout() {
                   </div>
                   <div className="divide-border bg-card divide-y overflow-hidden rounded-2xl border shadow-sm">
                     {section.items.map((item) => (
-                      <button
+                      <button type="button"
                         key={item.href}
                         onClick={() =>
                           navigate(item.href.startsWith("/") ? item.href : `/settings/${item.href}`)

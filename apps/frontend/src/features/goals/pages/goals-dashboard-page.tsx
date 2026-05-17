@@ -135,7 +135,7 @@ export default function GoalsDashboardPage() {
 
             {archived.length > 0 && (
               <section>
-                <button
+                <button type="button"
                   onClick={() => setArchivedOpen((o) => !o)}
                   className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-xs font-medium transition-colors"
                 >
