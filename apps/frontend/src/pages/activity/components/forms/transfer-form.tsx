@@ -492,7 +492,8 @@ export function TransferForm({
                   <AmountInput
                     name="unitPrice"
                     label="Cost Basis"
-                    maxDecimalPlaces={4}
+                    // 8 dp (the default) — cost basis on a crypto
+                    // transfer-in needs sub-cent precision.
                     currency={currency}
                   />
                 )}

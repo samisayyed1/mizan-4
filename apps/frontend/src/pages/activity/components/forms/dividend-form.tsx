@@ -174,7 +174,8 @@ export function DividendForm({
                 <AmountInput
                   name="unitPrice"
                   label="Price"
-                  maxDecimalPlaces={4}
+                  // 8 dp (the default) — DRIP at a fraction of a cent
+                  // (e.g. crypto airdrops) needs sub-cent precision.
                   currency={currency}
                 />
                 <QuantityInput name="quantity" label="Quantity" />
