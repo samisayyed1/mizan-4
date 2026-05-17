@@ -7,7 +7,7 @@ import {
   CollapsibleTrigger,
 } from "@mizan/ui/components/ui/collapsible";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { ImportRun, ImportRunStatus } from "../types";
 
@@ -28,6 +28,25 @@ const statusConfig: Record<
 };
 
 export function ImportRunsList({ runs, isLoading }: ImportRunsListProps) {
+  // Defensive newest-first sort. The backend may return rows in
+  // insertion order, oldest-first, or whatever the underlying query
+  // gives — we don't want the demo to show "Jan 4 — APPLIED" before
+  // "Jan 6 — RUNNING" depending on which page the user came from.
+  // Sort by startedAt descending; rows with an invalid date sink to
+  // the bottom rather than crashing the comparison.
+  const sortedRuns = useMemo(() => {
+    return [...runs].sort((a, b) => {
+      const aTime = new Date(a.startedAt).getTime();
+      const bTime = new Date(b.startedAt).getTime();
+      const aValid = Number.isFinite(aTime);
+      const bValid = Number.isFinite(bTime);
+      if (!aValid && !bValid) return 0;
+      if (!aValid) return 1;
+      if (!bValid) return -1;
+      return bTime - aTime;
+    });
+  }, [runs]);
+
   if (isLoading) {
     return (
       <Card>
@@ -62,12 +81,30 @@ export function ImportRunsList({ runs, isLoading }: ImportRunsListProps) {
         <CardTitle className="text-base font-medium">Recent Sync Runs</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        {runs.map((run) => (
+        {sortedRuns.map((run) => (
           <ImportRunItem key={run.id} run={run} />
         ))}
       </CardContent>
     </Card>
   );
+}
+
+// Format a date defensively — backend nullables / malformed strings
+// shouldn't render the literal text "Invalid Date" in the run list.
+function safeFormatDateTime(value: string | null | undefined): string {
+  if (!value) return "—";
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime())) return "—";
+  return format(parsed, "MMM d, yyyy HH:mm");
+}
+
+function formatDurationSeconds(startedAt: string, finishedAt: string | null | undefined): string {
+  if (!finishedAt) return "In progress…";
+  const start = new Date(startedAt).getTime();
+  const finish = new Date(finishedAt).getTime();
+  if (!Number.isFinite(start) || !Number.isFinite(finish)) return "—";
+  const seconds = Math.max(0, Math.round((finish - start) / 1000));
+  return `${seconds}s`;
 }
 
 function ImportRunItem({ run }: { run: ImportRun }) {
@@ -79,12 +116,13 @@ function ImportRunItem({ run }: { run: ImportRun }) {
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <div className="rounded-lg border">
         <CollapsibleTrigger asChild>
-          <button type="button" className="hover:bg-accent/50 flex w-full items-center justify-between p-3">
+          <button
+            type="button"
+            className="hover:bg-accent/50 flex w-full items-center justify-between p-3"
+          >
             <div className="flex items-center gap-3">
               <div className="text-left">
-                <p className="text-sm font-medium">
-                  {format(new Date(run.startedAt), "MMM d, yyyy HH:mm")}
-                </p>
+                <p className="text-sm font-medium">{safeFormatDateTime(run.startedAt)}</p>
                 <p className="text-muted-foreground text-xs">
                   {run.sourceSystem} · {run.mode.toLowerCase()}
                 </p>
@@ -166,10 +204,7 @@ function ImportRunItem({ run }: { run: ImportRun }) {
 
             {/* Timing info */}
             <p className="text-muted-foreground mt-2 text-xs">
-              Duration:{" "}
-              {run.finishedAt
-                ? `${Math.round((new Date(run.finishedAt).getTime() - new Date(run.startedAt).getTime()) / 1000)}s`
-                : "In progress..."}
+              Duration: {formatDurationSeconds(run.startedAt, run.finishedAt)}
             </p>
           </div>
         </CollapsibleContent>

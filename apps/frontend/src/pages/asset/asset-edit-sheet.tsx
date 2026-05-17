@@ -6,7 +6,7 @@ import { useCustomProviders } from "@/hooks/use-custom-providers";
 import { useMarketDataProviders } from "@/hooks/use-market-data-providers";
 import { useTaxonomies } from "@/hooks/use-taxonomies";
 import type { Asset, Quote } from "@/lib/types";
-import { formatAmount, formatPrice } from "@/lib/utils";
+import { formatPrice } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import {
