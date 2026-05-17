@@ -2,7 +2,7 @@ import { Badge } from "@mizan/ui/components/ui/badge";
 import { Button } from "@mizan/ui/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@mizan/ui/components/ui/card";
 import { Icons } from "@mizan/ui/components/ui/icons";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, isValid } from "date-fns";
 import type { AggregatedSyncStatus } from "../types";
 
 interface SyncSummaryCardProps {
@@ -12,6 +12,16 @@ interface SyncSummaryCardProps {
   isLoading: boolean;
   onSyncAll: () => void;
   isSyncing: boolean;
+}
+
+// Same defensive guard as broker-sync-state-card: a truthy but
+// unparseable timestamp would otherwise render "Last synced Invalid
+// Date" in the summary card at the top of the Connect page.
+function formatLastSyncedLabel(value: string | null | undefined): string {
+  if (!value) return "Never synced";
+  const d = new Date(value);
+  if (!isValid(d)) return "Never synced";
+  return `Last synced ${formatDistanceToNow(d, { addSuffix: true })}`;
 }
 
 const statusConfig: Record<
@@ -43,11 +53,7 @@ export function SyncSummaryCard({
       <CardContent>
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <p className="text-muted-foreground text-sm">
-              {lastSyncTime
-                ? `Last synced ${formatDistanceToNow(new Date(lastSyncTime), { addSuffix: true })}`
-                : "Never synced"}
-            </p>
+            <p className="text-muted-foreground text-sm">{formatLastSyncedLabel(lastSyncTime)}</p>
             {issueCount > 0 && (
               <p className="text-sm text-yellow-600 dark:text-yellow-400">
                 {issueCount} {issueCount === 1 ? "account" : "accounts"} need attention
