@@ -145,8 +145,13 @@ export const BulkHoldingsModal = ({
           quoteCcy: holding.symbolQuoteCcy || undefined,
           instrumentType: holding.symbolInstrumentType || undefined,
         }),
-        quantity: Number(holding.sharesOwned),
-        unitPrice: Number(holding.averageCost),
+        // Pass the raw string straight through to the backend so a
+        // sub-cent crypto/penny-token cost basis (e.g. "0.00001234")
+        // doesn't get rounded through f64 here on the submit path.
+        // ActivityCreate.{quantity,unitPrice} accept `string | number`
+        // and the storage column is Decimal.
+        quantity: holding.sharesOwned,
+        unitPrice: holding.averageCost,
         // Securities transfers derive value from qty × unitPrice at display time.
         // Sending a precomputed amount here is redundant and has produced corrupted
         // rows in the wild (e.g. amount = qty² × unitPrice); leave it null so the
