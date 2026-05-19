@@ -38,6 +38,7 @@ import {
   type LinkableAsset,
   type LinkedLiability,
 } from "@/pages/asset/alternative-assets";
+import { AddBankAccountModal } from "@/pages/asset/alternative-assets/components/add-bank-account-modal";
 import { updateAlternativeAssetMetadata } from "@/adapters";
 import { ClassificationSheet } from "@/components/classification/classification-sheet";
 import { useUpdatePortfolioMutation } from "@/hooks/use-calculate-portfolio";
@@ -75,6 +76,7 @@ export const HoldingsPage = () => {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [isAlternativeAssetModalOpen, setIsAlternativeAssetModalOpen] = useState(false);
+  const [isBankAccountModalOpen, setIsBankAccountModalOpen] = useState(false);
   const [sortBy, setSortBy] = usePersistentState<"symbol" | "marketValue">(
     "holdings-sort-by",
     "marketValue",
@@ -535,6 +537,11 @@ export const HoldingsPage = () => {
             },
           },
           {
+            icon: Icons.Building,
+            label: "Add Bank Account",
+            onClick: () => setIsBankAccountModalOpen(true),
+          },
+          {
             icon: Icons.CreditCard,
             label: "Add Liability",
             onClick: () => {
@@ -685,6 +692,9 @@ export const HoldingsPage = () => {
         defaultName={pendingMortgageName}
         onOpenLiabilityQuickAdd={handleOpenLiabilityQuickAdd}
       />
+
+      {/* Bank Account Add Modal (dedicated — bank name, country, amount, currency) */}
+      <AddBankAccountModal open={isBankAccountModalOpen} onOpenChange={setIsBankAccountModalOpen} />
 
       {/* Asset Details Sheet (Edit) */}
       <AssetDetailsSheet

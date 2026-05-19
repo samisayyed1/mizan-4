@@ -423,6 +423,17 @@ function getSubtypeLabel(kind: string, metadata: Record<string, unknown>): strin
       const liabilityType = subType || (metadata.liability_type as string | undefined);
       return liabilityType ? LIABILITY_TYPE_LABELS[liabilityType] || liabilityType : null;
     }
+    case "other": {
+      // Bank accounts are persisted as kind="other" with a
+      // sub_type="bank_account" discriminator (Feroz step C). Surface
+      // them as a proper "Bank Account" with the country when present,
+      // rather than the generic "Other" label.
+      if (subType === "bank_account") {
+        const country = metadata.country as string | undefined;
+        return country ? `Bank Account · ${country}` : "Bank Account";
+      }
+      return subType || null;
+    }
     default:
       return null;
   }
