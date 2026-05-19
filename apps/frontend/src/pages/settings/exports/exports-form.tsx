@@ -34,9 +34,9 @@ const dataTypes = {
   CSV: [
     {
       key: "accounts",
-      name: "Accounts",
+      name: "Portfolios",
       icon: Icons.Holdings,
-      description: "Your financial accounts",
+      description: "Your financial portfolios",
     },
     {
       key: "activities",
@@ -61,9 +61,9 @@ const dataTypes = {
   JSON: [
     {
       key: "accounts",
-      name: "Accounts",
+      name: "Portfolios",
       icon: Icons.Holdings,
-      description: "Your financial accounts",
+      description: "Your financial portfolios",
     },
     {
       key: "activities",

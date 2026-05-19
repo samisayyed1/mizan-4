@@ -601,7 +601,7 @@ export const AccountsSummary = React.memo(
     return (
       <div className="mb-4 w-full space-y-0">
         <div className="flex flex-row items-center justify-between gap-2 pb-2">
-          <h2 className="text-md font-semibold tracking-tight">Accounts</h2>
+          <h2 className="text-md font-semibold tracking-tight">Portfolios</h2>
           <Button
             variant="ghost"
             className="text-muted-foreground hover:bg-success/10"

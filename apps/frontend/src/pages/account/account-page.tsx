@@ -484,7 +484,7 @@ const AccountPage = () => {
           <div className="flex min-w-0 flex-col justify-center">
             <div className="flex items-center gap-1">
               <h1 className="truncate text-base font-semibold leading-tight md:text-lg">
-                {account?.name ?? "Account"}
+                {account?.name ?? "Portfolio"}
               </h1>
               {/* Desktop account selector */}
               <div className="hidden sm:block">

@@ -66,8 +66,8 @@ interface ProviderSettingsCardProps {
 const DATA_ACCESS_OPTIONS = [
   {
     toolIds: ["get_accounts", "get_cash_balances"],
-    label: "Accounts",
-    description: "Account details and cash balances",
+    label: "Portfolios",
+    description: "Portfolio details and cash balances",
   },
   {
     toolIds: ["get_holdings"],

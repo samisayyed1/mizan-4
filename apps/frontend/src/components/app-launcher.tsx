@@ -344,11 +344,11 @@ export function AppLauncher() {
         label: "Manage Securities",
       },
       {
-        title: "Manage Accounts",
+        title: "Manage Portfolios",
         href: "/settings/accounts",
         icon: <Icons.CreditCard className="size-6" />,
-        keywords: ["accounts", "manage", "edit", "settings"],
-        label: "Manage Accounts",
+        keywords: ["portfolios", "portfolio", "accounts", "manage", "edit", "settings"],
+        label: "Manage Portfolios",
       },
       {
         title: "Manage Goals",
@@ -714,7 +714,7 @@ export function AppLauncher() {
           </CommandGroup>
         )}
         {(isAccountsLoading || filteredAccounts.length > 0) && (
-          <CommandGroup heading="Accounts">
+          <CommandGroup heading="Portfolios">
             {isAccountsLoading ? (
               <CommandItem disabled className={cn(isMobileViewport ? "py-4 text-base" : undefined)}>
                 Loading accounts...

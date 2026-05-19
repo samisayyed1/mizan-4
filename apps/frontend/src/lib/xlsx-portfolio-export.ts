@@ -26,7 +26,7 @@ export interface PortfolioWorkbookInput {
 /** Names of the sheets we produce. Stable contract for tests + UI. */
 export const SHEET_NAMES = {
   summary: "Summary",
-  accounts: "Accounts",
+  accounts: "Portfolios",
   holdings: "Holdings",
   activities: "Activities",
   goals: "Goals",
@@ -90,7 +90,7 @@ function writeSummary(wb: ExcelJS.Workbook, input: PortfolioWorkbookInput): void
   ws.addRow({ field: "Generated at", value: input.generatedAt.toISOString() });
   ws.addRow({ field: "Base currency", value: input.baseCurrency });
   ws.addRow({
-    field: "Accounts (active / total)",
+    field: "Portfolios (active / total)",
     value: `${accountsActive} / ${input.accounts.length}`,
   });
   ws.addRow({ field: "Holdings rows", value: input.holdings.length });

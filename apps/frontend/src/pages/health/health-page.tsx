@@ -56,7 +56,7 @@ const CATEGORY_CONFIG: Record<HealthCategory, { label: string; icon: keyof typeo
   FX_INTEGRITY: { label: "FX Rates", icon: "ArrowLeftRight" },
   CLASSIFICATION: { label: "Categories", icon: "Tag" },
   DATA_CONSISTENCY: { label: "Data", icon: "Database" },
-  ACCOUNT_CONFIGURATION: { label: "Accounts", icon: "Settings" },
+  ACCOUNT_CONFIGURATION: { label: "Portfolios", icon: "Settings" },
   SETTINGS_CONFIGURATION: { label: "Settings", icon: "Settings" },
 };
 
