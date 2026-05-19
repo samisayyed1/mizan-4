@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@mizan/ui/components/ui/avatar";
+import { Badge } from "@mizan/ui/components/ui/badge";
 import { Icons, type Icon } from "@mizan/ui/components/ui/icons";
 import { Skeleton } from "@mizan/ui/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@mizan/ui";
@@ -81,13 +82,10 @@ export function AccountItem({
             {isSynced && <Icons.CloudSync2 className="text-muted-foreground h-3.5 w-3.5" />}
           </div>
           <div className="text-muted-foreground flex items-center gap-1.5 text-sm">
-            <span>{account.currency}</span>
-            {account.group && (
-              <>
-                <span>·</span>
-                <span>{account.group}</span>
-              </>
-            )}
+            <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wide">
+              {account.currency}
+            </Badge>
+            {account.group && <span>{account.group}</span>}
             <span>·</span>
             <TooltipProvider>
               <Tooltip delayDuration={300}>

@@ -8,6 +8,7 @@ import { useSettingsContext } from "@/lib/settings-provider";
 import type { AccountValuation, DateRange } from "@/lib/types";
 import { useQueries } from "@tanstack/react-query";
 import { GainAmount, GainPercent, PrivacyAmount } from "@mizan/ui";
+import { Badge } from "@mizan/ui/components/ui/badge";
 import { Button } from "@mizan/ui/components/ui/button";
 import { Icons } from "@mizan/ui/components/ui/icons";
 import { Separator } from "@mizan/ui/components/ui/separator";
@@ -167,6 +168,14 @@ const AccountSummaryComponent = React.memo(
         <div className="flex min-w-0 flex-1 flex-col gap-1 md:gap-1.5">
           <h3 className="flex items-center gap-1.5 text-sm font-semibold leading-tight md:text-base md:font-semibold">
             <span className="truncate">{name}</span>
+            {!isGroup && item.accountCurrency && (
+              <Badge
+                variant="outline"
+                className="shrink-0 px-1.5 py-0 font-mono text-[10px] uppercase tracking-wide"
+              >
+                {item.accountCurrency}
+              </Badge>
+            )}
             {hasBadData && (
               <Tooltip>
                 <TooltipTrigger asChild>
