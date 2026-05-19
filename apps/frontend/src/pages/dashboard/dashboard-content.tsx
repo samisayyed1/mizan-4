@@ -4,12 +4,7 @@ import { useHapticFeedback } from "@/hooks";
 import { useHoldings } from "@/hooks/use-holdings";
 import { useValuationHistory } from "@/hooks/use-valuation-history";
 import type { AccountValuation } from "@/lib/types";
-import {
-  HoldingType,
-  isAlternativeAssetKind,
-  PORTFOLIO_ACCOUNT_ID,
-  type AssetKind,
-} from "@/lib/constants";
+import { isAlternativeAssetKind, PORTFOLIO_ACCOUNT_ID, type AssetKind } from "@/lib/constants";
 import { useSettingsContext } from "@/lib/settings-provider";
 import { DateRange, TimePeriod } from "@/lib/types";
 import { calculatePerformanceMetrics } from "@/lib/utils";
@@ -29,7 +24,6 @@ import { useMemo, useState } from "react";
 import { AccountsSummary } from "./accounts-summary";
 import Balance from "./balance";
 import SavingGoals from "./goals";
-import TopHoldings from "./top-holdings";
 
 const DEFAULT_INTERVAL: UITimePeriod = "3M";
 const INTERVAL_STORAGE_KEY = "dashboard-interval";
@@ -49,18 +43,6 @@ export function DashboardContent() {
 
   const { holdings: allHoldings, isLoading: isHoldingsLoading } = useHoldings(PORTFOLIO_ACCOUNT_ID);
   const { triggerHaptic } = useHapticFeedback();
-
-  // Filter holdings for display (exclude alternative assets and cash for TopHoldings)
-  const holdings = useMemo(() => {
-    if (!allHoldings) return [];
-    return allHoldings.filter((h) => {
-      // Exclude cash holdings from display
-      if (h.holdingType === HoldingType.CASH) return false;
-      // Exclude alternative assets from display
-      if (h.assetKind && isAlternativeAssetKind(h.assetKind as AssetKind)) return false;
-      return true;
-    });
-  }, [allHoldings]);
 
   // Total portfolio value (includes cash, excludes alternative assets)
   const totalValue = useMemo(() => {
@@ -269,11 +251,6 @@ export function DashboardContent() {
               <AccountsSummary dateRange={dateRange} isAllTime={isAllTime} />
             </div>
             <div className="space-y-6 lg:col-span-1">
-              <TopHoldings
-                holdings={holdings}
-                isLoading={isHoldingsLoading}
-                baseCurrency={baseCurrency}
-              />
               <SavingGoals />
             </div>
           </div>
