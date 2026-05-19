@@ -177,7 +177,7 @@ export function DrillableAccountChart({
         ) : (
           <AllocationBreadcrumb
             path={path}
-            rootLabel="Accounts"
+            rootLabel="Portfolios"
             onNavigate={handleBreadcrumbNavigate}
           />
         )}

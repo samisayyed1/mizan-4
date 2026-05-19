@@ -708,7 +708,7 @@ export function MappingStepUnified() {
         <ImportAlert
           variant={accountsReady ? "success" : "destructive"}
           size="sm"
-          title="Accounts"
+          title="Portfolios"
           description={accountsDescription}
           icon={Icons.Wallet}
           className="mb-0"

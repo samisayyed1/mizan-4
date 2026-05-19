@@ -251,9 +251,9 @@ function AccountsToolUIContentImpl({ args, result, status }: AccountsToolUIConte
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <CardTitle className="text-base">Accounts</CardTitle>
+            <CardTitle className="text-base">Portfolios</CardTitle>
             <Badge variant="secondary" className="text-xs">
-              {count} {count === 1 ? "account" : "accounts"}
+              {count} {count === 1 ? "portfolio" : "portfolios"}
             </Badge>
             {truncated && originalCount && (
               <Badge variant="outline" className="text-muted-foreground text-xs">

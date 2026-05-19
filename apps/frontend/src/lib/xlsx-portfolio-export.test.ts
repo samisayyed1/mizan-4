@@ -232,7 +232,7 @@ describe("buildPortfolioWorkbook", () => {
       if (field) pairs[field] = value;
     }
     expect(pairs["Base currency"]).toBe("USD");
-    expect(pairs["Accounts (active / total)"]).toBe("1 / 2");
+    expect(pairs["Portfolios (active / total)"]).toBe("1 / 2");
     expect(pairs["Activities rows"]).toBe(2);
     expect(pairs.Goals).toBe(1);
   });

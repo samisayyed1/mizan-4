@@ -154,20 +154,20 @@ const SettingsAccountsPage = () => {
   return (
     <>
       <div className="space-y-6">
-        <SettingsHeader heading="Accounts" text=" Manage your investment and saving accounts.">
+        <SettingsHeader heading="Portfolios" text=" Manage your investment and savings portfolios.">
           {/* Mobile: icon button; Desktop: full button */}
           <>
             <Button
               size="icon"
               className="sm:hidden"
               onClick={() => handleAddAccount()}
-              aria-label="Add account"
+              aria-label="Add portfolio"
             >
               <Icons.Plus className="h-4 w-4" />
             </Button>
             <Button size="sm" className="hidden sm:inline-flex" onClick={() => handleAddAccount()}>
               <Icons.Plus className="mr-2 h-4 w-4" />
-              Add account
+              Add portfolio
             </Button>
           </>
         </SettingsHeader>
@@ -179,7 +179,7 @@ const SettingsAccountsPage = () => {
             <Icons.Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
             <Input
               type="text"
-              placeholder="Search accounts..."
+              placeholder="Search portfolios..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="!h-9 pl-9 pr-9 text-sm"
@@ -234,18 +234,18 @@ const SettingsAccountsPage = () => {
           {accounts.length === 0 ? (
             <EmptyPlaceholder>
               <EmptyPlaceholder.Icon name="Wallet" />
-              <EmptyPlaceholder.Title>No account added!</EmptyPlaceholder.Title>
+              <EmptyPlaceholder.Title>No portfolio added!</EmptyPlaceholder.Title>
               <EmptyPlaceholder.Description>
-                You don&apos;t have any account yet. Start adding your investment accounts.
+                You don&apos;t have any portfolio yet. Start adding your investment portfolios.
               </EmptyPlaceholder.Description>
               <Button onClick={() => handleAddAccount()}>
                 <Icons.Plus className="mr-2 h-4 w-4" />
-                Add an account
+                Add a portfolio
               </Button>
             </EmptyPlaceholder>
           ) : filteredAccounts.length === 0 ? (
             <div className="text-muted-foreground py-8 text-center">
-              No accounts match your search.
+              No portfolios match your search.
             </div>
           ) : showSections ? (
             <>
@@ -253,7 +253,7 @@ const SettingsAccountsPage = () => {
               {activeAccounts.length > 0 && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-muted-foreground text-sm font-medium">Active Accounts</h3>
+                    <h3 className="text-muted-foreground text-sm font-medium">Active Portfolios</h3>
                     <span className="bg-success/20 text-success rounded-full px-2 py-0.5 text-xs font-medium">
                       {counts.active}
                     </span>
