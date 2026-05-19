@@ -1,3 +1,32 @@
+## Product Direction (READ FIRST)
+
+The product is in the middle of a structural overhaul driven by the
+**May 17, 2026 meeting with Uncle Feroz Siddiqui**. Binding decisions,
+the full transcript, and the Sunday-deadline backlog live in:
+
+- `.claude/product-notes/feroz-meeting-2026-05-17.md`
+
+Before making any change to dashboards, portfolios, asset classes,
+holdings, net worth, goals, or liabilities — re-read that file.
+Highlights so future me doesn't forget:
+
+- "Accounts" is being renamed to **Portfolio** everywhere.
+- The main dashboard no longer shows holdings — it shows portfolios,
+  goals, net worth, and a consolidated graph.
+- New hierarchy: `Dashboard → Portfolio → Asset Class → Holdings`.
+- Portfolios are multi-currency containers; users pick currency per
+  portfolio.
+- **Bank Accounts is now an asset class** (each bank = a holding;
+  multi-currency per bank is fine).
+- **Vehicles are excluded** from net worth (depreciating).
+- **Liabilities** section is required: type / current balance / balance
+  date / origination date / duration / optional %. EMI is the monthly
+  payment, NOT the liability.
+- A **primary / master dashboard currency** lives in Settings.
+- Custom goals exist; goals can link to portfolios.
+- **Dummy data for every asset class is due before the next Sunday
+  review meeting.**
+
 ## Project Overview
 
 Mizan - Desktop investment tracker with local-first data. React + Vite
