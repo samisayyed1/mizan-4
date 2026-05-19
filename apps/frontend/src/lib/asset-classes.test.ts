@@ -6,7 +6,9 @@ import {
   groupHoldingsByAssetClass,
   parseAssetClassParam,
   partitionBuckets,
+  scaleHistoryByWeight,
   sumBucketGain,
+  type ValuationHistoryRow,
 } from "./asset-classes";
 import { AssetKind, HoldingType, QuoteMode } from "./constants";
 import type { AssetClassifications, Holding, Instrument, TaxonomyCategory } from "./types";
@@ -495,5 +497,103 @@ describe("parseAssetClassParam", () => {
     expect(parseAssetClassParam("")).toBeNull();
     expect(parseAssetClassParam(null)).toBeNull();
     expect(parseAssetClassParam(undefined)).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// scaleHistoryByWeight — constant-weight class history projection
+// ---------------------------------------------------------------------------
+
+describe("scaleHistoryByWeight", () => {
+  function row(over: Partial<ValuationHistoryRow> = {}): ValuationHistoryRow {
+    return {
+      valuationDate: over.valuationDate ?? "2026-05-17",
+      totalValue: over.totalValue ?? 100,
+      netContribution: over.netContribution ?? 50,
+      baseCurrency: "baseCurrency" in over ? (over.baseCurrency ?? null) : "USD",
+    };
+  }
+
+  it("scales totalValue and netContribution by weightPercent / 100", () => {
+    const history = [row({ valuationDate: "2026-05-17", totalValue: 1000, netContribution: 400 })];
+    const out = scaleHistoryByWeight(history, 50, "USD");
+    expect(out).toEqual([
+      { date: "2026-05-17", totalValue: 500, netContribution: 200, currency: "USD" },
+    ]);
+  });
+
+  it("preserves dates exactly across the input", () => {
+    const history = [
+      row({ valuationDate: "2026-01-01" }),
+      row({ valuationDate: "2026-02-01" }),
+      row({ valuationDate: "2026-03-01" }),
+    ];
+    const out = scaleHistoryByWeight(history, 25, "USD");
+    expect(out.map((p) => p.date)).toEqual(["2026-01-01", "2026-02-01", "2026-03-01"]);
+  });
+
+  it("uses the row's baseCurrency when present", () => {
+    const history = [row({ baseCurrency: "SGD" })];
+    const out = scaleHistoryByWeight(history, 50, "USD");
+    expect(out[0]?.currency).toBe("SGD");
+  });
+
+  it("falls back to defaultCurrency when the row has no currency", () => {
+    const history = [row({ baseCurrency: null })];
+    const out = scaleHistoryByWeight(history, 50, "USD");
+    expect(out[0]?.currency).toBe("USD");
+  });
+
+  it("falls back to defaultCurrency when the row currency is an empty string", () => {
+    const history = [row({ baseCurrency: "" })];
+    const out = scaleHistoryByWeight(history, 50, "USD");
+    expect(out[0]?.currency).toBe("USD");
+  });
+
+  it("returns [] when weightPercent is 0 — caller should hide the chart", () => {
+    const history = [row()];
+    expect(scaleHistoryByWeight(history, 0, "USD")).toEqual([]);
+  });
+
+  it("returns [] when weightPercent is not finite", () => {
+    const history = [row()];
+    expect(scaleHistoryByWeight(history, NaN, "USD")).toEqual([]);
+    expect(scaleHistoryByWeight(history, Infinity, "USD")).toEqual([]);
+    expect(scaleHistoryByWeight(history, -Infinity, "USD")).toEqual([]);
+  });
+
+  it("clamps negative weights to 0 (returns [])", () => {
+    const history = [row()];
+    expect(scaleHistoryByWeight(history, -10, "USD")).toEqual([]);
+  });
+
+  it("clamps weights >100 to 100% (returns input unchanged in value)", () => {
+    const history = [row({ totalValue: 100, netContribution: 40 })];
+    const out = scaleHistoryByWeight(history, 1000, "USD");
+    expect(out[0]?.totalValue).toBe(100);
+    expect(out[0]?.netContribution).toBe(40);
+  });
+
+  it("skips rows with non-finite totalValue or netContribution", () => {
+    const history = [
+      row({ valuationDate: "2026-01-01", totalValue: NaN }),
+      row({ valuationDate: "2026-02-01", netContribution: Infinity }),
+      row({ valuationDate: "2026-03-01", totalValue: 200, netContribution: 80 }),
+    ];
+    const out = scaleHistoryByWeight(history, 50, "USD");
+    expect(out).toEqual([
+      { date: "2026-03-01", totalValue: 100, netContribution: 40, currency: "USD" },
+    ]);
+  });
+
+  it("returns [] for an empty input", () => {
+    expect(scaleHistoryByWeight([], 50, "USD")).toEqual([]);
+  });
+
+  it("handles fractional weights without precision drama", () => {
+    const history = [row({ totalValue: 1000, netContribution: 400 })];
+    const out = scaleHistoryByWeight(history, 33.33, "USD");
+    expect(out[0]?.totalValue).toBeCloseTo(333.3, 5);
+    expect(out[0]?.netContribution).toBeCloseTo(133.32, 5);
   });
 });

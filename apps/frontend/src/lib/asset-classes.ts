@@ -338,3 +338,84 @@ export function parseAssetClassParam(raw: string | null | undefined): AssetClass
   }
   return null;
 }
+
+// ---------------------------------------------------------------------------
+// Asset-class history scaling (Step 8 — per-class graphs)
+// ---------------------------------------------------------------------------
+
+/**
+ * Minimal row shape we need from a portfolio-level valuation history
+ * to derive a class-level estimate. Matches `AccountValuation` from
+ * `lib/types.ts` but kept structural so the helper stays pure and the
+ * tests don't need to construct full DTOs.
+ */
+export interface ValuationHistoryRow {
+  valuationDate: string;
+  totalValue: number;
+  netContribution: number;
+  baseCurrency?: string | null;
+}
+
+/**
+ * One point of the per-class history time-series fed to `<HistoryChart>`.
+ * Same shape the dashboard's chart already consumes — drop-in.
+ */
+export interface AssetClassHistoryPoint {
+  date: string;
+  totalValue: number;
+  netContribution: number;
+  currency: string;
+}
+
+/**
+ * Project a portfolio-level valuation history onto a single asset
+ * class by **scaling every point by the class's current weight**.
+ *
+ * This is the constant-weight approximation: it assumes the class
+ * held its current share of the portfolio throughout the period.
+ * Reality drifts — rebalances, new contributions to one class, sells
+ * out of another — but the SHAPE of the resulting curve still tells
+ * the user "how did this class do" relative to portfolio context.
+ *
+ * The caveat is communicated to the user with a visible "Estimated"
+ * disclaimer on the chart. A future iteration will replace this with
+ * a real per-class history once the backend exposes one.
+ *
+ * Math invariants enforced here:
+ *  - `weightPercent` is clamped to 0..100 (defensive against caller
+ *    bugs or NaN that slipped through).
+ *  - Rows with non-finite `totalValue` or `netContribution` are
+ *    skipped entirely rather than poisoning the chart.
+ *  - Dates pass through unchanged so the x-axis aligns with the
+ *    portfolio-level chart.
+ *  - Currency falls back to `defaultCurrency` when the row didn't
+ *    carry one — `<HistoryChart>` needs a non-empty string.
+ *
+ * Pure function — exported and unit-tested in `asset-classes.test.ts`.
+ */
+export function scaleHistoryByWeight(
+  history: readonly ValuationHistoryRow[],
+  weightPercent: number,
+  defaultCurrency: string,
+): AssetClassHistoryPoint[] {
+  if (!Number.isFinite(weightPercent)) return [];
+  const weight = Math.max(0, Math.min(100, weightPercent)) / 100;
+  if (weight === 0) {
+    // Caller's UI should normally hide the chart entirely in this case,
+    // but returning an empty list (rather than rows of zeros) is the
+    // unambiguous signal for "we have no signal to project".
+    return [];
+  }
+
+  const out: AssetClassHistoryPoint[] = [];
+  for (const row of history) {
+    if (!Number.isFinite(row.totalValue) || !Number.isFinite(row.netContribution)) continue;
+    out.push({
+      date: row.valuationDate,
+      totalValue: row.totalValue * weight,
+      netContribution: row.netContribution * weight,
+      currency: row.baseCurrency || defaultCurrency,
+    });
+  }
+  return out;
+}
