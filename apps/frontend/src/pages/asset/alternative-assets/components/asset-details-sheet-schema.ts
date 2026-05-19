@@ -10,6 +10,12 @@ export const PROPERTY_TYPES = [
   { value: "commercial", label: "Commercial" },
 ] as const;
 
+// Rental frequency options (Feroz step D — monthly or annual rent)
+export const RENTAL_FREQUENCIES = [
+  { value: "monthly", label: "Monthly" },
+  { value: "annual", label: "Annual" },
+] as const;
+
 // Collectible types
 export const COLLECTIBLE_TYPES = [
   { value: "art", label: "Art" },
@@ -71,6 +77,17 @@ export const propertyDetailsSchema = baseSchema.extend({
   kind: z.literal(AlternativeAssetKind.PROPERTY),
   address: z.string().max(200, "Address must be less than 200 characters").optional().nullable(),
   propertyType: z.enum(["residence", "rental", "land", "commercial"]).optional().nullable(),
+  // Rental tracking (Feroz step D §16). `rentalEndDate` is optional —
+  // an empty end date means the tenancy is ongoing / perpetual.
+  isRented: z.boolean().optional(),
+  rentalAmount: z.coerce
+    .number()
+    .positive("Rental amount must be greater than 0")
+    .optional()
+    .nullable(),
+  rentalFrequency: z.enum(["monthly", "annual"]).optional().nullable(),
+  rentalStartDate: z.date().optional().nullable(),
+  rentalEndDate: z.date().optional().nullable(),
 });
 
 // Vehicle-specific schema
@@ -185,6 +202,16 @@ export function getDefaultDetailsFormValues(
         kind: AlternativeAssetKind.PROPERTY,
         address: (metadata?.address as string) ?? null,
         propertyType: subType as PropertyDetailsFormValues["propertyType"],
+        isRented: metadata?.is_rented === "true",
+        rentalAmount: metadata?.rental_amount ? parseFloat(metadata.rental_amount as string) : null,
+        rentalFrequency:
+          (metadata?.rental_frequency as PropertyDetailsFormValues["rentalFrequency"]) ?? null,
+        rentalStartDate: metadata?.rental_start_date
+          ? parseLocalDate(metadata.rental_start_date as string)
+          : null,
+        rentalEndDate: metadata?.rental_end_date
+          ? parseLocalDate(metadata.rental_end_date as string)
+          : null,
       };
 
     case AlternativeAssetKind.VEHICLE:
@@ -266,6 +293,19 @@ export function formValuesToMetadata(values: AssetDetailsFormValues): Record<str
     case AlternativeAssetKind.PROPERTY:
       if (values.address) metadata.address = values.address;
       if (values.propertyType) metadata.sub_type = values.propertyType;
+      // Rental tracking. Always write is_rented explicitly so toggling
+      // a property back to not-rented reliably clears the rented state
+      // regardless of whether the backend merges or replaces metadata.
+      // The detail fields are only written while rented; an absent
+      // end date means the tenancy is ongoing / perpetual.
+      metadata.is_rented = values.isRented ? "true" : "false";
+      if (values.isRented) {
+        if (values.rentalAmount != null) metadata.rental_amount = values.rentalAmount.toString();
+        if (values.rentalFrequency) metadata.rental_frequency = values.rentalFrequency;
+        if (values.rentalStartDate)
+          metadata.rental_start_date = formatDateToISO(values.rentalStartDate);
+        if (values.rentalEndDate) metadata.rental_end_date = formatDateToISO(values.rentalEndDate);
+      }
       break;
 
     case AlternativeAssetKind.VEHICLE:
