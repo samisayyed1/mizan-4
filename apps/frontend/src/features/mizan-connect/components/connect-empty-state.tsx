@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { useCreateBrokerLoginPortal } from "../hooks";
 import { useMizanConnect } from "../providers/mizan-connect-provider";
 import { ConnectFlowDiagram } from "./connect-flow-diagram";
+import { SupportedIntegrations } from "./supported-integrations";
 
 const features = [
   {
@@ -89,6 +90,10 @@ export function ConnectEmptyState() {
             );
           })}
         </section>
+
+        {/* Supported integrations — names + logos so the user can see
+            their broker is on the list before they click Connect. */}
+        <SupportedIntegrations />
 
         {/* CTA */}
         <footer className="flex flex-col items-center gap-4">
