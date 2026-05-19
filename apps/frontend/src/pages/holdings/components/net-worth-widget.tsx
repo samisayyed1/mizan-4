@@ -162,14 +162,36 @@ export const NetWorthWidget = ({
   const parsedValues = useMemo(() => {
     if (!netWorthData) return null;
 
+    // Exclude vehicle holdings from net worth (Feroz #14 — vehicles are
+    // depreciating assets and skew net worth). The backend total still
+    // includes them today, so we subtract the vehicle breakdown subtotal
+    // client-side and drop those rows from the displayed breakdown.
+    //
+    // Matching on the `category` key (not the localized display name)
+    // keeps this robust. `^vehicle` matches "vehicle"/"vehicles" but
+    // none of the other categories (cash, investments, properties,
+    // collectibles, precious, other), so there are no false positives —
+    // and when the user has no vehicle this is a strict no-op.
+    const isVehicleCategory = (category: string) => /^vehicle/i.test(category);
+
+    const assetBreakdownRaw = netWorthData.assets.breakdown;
+    const vehicleSubtotal = assetBreakdownRaw
+      .filter((item) => isVehicleCategory(item.category))
+      .reduce((acc, item) => acc + (parseFloat(item.value) || 0), 0);
+
+    const rawNetWorth = parseFloat(netWorthData.netWorth) || 0;
+    const rawTotalAssets = parseFloat(netWorthData.assets.total) || 0;
+
     return {
-      netWorth: parseFloat(netWorthData.netWorth) || 0,
-      totalAssets: parseFloat(netWorthData.assets.total) || 0,
+      netWorth: rawNetWorth - vehicleSubtotal,
+      totalAssets: rawTotalAssets - vehicleSubtotal,
       totalLiabilities: parseFloat(netWorthData.liabilities.total) || 0,
-      assetsBreakdown: netWorthData.assets.breakdown.map((item) => ({
-        label: item.name,
-        value: parseFloat(item.value) || 0,
-      })),
+      assetsBreakdown: assetBreakdownRaw
+        .filter((item) => !isVehicleCategory(item.category))
+        .map((item) => ({
+          label: item.name,
+          value: parseFloat(item.value) || 0,
+        })),
       liabilitiesBreakdown: netWorthData.liabilities.breakdown.map((item) => ({
         label: item.name,
         value: parseFloat(item.value) || 0,
