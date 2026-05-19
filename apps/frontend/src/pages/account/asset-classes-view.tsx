@@ -41,6 +41,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AddHoldingMenu } from "./add-holding-menu";
+import { AssetClassHistoryChart } from "./asset-class-history-chart";
 
 interface AssetClassesViewProps {
   accountId: string;
@@ -390,17 +391,27 @@ function AssetClassDrilldown({
       {sortedHoldings.length === 0 ? (
         <AssetClassEmptyState cls={cls} accountId={accountId} onAddHoldings={onAddHoldings} />
       ) : (
-        <ul className="bg-card divide-border divide-y overflow-hidden rounded-md border">
-          {sortedHoldings.map((h) => (
-            <HoldingRow
-              key={h.id}
-              holding={h}
+        <>
+          {bucket && bucket.weightPercent > 0 && (
+            <AssetClassHistoryChart
+              cls={cls}
+              bucket={bucket}
+              accountId={accountId}
               portfolioCurrency={portfolioCurrency}
-              classTotalForWeights={classTotalForWeights}
-              fallbackLabel={labels.singular}
             />
-          ))}
-        </ul>
+          )}
+          <ul className="bg-card divide-border divide-y overflow-hidden rounded-md border">
+            {sortedHoldings.map((h) => (
+              <HoldingRow
+                key={h.id}
+                holding={h}
+                portfolioCurrency={portfolioCurrency}
+                classTotalForWeights={classTotalForWeights}
+                fallbackLabel={labels.singular}
+              />
+            ))}
+          </ul>
+        </>
       )}
     </div>
   );
