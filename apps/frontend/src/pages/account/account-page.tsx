@@ -77,9 +77,9 @@ import {
 import { format, parseISO } from "date-fns";
 import { useNavigate, useParams } from "react-router-dom";
 import { AccountContributionLimit } from "./account-contribution-limit";
-import AccountHoldings from "./account-holdings";
 import AccountMetrics from "./account-metrics";
 import AccountSnapshotHistory from "./account-snapshot-history";
+import { AssetClassesView } from "./asset-classes-view";
 
 interface HistoryChartData {
   date: string;
@@ -744,9 +744,8 @@ const AccountPage = () => {
                 />
 
                 {activeAccountDetailTab === "holdings" ? (
-                  <AccountHoldings
+                  <AssetClassesView
                     accountId={id}
-                    showEmptyState={false}
                     onAddHoldings={() => setIsEditingHoldings(true)}
                   />
                 ) : (
@@ -761,15 +760,11 @@ const AccountPage = () => {
                 )}
               </div>
             ) : (
-              <AccountHoldings accountId={id} onAddHoldings={() => setIsEditingHoldings(true)} />
+              <AssetClassesView accountId={id} onAddHoldings={() => setIsEditingHoldings(true)} />
             )}
           </>
         ) : (
-          <AccountHoldings
-            accountId={id}
-            showEmptyState={true}
-            onAddHoldings={() => setIsEditingHoldings(true)}
-          />
+          <AssetClassesView accountId={id} onAddHoldings={() => setIsEditingHoldings(true)} />
         )}
       </PageContent>
 
