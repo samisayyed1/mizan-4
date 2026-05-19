@@ -649,6 +649,37 @@ function getDetailRows(
       if (address) {
         rows.push({ label: "Address", value: address });
       }
+      // Rental income (Feroz step D §16). Only when the property is
+      // marked rented. An absent end date reads as "Ongoing".
+      if (metadata.is_rented === "true") {
+        const rentalAmount = metadata.rental_amount as string | undefined;
+        const frequency = (metadata.rental_frequency as string | undefined) ?? "monthly";
+        if (rentalAmount) {
+          rows.push({
+            label: "Rental Income",
+            value: (
+              <span className="flex items-center gap-1">
+                <AmountDisplay
+                  value={parseFloat(rentalAmount)}
+                  currency={holding.currency}
+                  isHidden={isBalanceHidden}
+                />
+                <span className="text-muted-foreground text-xs">
+                  / {frequency === "annual" ? "year" : "month"}
+                </span>
+              </span>
+            ),
+          });
+        }
+        const start = metadata.rental_start_date as string | undefined;
+        const end = metadata.rental_end_date as string | undefined;
+        if (start) {
+          rows.push({
+            label: "Rental Period",
+            value: end ? `${start} → ${end}` : `${start} → Ongoing`,
+          });
+        }
+      }
       break;
     }
 

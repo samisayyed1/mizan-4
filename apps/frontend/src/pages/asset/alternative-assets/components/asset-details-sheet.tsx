@@ -18,6 +18,7 @@ import {
   FormMessage,
 } from "@mizan/ui/components/ui/form";
 import { Button } from "@mizan/ui/components/ui/button";
+import { Checkbox } from "@mizan/ui/components/ui/checkbox";
 import { Input } from "@mizan/ui/components/ui/input";
 import { Textarea } from "@mizan/ui/components/ui/textarea";
 import { Separator } from "@mizan/ui/components/ui/separator";
@@ -38,6 +39,7 @@ import {
   getDefaultDetailsFormValues,
   formValuesToMetadata,
   PROPERTY_TYPES,
+  RENTAL_FREQUENCIES,
   VEHICLE_TYPES,
   COLLECTIBLE_TYPES,
   METAL_TYPES,
@@ -469,6 +471,128 @@ function PropertyFields({ form }: { form: ReturnType<typeof useForm<AssetDetails
           </FormItem>
         )}
       />
+
+      <PropertyRentalFields form={form} />
+    </div>
+  );
+}
+
+function PropertyRentalFields({
+  form,
+}: {
+  form: ReturnType<typeof useForm<AssetDetailsFormValues>>;
+}) {
+  const isRented = form.watch("isRented") ?? false;
+
+  return (
+    <div className="border-border/60 space-y-4 rounded-lg border p-4">
+      <FormField
+        control={form.control}
+        name="isRented"
+        render={({ field }) => (
+          <FormItem className="flex flex-row items-center justify-between gap-3 space-y-0">
+            <div className="space-y-0.5">
+              <FormLabel className="cursor-pointer">Is this property rented out?</FormLabel>
+              <p className="text-muted-foreground text-xs">
+                Track the rental income this property generates.
+              </p>
+            </div>
+            <FormControl>
+              <Checkbox
+                checked={field.value ?? false}
+                onCheckedChange={(checked) => field.onChange(checked === true)}
+              />
+            </FormControl>
+          </FormItem>
+        )}
+      />
+
+      {isRented && (
+        <div className="space-y-4 pt-1">
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="rentalAmount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Rental Amount</FormLabel>
+                  <FormControl>
+                    <MoneyInput
+                      value={field.value != null ? String(field.value) : ""}
+                      onValueChange={(v) => field.onChange(v ?? null)}
+                      placeholder="0.00"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="rentalFrequency"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Frequency</FormLabel>
+                  <FormControl>
+                    <ResponsiveSelect
+                      value={field.value ?? "monthly"}
+                      onValueChange={(val) => field.onChange(val || null)}
+                      options={RENTAL_FREQUENCIES.map((f) => ({ value: f.value, label: f.label }))}
+                      placeholder="Select frequency"
+                      sheetTitle="Rental Frequency"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="rentalStartDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Start Date</FormLabel>
+                  <FormControl>
+                    <DatePickerInput
+                      value={field.value ?? undefined}
+                      onChange={(date) => field.onChange(date ?? null)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="rentalEndDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    End Date
+                    <span className="text-muted-foreground ml-1 text-xs font-normal">
+                      (optional)
+                    </span>
+                  </FormLabel>
+                  <FormControl>
+                    <DatePickerInput
+                      value={field.value ?? undefined}
+                      onChange={(date) => field.onChange(date ?? null)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <p className="text-muted-foreground text-xs leading-snug">
+            Leave the end date empty if the tenancy is ongoing &mdash; it&apos;ll be treated as
+            perpetual.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
