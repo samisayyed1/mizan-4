@@ -208,7 +208,12 @@ function AssetClassCard({ bucket, portfolioCurrency, onClick }: AssetClassCardPr
         "focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2",
       ].join(" ")}
     >
-      <CardContent className="space-y-3 p-4">
+      {/* Flex column + h-full so cards in a grid row stay equal height
+          and the weight bar always pins to the bottom edge, regardless
+          of how tall the header content is (gain badge present/absent,
+          a future two-line label, etc). Keeps the bottom rule of every
+          card in a row perfectly aligned. */}
+      <CardContent className="flex h-full flex-col gap-3 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <div className="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
@@ -229,7 +234,9 @@ function AssetClassCard({ bucket, portfolioCurrency, onClick }: AssetClassCardPr
           </div>
         </div>
 
-        <WeightBar percent={bucket.weightPercent} />
+        <div className="mt-auto">
+          <WeightBar percent={bucket.weightPercent} />
+        </div>
       </CardContent>
     </Card>
   );
