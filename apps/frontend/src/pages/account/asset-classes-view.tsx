@@ -40,6 +40,7 @@ import { formatCompactAmount } from "@mizan/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import { AddHoldingMenu } from "./add-holding-menu";
 
 interface AssetClassesViewProps {
   accountId: string;
@@ -101,6 +102,7 @@ export function AssetClassesView({ accountId, onAddHoldings }: AssetClassesViewP
         cls={selectedClass}
         bucket={bucket}
         portfolioCurrency={portfolioCurrency}
+        accountId={accountId}
         onBack={handleBackToClasses}
         onAddHoldings={onAddHoldings}
       />
@@ -299,6 +301,7 @@ interface AssetClassDrilldownProps {
   cls: AssetClass;
   bucket: AssetClassBucket | undefined;
   portfolioCurrency: string;
+  accountId: string;
   onBack: () => void;
   onAddHoldings?: () => void;
 }
@@ -307,6 +310,7 @@ function AssetClassDrilldown({
   cls,
   bucket,
   portfolioCurrency,
+  accountId,
   onBack,
   onAddHoldings,
 }: AssetClassDrilldownProps) {
@@ -337,10 +341,12 @@ function AssetClassDrilldown({
           Asset Classes
         </Button>
         {onAddHoldings ? (
-          <Button size="sm" variant="outline" onClick={onAddHoldings}>
-            <Icons.Plus className="mr-1 h-4 w-4" />
-            Add {labels.singular}
-          </Button>
+          <AddHoldingMenu
+            cls={cls}
+            accountId={accountId}
+            onManualAdd={onAddHoldings}
+            size="inline"
+          />
         ) : null}
       </div>
 
@@ -382,7 +388,7 @@ function AssetClassDrilldown({
       </div>
 
       {sortedHoldings.length === 0 ? (
-        <AssetClassEmptyState cls={cls} onAddHoldings={onAddHoldings} />
+        <AssetClassEmptyState cls={cls} accountId={accountId} onAddHoldings={onAddHoldings} />
       ) : (
         <ul className="bg-card divide-border divide-y overflow-hidden rounded-md border">
           {sortedHoldings.map((h) => (
@@ -459,10 +465,11 @@ function HoldingRow({
 
 interface AssetClassEmptyStateProps {
   cls: AssetClass;
+  accountId: string;
   onAddHoldings?: () => void;
 }
 
-function AssetClassEmptyState({ cls, onAddHoldings }: AssetClassEmptyStateProps) {
+function AssetClassEmptyState({ cls, accountId, onAddHoldings }: AssetClassEmptyStateProps) {
   const labels = ASSET_CLASS_LABELS[cls];
   const Icon = Icons[ASSET_CLASS_ICON_NAMES[cls] as IconName];
 
@@ -477,10 +484,14 @@ function AssetClassEmptyState({ cls, onAddHoldings }: AssetClassEmptyStateProps)
           You don&apos;t have any {labels.plural.toLowerCase()}. Please add now.
         </p>
         {onAddHoldings ? (
-          <Button size="sm" className="mt-4" onClick={onAddHoldings}>
-            <Icons.Plus className="mr-1 h-4 w-4" />
-            Add {labels.singular}
-          </Button>
+          <div className="mt-4">
+            <AddHoldingMenu
+              cls={cls}
+              accountId={accountId}
+              onManualAdd={onAddHoldings}
+              size="cta"
+            />
+          </div>
         ) : null}
       </CardContent>
     </Card>
