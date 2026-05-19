@@ -4,8 +4,8 @@
  * Replaces the legacy "flat list of holdings" rendering inside a
  * portfolio with Feroz's two-level shape:
  *
- *   default view  → grid of asset class cards (all classes always
- *                   visible — empty ones show an Add CTA)
+ *   default view  → portfolio summary + active asset class grid +
+ *                   "Add another asset class" rail
  *   ?class=STOCKS → drill-down list of just that class's holdings
  *
  * The component is intentionally self-contained: it fetches its own
@@ -14,7 +14,8 @@
  * and exposes a single `onAddHoldings` prop for the empty-state CTAs
  * (which the parent page wires to the existing edit-mode sheet).
  *
- * Reference: .claude/product-notes/feroz-meeting-2026-05-17.md #5, #9, #10, #13.
+ * Reference: .claude/product-notes/feroz-meeting-2026-05-17.md
+ * decisions #5, #9, #10, #13.
  */
 
 import { getHoldings } from "@/adapters";
@@ -25,6 +26,7 @@ import {
   ASSET_CLASS_LABELS,
   groupHoldingsByAssetClass,
   parseAssetClassParam,
+  partitionBuckets,
   type AssetClassBucket,
 } from "@/lib/asset-classes";
 import { QueryKeys } from "@/lib/query-keys";
@@ -61,6 +63,20 @@ export function AssetClassesView({ accountId, onAddHoldings }: AssetClassesViewP
   const portfolioCurrency = account?.currency ?? "USD";
 
   const buckets = useMemo(() => groupHoldingsByAssetClass(holdings ?? []), [holdings]);
+  const { active, empty } = useMemo(() => partitionBuckets(buckets), [buckets]);
+
+  // Active buckets sorted by value desc — investors care about
+  // where the money actually is before they care about anything else.
+  const activeSorted = useMemo(
+    () => [...active].sort((a, b) => b.totalValue - a.totalValue),
+    [active],
+  );
+
+  const portfolioTotal = useMemo(
+    () => buckets.reduce((acc, b) => acc + b.totalValue, 0),
+    [buckets],
+  );
+  const totalHoldings = useMemo(() => buckets.reduce((acc, b) => acc + b.count, 0), [buckets]);
 
   const handleSelectClass = (cls: AssetClass) => {
     const next = new URLSearchParams(searchParams);
@@ -92,52 +108,74 @@ export function AssetClassesView({ accountId, onAddHoldings }: AssetClassesViewP
   }
 
   return (
-    <AssetClassesGrid
-      buckets={buckets}
-      portfolioCurrency={portfolioCurrency}
-      onSelectClass={handleSelectClass}
-    />
-  );
-}
+    <div className="space-y-6">
+      <PortfolioSummaryLine
+        portfolioTotal={portfolioTotal}
+        portfolioCurrency={portfolioCurrency}
+        totalHoldings={totalHoldings}
+        activeClassCount={activeSorted.length}
+      />
 
-// ---------------------------------------------------------------------------
-// Grid view — one card per asset class
-// ---------------------------------------------------------------------------
+      {activeSorted.length > 0 && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {activeSorted.map((bucket) => (
+            <AssetClassCard
+              key={bucket.cls}
+              bucket={bucket}
+              portfolioCurrency={portfolioCurrency}
+              onClick={() => handleSelectClass(bucket.cls)}
+            />
+          ))}
+        </div>
+      )}
 
-interface AssetClassesGridProps {
-  buckets: readonly AssetClassBucket[];
-  portfolioCurrency: string;
-  onSelectClass: (cls: AssetClass) => void;
-}
-
-function AssetClassesGrid({ buckets, portfolioCurrency, onSelectClass }: AssetClassesGridProps) {
-  // Feroz wants every class visible, but if a class has zero holdings
-  // it shows a subdued "Add" affordance — not a full empty value row.
-  // The portfolio total at the top of the page comes from the parent
-  // (already covered by the existing chart header), so we don't repeat
-  // it here.
-  return (
-    <div className="space-y-3">
-      <div className="flex items-baseline justify-between px-1">
-        <h2 className="text-base font-semibold tracking-tight">Asset Classes</h2>
-        <span className="text-muted-foreground text-xs">
-          {buckets.filter((b) => b.count > 0).length} active
-        </span>
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {buckets.map((bucket) => (
-          <AssetClassCard
-            key={bucket.cls}
-            bucket={bucket}
-            portfolioCurrency={portfolioCurrency}
-            onClick={() => onSelectClass(bucket.cls)}
-          />
-        ))}
-      </div>
+      {empty.length > 0 && (
+        <AddAnotherAssetClassRail buckets={empty} onSelect={handleSelectClass} />
+      )}
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Portfolio summary line — orientation header above the grid
+// ---------------------------------------------------------------------------
+
+interface PortfolioSummaryLineProps {
+  portfolioTotal: number;
+  portfolioCurrency: string;
+  totalHoldings: number;
+  activeClassCount: number;
+}
+
+function PortfolioSummaryLine({
+  portfolioTotal,
+  portfolioCurrency,
+  totalHoldings,
+  activeClassCount,
+}: PortfolioSummaryLineProps) {
+  return (
+    <div className="flex items-baseline justify-between gap-2 px-1">
+      <h2 className="text-base font-semibold tracking-tight">Asset Classes</h2>
+      <p className="text-muted-foreground text-xs sm:text-sm">
+        {totalHoldings === 0 ? (
+          <span>No holdings yet &middot; pick a class to start</span>
+        ) : (
+          <>
+            <span className="text-foreground font-medium tabular-nums">
+              {formatCompactAmount(portfolioTotal, portfolioCurrency)}
+            </span>{" "}
+            &middot; {totalHoldings} {totalHoldings === 1 ? "holding" : "holdings"} across{" "}
+            {activeClassCount} {activeClassCount === 1 ? "class" : "classes"}
+          </>
+        )}
+      </p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Active asset class card — full-fat tile with value, gain, weight bar
+// ---------------------------------------------------------------------------
 
 interface AssetClassCardProps {
   bucket: AssetClassBucket;
@@ -148,7 +186,6 @@ interface AssetClassCardProps {
 function AssetClassCard({ bucket, portfolioCurrency, onClick }: AssetClassCardProps) {
   const labels = ASSET_CLASS_LABELS[bucket.cls];
   const Icon = Icons[ASSET_CLASS_ICON_NAMES[bucket.cls] as IconName];
-  const isEmpty = bucket.count === 0;
 
   return (
     <Card
@@ -166,48 +203,91 @@ function AssetClassCard({ bucket, portfolioCurrency, onClick }: AssetClassCardPr
         "group cursor-pointer transition-colors",
         "hover:border-primary/40 hover:bg-accent/30",
         "focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2",
-        isEmpty ? "border-dashed opacity-80" : "",
       ].join(" ")}
     >
-      <CardContent className="flex items-center justify-between p-4">
-        <div className="flex items-center gap-3">
-          <div
-            className={[
-              "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
-              isEmpty ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary",
-            ].join(" ")}
-          >
-            {Icon ? <Icon className="h-5 w-5" /> : null}
+      <CardContent className="space-y-3 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
+              {Icon ? <Icon className="h-5 w-5" /> : null}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium leading-tight">{labels.plural}</p>
+              <p className="text-muted-foreground mt-0.5 text-xs">
+                {bucket.count} {bucket.count === 1 ? labels.singular : labels.plural}
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-sm font-medium leading-tight">{labels.plural}</p>
-            <p className="text-muted-foreground mt-0.5 text-xs">
-              {isEmpty
-                ? "No holdings yet"
-                : `${bucket.count} ${bucket.count === 1 ? labels.singular : labels.plural}`}
+          <div className="shrink-0 text-right">
+            <p className="text-sm font-semibold tabular-nums">
+              {formatCompactAmount(bucket.totalValue, portfolioCurrency)}
             </p>
+            <GainBadge value={bucket.totalGain} currency={portfolioCurrency} />
           </div>
         </div>
 
-        <div className="shrink-0 text-right">
-          {isEmpty ? (
-            <Icons.Plus
-              className="text-muted-foreground group-hover:text-foreground h-4 w-4 transition-colors"
-              aria-hidden
-            />
-          ) : (
-            <>
-              <p className="text-sm font-semibold tabular-nums">
-                {formatCompactAmount(bucket.totalValue, portfolioCurrency)}
-              </p>
-              <p className="text-muted-foreground text-[10px] uppercase tracking-wide">
-                {portfolioCurrency}
-              </p>
-            </>
-          )}
-        </div>
+        <WeightBar percent={bucket.weightPercent} />
       </CardContent>
     </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// "Add another asset class" rail — empty buckets as compact chips
+// ---------------------------------------------------------------------------
+
+interface AddAnotherAssetClassRailProps {
+  buckets: readonly AssetClassBucket[];
+  onSelect: (cls: AssetClass) => void;
+}
+
+function AddAnotherAssetClassRail({ buckets, onSelect }: AddAnotherAssetClassRailProps) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-3">
+        <h3 className="text-muted-foreground text-xs font-medium uppercase tracking-wider">
+          Add another asset class
+        </h3>
+        <div className="bg-border h-px flex-1" />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {buckets.map((bucket) => (
+          <EmptyAssetClassChip
+            key={bucket.cls}
+            cls={bucket.cls}
+            onClick={() => onSelect(bucket.cls)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+interface EmptyAssetClassChipProps {
+  cls: AssetClass;
+  onClick: () => void;
+}
+
+function EmptyAssetClassChip({ cls, onClick }: EmptyAssetClassChipProps) {
+  const labels = ASSET_CLASS_LABELS[cls];
+  const Icon = Icons[ASSET_CLASS_ICON_NAMES[cls] as IconName];
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={`Add ${labels.singular}`}
+      className={[
+        "border-input bg-background hover:border-primary/40 hover:bg-accent/30",
+        "focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2",
+        "inline-flex items-center gap-2 rounded-full border border-dashed px-3 py-1.5",
+        "text-muted-foreground hover:text-foreground text-xs transition-colors",
+      ].join(" ")}
+    >
+      <Icons.Plus className="h-3.5 w-3.5" />
+      {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
+      <span>{labels.plural}</span>
+    </button>
   );
 }
 
@@ -233,6 +313,8 @@ function AssetClassDrilldown({
   const labels = ASSET_CLASS_LABELS[cls];
   const Icon = Icons[ASSET_CLASS_ICON_NAMES[cls] as IconName];
   const totalValue = bucket?.totalValue ?? 0;
+  const totalGain = bucket?.totalGain ?? null;
+  const weightPercent = bucket?.weightPercent ?? 0;
 
   // Largest-first inside the drill-down. The grouping helper preserves
   // input order so the caller controls sort — here we want the biggest
@@ -244,6 +326,8 @@ function AssetClassDrilldown({
     const list = bucket?.holdings ?? [];
     return [...list].sort((a, b) => (b.marketValue?.base ?? 0) - (a.marketValue?.base ?? 0));
   }, [bucket]);
+
+  const classTotalForWeights = totalValue > 0 ? totalValue : 1;
 
   return (
     <div className="space-y-4">
@@ -260,22 +344,41 @@ function AssetClassDrilldown({
         ) : null}
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="bg-primary/10 text-primary flex h-12 w-12 items-center justify-center rounded-xl">
-          {Icon ? <Icon className="h-6 w-6" /> : null}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="bg-primary/10 text-primary flex h-12 w-12 items-center justify-center rounded-xl">
+            {Icon ? <Icon className="h-6 w-6" /> : null}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline justify-between gap-2">
+              <h2 className="text-lg font-semibold leading-tight">{labels.plural}</h2>
+              {sortedHoldings.length > 0 && (
+                <span className="text-muted-foreground text-xs tabular-nums">
+                  {weightPercent.toFixed(1)}% of portfolio
+                </span>
+              )}
+            </div>
+            <p className="text-muted-foreground mt-0.5 flex items-center gap-2 text-sm">
+              {sortedHoldings.length === 0 ? (
+                <span>No {labels.plural.toLowerCase()} yet</span>
+              ) : (
+                <>
+                  <span className="text-foreground font-medium tabular-nums">
+                    {formatCompactAmount(totalValue, portfolioCurrency)}
+                  </span>
+                  <span>
+                    {sortedHoldings.length}{" "}
+                    {sortedHoldings.length === 1
+                      ? labels.singular.toLowerCase()
+                      : labels.plural.toLowerCase()}
+                  </span>
+                  <GainBadge value={totalGain} currency={portfolioCurrency} />
+                </>
+              )}
+            </p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-lg font-semibold leading-tight">{labels.plural}</h2>
-          <p className="text-muted-foreground text-sm">
-            {sortedHoldings.length === 0
-              ? `No ${labels.plural.toLowerCase()} yet`
-              : `${formatCompactAmount(totalValue, portfolioCurrency)} across ${sortedHoldings.length} ${
-                  sortedHoldings.length === 1
-                    ? labels.singular.toLowerCase()
-                    : labels.plural.toLowerCase()
-                }`}
-          </p>
-        </div>
+        {sortedHoldings.length > 0 && <WeightBar percent={weightPercent} />}
       </div>
 
       {sortedHoldings.length === 0 ? (
@@ -283,37 +386,74 @@ function AssetClassDrilldown({
       ) : (
         <ul className="bg-card divide-border divide-y overflow-hidden rounded-md border">
           {sortedHoldings.map((h) => (
-            <li key={h.id} className="flex items-center justify-between gap-3 px-4 py-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">
-                  {h.instrument?.name || h.instrument?.symbol || labels.singular}
-                </p>
-                <div className="text-muted-foreground mt-0.5 flex items-center gap-2 text-xs">
-                  {h.instrument?.symbol ? (
-                    <span className="font-mono">{h.instrument.symbol}</span>
-                  ) : null}
-                  {h.localCurrency && h.localCurrency !== portfolioCurrency ? (
-                    <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
-                      {h.localCurrency}
-                    </Badge>
-                  ) : null}
-                </div>
-              </div>
-              <div className="shrink-0 text-right">
-                <p className="text-sm font-semibold tabular-nums">
-                  {formatCompactAmount(h.marketValue?.base ?? 0, portfolioCurrency)}
-                </p>
-                {h.quantity ? (
-                  <p className="text-muted-foreground text-[10px] tabular-nums">
-                    {h.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} ×
-                  </p>
-                ) : null}
-              </div>
-            </li>
+            <HoldingRow
+              key={h.id}
+              holding={h}
+              portfolioCurrency={portfolioCurrency}
+              classTotalForWeights={classTotalForWeights}
+              fallbackLabel={labels.singular}
+            />
           ))}
         </ul>
       )}
     </div>
+  );
+}
+
+interface HoldingRowProps {
+  holding: Holding;
+  portfolioCurrency: string;
+  classTotalForWeights: number;
+  fallbackLabel: string;
+}
+
+function HoldingRow({
+  holding,
+  portfolioCurrency,
+  classTotalForWeights,
+  fallbackLabel,
+}: HoldingRowProps) {
+  const value = holding.marketValue?.base ?? 0;
+  const weightWithinClass = (value / classTotalForWeights) * 100;
+  const dayChange = holding.dayChange?.base ?? null;
+  const totalGain = holding.totalGain?.base ?? null;
+
+  return (
+    <li className="flex items-center justify-between gap-3 px-4 py-3">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium">
+          {holding.instrument?.name || holding.instrument?.symbol || fallbackLabel}
+        </p>
+        <div className="text-muted-foreground mt-0.5 flex items-center gap-2 text-xs">
+          {holding.instrument?.symbol ? (
+            <span className="font-mono">{holding.instrument.symbol}</span>
+          ) : null}
+          {holding.localCurrency && holding.localCurrency !== portfolioCurrency ? (
+            <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+              {holding.localCurrency}
+            </Badge>
+          ) : null}
+          {holding.quantity ? (
+            <span className="tabular-nums">
+              {holding.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} ×
+            </span>
+          ) : null}
+        </div>
+      </div>
+      <div className="shrink-0 text-right">
+        <p className="text-sm font-semibold tabular-nums">
+          {formatCompactAmount(value, portfolioCurrency)}
+        </p>
+        <div className="text-muted-foreground mt-0.5 flex items-center justify-end gap-2 text-[11px] tabular-nums">
+          <span>{weightWithinClass.toFixed(1)}%</span>
+          {dayChange !== null ? (
+            <GainText value={dayChange} currency={portfolioCurrency} prefix="d" />
+          ) : totalGain !== null ? (
+            <GainText value={totalGain} currency={portfolioCurrency} />
+          ) : null}
+        </div>
+      </div>
+    </li>
   );
 }
 
@@ -348,19 +488,96 @@ function AssetClassEmptyState({ cls, onAddHoldings }: AssetClassEmptyStateProps)
 }
 
 // ---------------------------------------------------------------------------
+// Shared visual atoms
+// ---------------------------------------------------------------------------
+
+interface WeightBarProps {
+  percent: number;
+}
+
+function WeightBar({ percent }: WeightBarProps) {
+  // Cosmetic clamp — defensive against off-by-floating-point overshoot
+  // and any future caller that passes 0..1 by mistake.
+  const clamped = Math.max(0, Math.min(100, percent));
+  const display = clamped >= 10 ? clamped.toFixed(0) : clamped.toFixed(1);
+
+  return (
+    <div className="space-y-1">
+      <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
+        <div
+          className="bg-primary h-full rounded-full transition-all"
+          style={{ width: `${clamped}%` }}
+          aria-hidden
+        />
+      </div>
+      <p className="text-muted-foreground text-[10px] tabular-nums">{display}% of portfolio</p>
+    </div>
+  );
+}
+
+interface GainBadgeProps {
+  value: number | null;
+  currency: string;
+}
+
+/**
+ * Compact +/-/zero gain pill. `null` collapses to nothing — keeps the
+ * card layout from showing a misleading "$0" when the underlying
+ * holdings simply don't report gain data yet (manual-pricing assets,
+ * fresh imports, etc).
+ */
+function GainBadge({ value, currency }: GainBadgeProps) {
+  if (value === null || !Number.isFinite(value)) return null;
+  const tone =
+    value > 0 ? "text-success" : value < 0 ? "text-destructive" : "text-muted-foreground";
+  const sign = value > 0 ? "+" : value < 0 ? "−" : "";
+  return (
+    <span className={`mt-0.5 block text-[11px] tabular-nums ${tone}`}>
+      {sign}
+      {formatCompactAmount(Math.abs(value), currency)}
+    </span>
+  );
+}
+
+interface GainTextProps {
+  value: number;
+  currency: string;
+  prefix?: string;
+}
+
+function GainText({ value, currency, prefix }: GainTextProps) {
+  if (!Number.isFinite(value)) return null;
+  const tone =
+    value > 0 ? "text-success" : value < 0 ? "text-destructive" : "text-muted-foreground";
+  const sign = value > 0 ? "+" : value < 0 ? "−" : "";
+  return (
+    <span className={tone}>
+      {prefix ? `${prefix} ` : ""}
+      {sign}
+      {formatCompactAmount(Math.abs(value), currency)}
+    </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Loading state
 // ---------------------------------------------------------------------------
 
 function AssetClassesSkeleton() {
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
       <div className="flex items-baseline justify-between px-1">
         <Skeleton className="h-5 w-32" />
-        <Skeleton className="h-3 w-16" />
+        <Skeleton className="h-3 w-48" />
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }, (_, i) => (
-          <Skeleton key={i} className="h-[76px] w-full rounded-lg" />
+        {Array.from({ length: 3 }, (_, i) => (
+          <Skeleton key={i} className="h-[112px] w-full rounded-lg" />
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {Array.from({ length: 5 }, (_, i) => (
+          <Skeleton key={i} className="h-7 w-24 rounded-full" />
         ))}
       </div>
     </div>
