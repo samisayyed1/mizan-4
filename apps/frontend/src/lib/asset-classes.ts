@@ -208,14 +208,24 @@ export function classifyHolding(holding: Holding): AssetClass {
  * Per-class summary for the Portfolio detail page cards.
  *
  * `totalValue` is the sum of holding market values in the portfolio's
- * base currency. Callers should pre-filter holdings to the portfolio
- * they care about before passing them in.
+ * base currency.
+ *
+ * `totalGain` is the sum of `holding.totalGain.base` across the bucket.
+ * `null` if every holding's totalGain was null/undefined — we keep the
+ * distinction "no data" vs "exactly zero" so the UI can hide the gain
+ * indicator entirely instead of showing a misleading $0.00.
+ *
+ * `weightPercent` is this bucket's share of the *portfolio total*, in
+ * the range 0..100. `0` when the portfolio total is zero (so no
+ * NaN/Infinity ever reaches the UI).
  */
 export interface AssetClassBucket {
   cls: AssetClass;
   holdings: readonly Holding[];
   totalValue: number;
   count: number;
+  totalGain: number | null;
+  weightPercent: number;
 }
 
 /**
@@ -224,12 +234,17 @@ export interface AssetClassBucket {
  * Returns ALL classes in `ASSET_CLASS_ORDER`, even those with zero
  * holdings — Feroz wants empty buckets visible on the portfolio page
  * so the user can click an empty class and get the "Add Sukuk" CTA.
- * Callers that only want non-empty buckets can `.filter(b => b.count > 0)`.
+ * Callers that only want non-empty buckets can use `partitionBuckets`.
  *
  * Holdings inside each bucket retain their input order. We don't sort
  * by value here — the caller may want a different ordering depending
  * on the surface (largest-first inside the drill-down, alphabetical
  * inside a picker, etc.).
+ *
+ * Each bucket carries derived totals (`totalValue`, `totalGain`,
+ * `weightPercent`) so the UI never has to recompute them per render.
+ * `totalGain` follows a deliberate null-vs-zero contract — see the
+ * `AssetClassBucket` doc above.
  */
 export function groupHoldingsByAssetClass(holdings: readonly Holding[]): AssetClassBucket[] {
   const byClass = new Map<AssetClass, Holding[]>();
@@ -241,16 +256,73 @@ export function groupHoldingsByAssetClass(holdings: readonly Holding[]): AssetCl
     if (bucket) bucket.push(h);
   }
 
-  return ASSET_CLASS_ORDER.map((cls) => {
+  // First pass — compute totalValue per class and the portfolio total.
+  // We need the portfolio total before we can derive each bucket's
+  // weight, so this is unavoidably two-pass.
+  const interim = ASSET_CLASS_ORDER.map((cls) => {
     const bucketHoldings = byClass.get(cls) ?? [];
     const totalValue = bucketHoldings.reduce((acc, h) => acc + (h.marketValue?.base ?? 0), 0);
-    return {
-      cls,
-      holdings: bucketHoldings,
-      totalValue,
-      count: bucketHoldings.length,
-    };
+    const { totalGain } = sumBucketGain(bucketHoldings);
+    return { cls, bucketHoldings, totalValue, totalGain };
   });
+
+  const portfolioTotal = interim.reduce((acc, b) => acc + b.totalValue, 0);
+
+  return interim.map(({ cls, bucketHoldings, totalValue, totalGain }) => ({
+    cls,
+    holdings: bucketHoldings,
+    totalValue,
+    count: bucketHoldings.length,
+    totalGain,
+    weightPercent: portfolioTotal > 0 ? (totalValue / portfolioTotal) * 100 : 0,
+  }));
+}
+
+/**
+ * Sum `holding.totalGain.base` across a bucket, preserving the
+ * null-vs-zero distinction described on AssetClassBucket.
+ *
+ * Returns `null` when every holding in the bucket has a null or
+ * undefined `totalGain` — the bucket has no gain data, the UI should
+ * hide the gain indicator. Returns a number (including 0) when at
+ * least one holding contributes data.
+ *
+ * Exported for tests; callers usually consume the field on
+ * AssetClassBucket directly.
+ */
+export function sumBucketGain(holdings: readonly Holding[]): { totalGain: number | null } {
+  let sum = 0;
+  let anyData = false;
+  for (const h of holdings) {
+    const v = h.totalGain?.base;
+    if (typeof v === "number" && Number.isFinite(v)) {
+      sum += v;
+      anyData = true;
+    }
+  }
+  return { totalGain: anyData ? sum : null };
+}
+
+/**
+ * Partition a list of buckets into the ones that have holdings
+ * ("active") and the ones that don't ("empty"). Used by the Portfolio
+ * detail page to render an "Active" grid prominently and an "Add
+ * another asset class" rail underneath for the empty classes — both
+ * always visible per Feroz, but visually weighted by relevance.
+ *
+ * Order of buckets is preserved within each partition.
+ */
+export function partitionBuckets(buckets: readonly AssetClassBucket[]): {
+  active: AssetClassBucket[];
+  empty: AssetClassBucket[];
+} {
+  const active: AssetClassBucket[] = [];
+  const empty: AssetClassBucket[] = [];
+  for (const b of buckets) {
+    if (b.count > 0) active.push(b);
+    else empty.push(b);
+  }
+  return { active, empty };
 }
 
 /**

@@ -5,6 +5,8 @@ import {
   classifyHolding,
   groupHoldingsByAssetClass,
   parseAssetClassParam,
+  partitionBuckets,
+  sumBucketGain,
 } from "./asset-classes";
 import { AssetKind, HoldingType, QuoteMode } from "./constants";
 import type { AssetClassifications, Holding, Instrument, TaxonomyCategory } from "./types";
@@ -326,6 +328,150 @@ describe("groupHoldingsByAssetClass", () => {
     const property = buckets.find((b) => b.cls === AssetClass.PROPERTY)!;
     expect(property.totalValue).toBe(0);
     expect(property.count).toBe(1);
+  });
+
+  it("computes weightPercent as bucket totalValue ÷ portfolio total × 100", () => {
+    const holdings = [
+      makeHolding({
+        id: "a",
+        assetKind: AssetKind.PROPERTY,
+        marketValue: { local: 750_000, base: 750_000 },
+      }),
+      makeHolding({
+        id: "b",
+        holdingType: HoldingType.CASH,
+        marketValue: { local: 250_000, base: 250_000 },
+      }),
+    ];
+    const buckets = groupHoldingsByAssetClass(holdings);
+    const property = buckets.find((b) => b.cls === AssetClass.PROPERTY)!;
+    const bank = buckets.find((b) => b.cls === AssetClass.BANK_ACCOUNTS)!;
+    const stocks = buckets.find((b) => b.cls === AssetClass.STOCKS)!;
+    expect(property.weightPercent).toBe(75);
+    expect(bank.weightPercent).toBe(25);
+    expect(stocks.weightPercent).toBe(0);
+  });
+
+  it("returns weightPercent=0 for every bucket when portfolio total is zero", () => {
+    const buckets = groupHoldingsByAssetClass([]);
+    expect(buckets.every((b) => b.weightPercent === 0)).toBe(true);
+    expect(buckets.some((b) => !Number.isFinite(b.weightPercent))).toBe(false);
+  });
+
+  it("rolls up totalGain across holdings in base currency", () => {
+    const holdings = [
+      makeHolding({
+        id: "a",
+        assetKind: AssetKind.PROPERTY,
+        totalGain: { local: 12_000, base: 12_000 },
+      }),
+      makeHolding({
+        id: "b",
+        assetKind: AssetKind.PROPERTY,
+        totalGain: { local: -3_000, base: -3_000 },
+      }),
+    ];
+    const property = groupHoldingsByAssetClass(holdings).find(
+      (b) => b.cls === AssetClass.PROPERTY,
+    )!;
+    expect(property.totalGain).toBe(9_000);
+  });
+
+  it("returns totalGain=null when every holding has no gain data", () => {
+    const holdings = [
+      makeHolding({ id: "a", assetKind: AssetKind.COLLECTIBLE, totalGain: null }),
+      makeHolding({ id: "b", assetKind: AssetKind.COLLECTIBLE, totalGain: null }),
+    ];
+    const collectibles = groupHoldingsByAssetClass(holdings).find(
+      (b) => b.cls === AssetClass.COLLECTIBLES,
+    )!;
+    expect(collectibles.totalGain).toBeNull();
+  });
+
+  it("preserves the null-vs-zero distinction (one holding with 0 gain ⇒ total 0, not null)", () => {
+    const holdings = [
+      makeHolding({
+        id: "a",
+        assetKind: AssetKind.COLLECTIBLE,
+        totalGain: { local: 0, base: 0 },
+      }),
+    ];
+    const collectibles = groupHoldingsByAssetClass(holdings).find(
+      (b) => b.cls === AssetClass.COLLECTIBLES,
+    )!;
+    expect(collectibles.totalGain).toBe(0);
+  });
+
+  it("ignores non-finite gain values (NaN, Infinity) defensively", () => {
+    const holdings = [
+      makeHolding({
+        id: "a",
+        assetKind: AssetKind.COLLECTIBLE,
+        totalGain: { local: 100, base: 100 },
+      }),
+      makeHolding({
+        id: "b",
+        assetKind: AssetKind.COLLECTIBLE,
+        // simulate a malformed row that slipped through the wire layer
+        totalGain: { local: NaN, base: NaN },
+      }),
+    ];
+    const collectibles = groupHoldingsByAssetClass(holdings).find(
+      (b) => b.cls === AssetClass.COLLECTIBLES,
+    )!;
+    expect(collectibles.totalGain).toBe(100);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// sumBucketGain — direct unit tests of the helper
+// ---------------------------------------------------------------------------
+
+describe("sumBucketGain", () => {
+  it("returns { totalGain: null } for an empty list", () => {
+    expect(sumBucketGain([])).toEqual({ totalGain: null });
+  });
+
+  it("returns null when every holding has a null totalGain", () => {
+    const holdings = [makeHolding({ totalGain: null }), makeHolding({ id: "x", totalGain: null })];
+    expect(sumBucketGain(holdings)).toEqual({ totalGain: null });
+  });
+
+  it("sums when at least one holding contributes", () => {
+    const holdings = [
+      makeHolding({ totalGain: { local: 50, base: 50 } }),
+      makeHolding({ id: "x", totalGain: null }),
+      makeHolding({ id: "y", totalGain: { local: 25, base: 25 } }),
+    ];
+    expect(sumBucketGain(holdings)).toEqual({ totalGain: 75 });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// partitionBuckets
+// ---------------------------------------------------------------------------
+
+describe("partitionBuckets", () => {
+  it("splits by count > 0, preserving input order within each partition", () => {
+    const holdings = [
+      makeHolding({ id: "p1", assetKind: AssetKind.PROPERTY }),
+      makeHolding({ id: "c1", holdingType: HoldingType.CASH }),
+    ];
+    const buckets = groupHoldingsByAssetClass(holdings);
+    const { active, empty } = partitionBuckets(buckets);
+
+    expect(active.map((b) => b.cls)).toEqual([AssetClass.BANK_ACCOUNTS, AssetClass.PROPERTY]);
+    expect(empty.map((b) => b.cls)).not.toContain(AssetClass.BANK_ACCOUNTS);
+    expect(empty.map((b) => b.cls)).not.toContain(AssetClass.PROPERTY);
+    // Empty partition is non-empty itself (every other class shows up there)
+    expect(empty.length).toBe(ASSET_CLASS_ORDER.length - 2);
+  });
+
+  it("returns empty active + full empty when no holdings", () => {
+    const buckets = groupHoldingsByAssetClass([]);
+    const { active, empty } = partitionBuckets(buckets);
+    expect(active).toHaveLength(0);
+    expect(empty).toHaveLength(ASSET_CLASS_ORDER.length);
   });
 });
 
