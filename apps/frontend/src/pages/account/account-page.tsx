@@ -55,6 +55,7 @@ import { HoldingsEditMode } from "@/pages/holdings/components/holdings-edit-mode
 import { useCalculatePerformanceHistory } from "@/pages/performance/hooks/use-performance-data";
 import { useQuery } from "@tanstack/react-query";
 import { Icons, type Icon } from "@mizan/ui";
+import { Badge } from "@mizan/ui/components/ui/badge";
 import { Button } from "@mizan/ui/components/ui/button";
 import {
   Command,
@@ -482,10 +483,18 @@ const AccountPage = () => {
             </div>
           )}
           <div className="flex min-w-0 flex-col justify-center">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <h1 className="truncate text-base font-semibold leading-tight md:text-lg">
                 {account?.name ?? "Portfolio"}
               </h1>
+              {account?.currency && (
+                <Badge
+                  variant="outline"
+                  className="shrink-0 px-1.5 py-0 font-mono text-[10px] uppercase tracking-wide"
+                >
+                  {account.currency}
+                </Badge>
+              )}
               {/* Desktop account selector */}
               <div className="hidden sm:block">
                 <Popover open={desktopSelectorOpen} onOpenChange={setDesktopSelectorOpen}>

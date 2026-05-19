@@ -3,6 +3,7 @@ import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
+import { Badge } from "@mizan/ui/components/ui/badge";
 import { Button } from "@mizan/ui/components/ui/button";
 import { Checkbox } from "@mizan/ui/components/ui/checkbox";
 
@@ -144,11 +145,11 @@ export function AccountForm({ defaultValues, onSuccess = () => undefined }: Acco
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <DialogHeader>
-          <DialogTitle> {defaultValues?.id ? "Update Account" : "Add Account"}</DialogTitle>
+          <DialogTitle>{defaultValues?.id ? "Edit Portfolio" : "Add Portfolio"}</DialogTitle>
           <DialogDescription>
             {defaultValues?.id
-              ? "Update account information"
-              : " Add an investment account to track."}
+              ? "Update portfolio details. The portfolio's currency cannot be changed once it holds positions."
+              : "Add a portfolio to track. A portfolio is a container — bank accounts, stocks, sukuks and other asset classes live inside it."}
           </DialogDescription>
         </DialogHeader>
 
@@ -159,9 +160,9 @@ export function AccountForm({ defaultValues, onSuccess = () => undefined }: Acco
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Account Name</FormLabel>
+                <FormLabel>Portfolio Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="Account display name" {...field} />
+                  <Input placeholder="e.g. US Portfolio, SGX Portfolio, Moomoo" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -172,7 +173,7 @@ export function AccountForm({ defaultValues, onSuccess = () => undefined }: Acco
             name="group"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Account Group</FormLabel>
+                <FormLabel>Portfolio Group</FormLabel>
                 <FormControl>
                   <Input placeholder="Retirement, 401K, RRSP, TFSA,..." {...field} />
                 </FormControl>
@@ -186,15 +187,15 @@ export function AccountForm({ defaultValues, onSuccess = () => undefined }: Acco
             name="accountType"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Account Type</FormLabel>
+                <FormLabel>Portfolio Type</FormLabel>
                 <FormControl>
                   <ResponsiveSelect
                     value={field.value}
                     onValueChange={field.onChange}
                     options={accountTypes}
-                    placeholder="Select an account type"
-                    sheetTitle="Select Account Type"
-                    sheetDescription="Choose the account type that best matches."
+                    placeholder="Select a portfolio type"
+                    sheetTitle="Select Portfolio Type"
+                    sheetDescription="Choose the portfolio type that best matches."
                     triggerClassName="h-11"
                   />
                 </FormControl>
@@ -215,11 +216,27 @@ export function AccountForm({ defaultValues, onSuccess = () => undefined }: Acco
                       onChange={(value: string) => field.onChange(value)}
                     />
                   </FormControl>
+                  <p className="text-muted-foreground text-xs">
+                    Each portfolio is tracked in one base currency. Holdings can be in any currency
+                    &mdash; they&apos;ll be converted to this one for the portfolio total.
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          ) : null}
+          ) : (
+            <FormItem className="flex flex-col">
+              <FormLabel>Currency</FormLabel>
+              <div className="border-input bg-muted/40 flex h-11 items-center gap-2 rounded-md border px-3">
+                <Badge variant="secondary" className="font-mono">
+                  {defaultValues?.currency ?? "—"}
+                </Badge>
+                <span className="text-muted-foreground text-xs">
+                  Locked &mdash; currency can&apos;t change after the portfolio has holdings.
+                </span>
+              </div>
+            </FormItem>
+          )}
 
           <FormField
             control={form.control}
