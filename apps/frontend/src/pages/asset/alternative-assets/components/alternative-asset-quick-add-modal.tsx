@@ -41,15 +41,12 @@ const ASSET_TYPES = [
     selectedBg: "bg-green-400/15",
     borderColor: "border-green-400/50",
   },
-  {
-    kind: AlternativeAssetKind.VEHICLE,
-    label: "Vehicle",
-    description: "Cars, boats & more",
-    icon: Icons.VehicleDuotone,
-    iconColor: "text-blue-400",
-    selectedBg: "bg-blue-400/15",
-    borderColor: "border-blue-400/50",
-  },
+  // Vehicle intentionally omitted as a selectable category — vehicles
+  // are depreciating assets and are excluded from net worth per the
+  // May-17 product direction (Feroz #14, "remove vehicle"). The
+  // AlternativeAssetKind.VEHICLE enum value is retained for backward
+  // compatibility with any pre-existing vehicle holdings; it is simply
+  // no longer offered as a new asset type here.
   {
     kind: AlternativeAssetKind.COLLECTIBLE,
     label: "Collectible",

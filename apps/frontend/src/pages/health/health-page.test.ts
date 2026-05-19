@@ -24,14 +24,14 @@ describe("getCategoryConfig", () => {
     expect(category.icon).toBe("Settings");
   });
 
-  it("keeps Accounts label for account configuration issues", () => {
+  it("shows Portfolios label for account configuration issues", () => {
     const category = getCategoryConfig({
       ...baseIssue,
       category: "ACCOUNT_CONFIGURATION",
       id: "account_tracking_mode:abc123",
     });
 
-    expect(category.label).toBe("Accounts");
+    expect(category.label).toBe("Portfolios");
     expect(category.icon).toBe("Settings");
   });
 });

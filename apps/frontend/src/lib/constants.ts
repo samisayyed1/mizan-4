@@ -387,12 +387,13 @@ export const ASSET_KIND_DISPLAY_NAMES: Record<AssetKind, string> = {
   FX: "FX",
 };
 
-// User-editable asset kinds (excludes system-managed types like FX)
+// User-editable asset kinds (excludes system-managed types like FX,
+// and VEHICLE which is depreciating and excluded from net worth per
+// the May-17 product direction — Feroz #14).
 export const EDITABLE_ASSET_KINDS: AssetKind[] = [
   "INVESTMENT",
   "PRIVATE_EQUITY",
   "PROPERTY",
-  "VEHICLE",
   "COLLECTIBLE",
   "PRECIOUS_METAL",
   "LIABILITY",
