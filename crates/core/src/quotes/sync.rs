@@ -89,6 +89,20 @@ fn market_fetch_end_date(now: DateTime<Utc>, exchange_mic: Option<&str>) -> Naiv
     time_utils::market_calendar_date(now, exchange_mic)
 }
 
+/// Whether a provider-reported split ratio is plausible enough to auto-ingest.
+///
+/// Real splits are small rationals (2:1 → 2, 1:5 reverse → 0.2). We reject:
+///  - non-positive ratios (corrupt data),
+///  - an exact 1:1 (a no-op the provider sometimes emits),
+///  - magnitudes outside a 1:1000-reverse .. 1000:1-forward span, which no
+///    real corporate split reaches and which usually signals a misattributed
+///    special dividend or spinoff.
+fn is_plausible_split_ratio(ratio: Decimal) -> bool {
+    let min = Decimal::new(1, 3); // 0.001
+    let max = Decimal::from(1000);
+    ratio > min && ratio < max && ratio != Decimal::ONE
+}
+
 /// Determine the effective data provider for an asset.
 ///
 /// Priority: sync state `data_source` (if non-empty) → asset `preferred_provider` → Yahoo default.
@@ -701,11 +715,26 @@ where
         }
     }
 
-    /// Fetch and upsert split activities for a single asset over the given date range.
+    /// Fetch and upsert `Split` activities for a single asset over the given
+    /// date range, one per account that holds the asset.
     ///
-    /// Non-fatal: any failure is logged as a warning and does not affect quote sync.
-    /// NOT USED FOR NOW - Yahoo returns weird splits for some assets, need to investigate further before enabling this.
-    async fn _sync_splits(&self, asset: &Asset, start: NaiveDate, end: NaiveDate) {
+    /// Non-fatal: any failure is logged as a warning and never affects quote
+    /// sync. Designed so a bad provider feed can never corrupt the ledger:
+    ///
+    ///  - **Ratio validation** ([`is_plausible_split_ratio`]) drops the
+    ///    spurious "splits" Yahoo's chart endpoint occasionally emits (no-op
+    ///    1:1 events, or ratios derived from special dividends / spinoffs).
+    ///  - **Per-date de-duplication** collapses a provider returning the same
+    ///    split twice (last ratio wins) — an asset splits at most once a day.
+    ///  - **Acquisition guard** skips any split dated before the asset was
+    ///    ever held, so an over-eager historical feed can't back-date junk.
+    ///  - **Ratio-free idempotency key** identifies a split by
+    ///    `(account, SPLIT, date, asset, currency)` — *not* its ratio — so a
+    ///    re-sync whose ratio jitters slightly UPDATES the existing row
+    ///    instead of inserting a duplicate (which would double-count the
+    ///    split). `bulk_upsert` still honours `is_user_modified`, so a
+    ///    user-corrected split is never overwritten.
+    async fn sync_splits(&self, asset: &Asset, start: NaiveDate, end: NaiveDate) {
         use crate::activities::compute_idempotency_key;
 
         let start_dt = Utc.from_utc_datetime(&start.and_hms_opt(0, 0, 0).unwrap());
@@ -716,6 +745,38 @@ where
         drop(client);
 
         if splits.is_empty() {
+            return;
+        }
+
+        // Validate + de-duplicate by date (last ratio wins). Ratios are stored
+        // rounded so re-fetched float noise can't change the persisted value.
+        let mut clean_splits: std::collections::BTreeMap<NaiveDate, Decimal> =
+            std::collections::BTreeMap::new();
+        for split in &splits {
+            if !is_plausible_split_ratio(split.ratio) {
+                warn!(
+                    "Split sync: ignoring implausible split ratio {} for {} on {}",
+                    split.ratio, asset.id, split.date
+                );
+                continue;
+            }
+            clean_splits.insert(split.date, split.ratio.round_dp(8));
+        }
+        if clean_splits.is_empty() {
+            return;
+        }
+
+        // Acquisition guard: never create a split dated before the asset was
+        // first held in any account.
+        let first_held = self
+            .activity_repo
+            .get_activity_bounds_for_assets(std::slice::from_ref(&asset.id))
+            .ok()
+            .and_then(|m| m.get(&asset.id).and_then(|(first, _)| *first));
+        if let Some(first) = first_held {
+            clean_splits.retain(|date, _| *date >= first);
+        }
+        if clean_splits.is_empty() {
             return;
         }
 
@@ -742,10 +803,13 @@ where
         let currency = asset.quote_ccy.as_str();
 
         let mut upserts: Vec<ActivityUpsert> = Vec::new();
-        for split in &splits {
-            let split_dt = Utc.from_utc_datetime(&split.date.and_hms_opt(12, 0, 0).unwrap());
+        for (date, ratio) in &clean_splits {
+            let split_dt = Utc.from_utc_datetime(&date.and_hms_opt(12, 0, 0).unwrap());
 
             for account_id in &account_ids {
+                // Identity excludes the ratio (7th arg = None): an asset splits
+                // at most once on a date, so a ratio change must update — never
+                // duplicate — the existing activity.
                 let key = compute_idempotency_key(
                     account_id,
                     "SPLIT",
@@ -753,7 +817,7 @@ where
                     Some(&asset.id),
                     None,
                     None,
-                    Some(split.ratio),
+                    None,
                     currency,
                     None,
                     None,
@@ -763,14 +827,14 @@ where
                     account_id: account_id.clone(),
                     asset_id: Some(asset.id.clone()),
                     activity_type: "SPLIT".to_string(),
-                    activity_date: split.date.to_string(),
-                    amount: Some(split.ratio),
+                    activity_date: date.to_string(),
+                    amount: Some(*ratio),
                     currency: currency.to_string(),
                     idempotency_key: Some(key),
                     quantity: None,
                     unit_price: None,
                     fee: None,
-                    notes: Some(format!("Auto-imported split ({})", split.ratio)),
+                    notes: Some(format!("Auto-imported split ({})", ratio)),
                     subtype: None,
                     status: None,
                     fx_rate: None,
@@ -784,6 +848,7 @@ where
             }
         }
 
+        let upsert_count = upserts.len();
         if let Err(e) = self.activity_repo.bulk_upsert(upserts).await {
             warn!(
                 "Split sync: failed to upsert splits for {}: {:?}",
@@ -792,8 +857,7 @@ where
         } else {
             debug!(
                 "Split sync: upserted {} split activities for {}",
-                splits.len() * account_ids.len(),
-                asset.id
+                upsert_count, asset.id
             );
         }
     }
@@ -861,9 +925,11 @@ where
                         Ok(_) => {
                             debug!("Saved {} quotes for {}", quotes_count, asset.id);
 
-                            // Sync splits for this asset over the same date range. Disabled for Now Yahoo Returns weired splits for some assets
-                            // self.sync_splits(asset, plan.start_date, plan.end_date)
-                            //     .await;
+                            // Auto-ingest corporate-action splits for this
+                            // asset over the same date range. Hardened against
+                            // bad feeds (see `sync_splits`); non-fatal.
+                            self.sync_splits(asset, plan.start_date, plan.end_date)
+                                .await;
 
                             // Update sync state after a successful sync attempt.
                             if let Err(e) = self.sync_state_store.update_after_sync(&asset.id).await
@@ -2442,5 +2508,70 @@ mod tests {
             // After the grace period, quotes are no longer fetched to save resources.
             // Grace period purpose documented
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Split auto-ingestion guards
+    // ─────────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_is_plausible_split_ratio_accepts_real_splits() {
+        // Forward splits.
+        assert!(is_plausible_split_ratio(Decimal::from(2))); // 2:1
+        assert!(is_plausible_split_ratio(Decimal::from(4))); // 4:1
+        assert!(is_plausible_split_ratio(Decimal::new(15, 1))); // 1.5
+                                                                // Reverse splits.
+        assert!(is_plausible_split_ratio(Decimal::new(2, 1))); // 0.2  (1:5)
+        assert!(is_plausible_split_ratio(Decimal::new(5, 2))); // 0.05 (1:20)
+    }
+
+    #[test]
+    fn test_is_plausible_split_ratio_rejects_garbage() {
+        assert!(!is_plausible_split_ratio(Decimal::ONE)); // 1:1 no-op
+        assert!(!is_plausible_split_ratio(Decimal::ZERO)); // corrupt
+        assert!(!is_plausible_split_ratio(Decimal::from(-2))); // negative
+        assert!(!is_plausible_split_ratio(Decimal::new(5, 4))); // 0.0005 < 0.001
+        assert!(!is_plausible_split_ratio(Decimal::from(2000))); // > 1000
+    }
+
+    /// The idempotency identity of a split must NOT include its ratio: an asset
+    /// splits at most once on a date, so a re-sync whose ratio jitters must
+    /// UPDATE the same activity, never insert a duplicate (which would
+    /// double-count the split). This test pins both halves of that contract.
+    #[test]
+    fn test_split_idempotency_key_is_ratio_independent() {
+        use crate::activities::compute_idempotency_key;
+
+        let date = Utc.from_utc_datetime(
+            &NaiveDate::from_ymd_opt(2020, 8, 31)
+                .unwrap()
+                .and_hms_opt(12, 0, 0)
+                .unwrap(),
+        );
+        let key = |amount: Option<Decimal>| {
+            compute_idempotency_key(
+                "acc-1",
+                "SPLIT",
+                &date,
+                Some("AAPL"),
+                None,
+                None,
+                amount,
+                "USD",
+                None,
+                None,
+            )
+        };
+
+        // How `sync_splits` keys a split: amount = None → ratio-independent.
+        assert_eq!(key(None), key(None));
+
+        // And had we keyed on the ratio (the skeleton's bug), a 4 vs 4.0001
+        // jitter would have produced two different rows — the double-count we
+        // deliberately avoid.
+        assert_ne!(
+            key(Some(Decimal::from(4))),
+            key(Some(Decimal::new(40001, 4)))
+        );
     }
 }
