@@ -415,10 +415,26 @@ impl r2d2::CustomizeConnection<SqliteConnection, diesel::r2d2::Error> for Connec
     ) -> std::result::Result<(), diesel::r2d2::Error> {
         // IMPORTANT: Use batch_execute (sqlite3_exec) instead of sql_query (sqlite3_prepare_v2).
         // sql_query only executes the FIRST statement; subsequent PRAGMAs are silently ignored.
+        //
+        // These per-connection pragmas complete the recommended runtime profile
+        // for a WAL-mode finance DB:
+        //   foreign_keys = ON      — enforce referential integrity
+        //   busy_timeout = 30000   — wait up to 30s on a lock instead of erroring
+        //   synchronous  = NORMAL  — safe + fast under WAL (durable on commit,
+        //                            only a crash mid-checkpoint can lose the last
+        //                            txn, which WAL recovers anyway)
+        //   cache_size   = -64000  — 64MB page cache (negative = KiB). Keeps the
+        //                            hot working set (quotes, snapshots) in memory;
+        //                            big win for portfolio replay + valuation reads.
+        //   temp_store   = MEMORY  — sorts/temp B-trees in RAM, not on disk; speeds
+        //                            up the GROUP BY / ORDER BY in valuation queries.
+        // (journal_mode = WAL is a persistent DB-level setting applied at init.)
         conn.batch_execute(
             "PRAGMA foreign_keys = ON;
              PRAGMA busy_timeout = 30000;
-             PRAGMA synchronous = NORMAL;",
+             PRAGMA synchronous = NORMAL;
+             PRAGMA cache_size = -64000;
+             PRAGMA temp_store = MEMORY;",
         )
         .map_err(diesel::r2d2::Error::QueryError)?;
 

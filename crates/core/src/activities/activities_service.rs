@@ -4811,7 +4811,7 @@ mod post_import_sync_categorisation_tests {
     fn ids(names: &[&str]) -> Vec<String> {
         names.iter().map(|s| s.to_string()).collect()
     }
-    fn id_set<'a>(asset_ids: &'a [String]) -> HashSet<&'a String> {
+    fn id_set(asset_ids: &[String]) -> HashSet<&String> {
         asset_ids.iter().collect()
     }
 
