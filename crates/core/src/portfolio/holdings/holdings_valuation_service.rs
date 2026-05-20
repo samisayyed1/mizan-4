@@ -353,18 +353,15 @@ impl HoldingsValuationService {
             // currency differs from the base currency. Same-currency
             // is short-circuited inside `try_get_fx_rate`.
             let normalized_quote_ccy_check = normalize_currency_code(&qp.latest.currency);
-            if self
-                .try_get_fx_rate(
-                    normalized_quote_ccy_check,
-                    base_currency,
-                    &format!("{}: FX Quote->Base", context_msg),
-                )
-                .is_none()
-            {
-                // The warning is already logged inside try_get_fx_rate.
-                // The cost-basis fallback path below will fire.
-                return None;
-            }
+            // If no FX rate is available the closure yields None (quote
+            // unusable → cost-basis fallback fires below). The `?` keeps
+            // the exact same behavior — and the warning is still logged
+            // as a side effect inside try_get_fx_rate, which `?` still calls.
+            self.try_get_fx_rate(
+                normalized_quote_ccy_check,
+                base_currency,
+                &format!("{}: FX Quote->Base", context_msg),
+            )?;
             Some(qp)
         });
 
