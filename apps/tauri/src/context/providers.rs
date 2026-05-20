@@ -225,10 +225,12 @@ pub async fn initialize_context(
 
     let valuation_service = Arc::new(ValuationService::new(
         base_currency.clone(),
+        timezone.clone(),
         valuation_repository.clone(),
         snapshot_service.clone(),
         quote_service.clone(),
         fx_service.clone(),
+        activity_repository.clone(),
     ));
 
     let performance_service = Arc::new(PerformanceService::new_with_timezone(

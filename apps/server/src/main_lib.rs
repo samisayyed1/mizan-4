@@ -276,10 +276,12 @@ pub async fn build_state(config: &Config) -> anyhow::Result<Arc<AppState>> {
     let valuation_repository = Arc::new(ValuationRepository::new(pool.clone(), writer.clone()));
     let valuation_service = Arc::new(ValuationService::new(
         base_currency.clone(),
+        timezone.clone(),
         valuation_repository.clone(),
         snapshot_service.clone(),
         quote_service.clone(),
         fx_service.clone(),
+        activity_repository.clone(),
     ));
 
     let net_worth_service: Arc<dyn NetWorthServiceTrait + Send + Sync> =

@@ -5,5 +5,6 @@ pub mod income;
 pub mod net_worth;
 pub mod performance;
 pub mod snapshot;
+pub mod split_adjustment;
 pub mod synthesis;
 pub mod valuation;

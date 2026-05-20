@@ -1,14 +1,17 @@
+use crate::activities::ActivityRepositoryTrait;
+use crate::constants::PORTFOLIO_TOTAL_ACCOUNT_ID;
 use crate::errors::{CalculatorError, Error as CoreError, Result as CoreResult};
 use crate::fx::currency::normalize_currency_code;
 use crate::fx::FxServiceTrait;
 use crate::portfolio::snapshot::SnapshotServiceTrait;
+use crate::portfolio::split_adjustment::{collect_split_factors, SplitFactors};
 use crate::portfolio::valuation::valuation_calculator::calculate_valuation;
 use crate::portfolio::valuation::valuation_model::{DailyAccountValuation, NegativeBalanceInfo};
 use crate::portfolio::valuation::ValuationRepositoryTrait;
 use crate::quotes::QuoteServiceTrait;
-use crate::utils::time_utils;
+use crate::utils::time_utils::{self, activity_date_in_tz, parse_user_timezone_or_default};
 use async_trait::async_trait;
-use chrono::NaiveDate;
+use chrono::{DateTime, NaiveDate, Utc};
 use log::{debug, error, warn};
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, RwLock};
@@ -91,27 +94,41 @@ pub trait ValuationServiceTrait: Send + Sync {
 #[derive(Clone)]
 pub struct ValuationService {
     base_currency: Arc<RwLock<String>>,
+    timezone: Arc<RwLock<String>>,
     valuation_repository: Arc<dyn ValuationRepositoryTrait>,
     snapshot_service: Arc<dyn SnapshotServiceTrait>,
     quote_service: Arc<dyn QuoteServiceTrait>,
     fx_service: Arc<dyn FxServiceTrait>,
+    activity_repository: Arc<dyn ActivityRepositoryTrait>,
 }
 
 impl ValuationService {
     pub fn new(
         base_currency: Arc<RwLock<String>>,
+        timezone: Arc<RwLock<String>>,
         valuation_repository: Arc<dyn ValuationRepositoryTrait>,
         snapshot_service: Arc<dyn SnapshotServiceTrait>,
         quote_service: Arc<dyn QuoteServiceTrait>,
         fx_service: Arc<dyn FxServiceTrait>,
+        activity_repository: Arc<dyn ActivityRepositoryTrait>,
     ) -> Self {
         Self {
             base_currency,
+            timezone,
             snapshot_service,
             quote_service,
             fx_service,
             valuation_repository,
+            activity_repository,
         }
+    }
+
+    /// Convert a UTC instant to the user's local calendar date — must match
+    /// `snapshot_service`'s conversion so split events line up on the same day
+    /// for both the quantity and price adjustments.
+    fn user_date(&self, instant: DateTime<Utc>) -> NaiveDate {
+        let tz = parse_user_timezone_or_default(&self.timezone.read().unwrap());
+        activity_date_in_tz(instant, tz)
     }
 
     async fn fetch_fx_rates_for_range(
@@ -208,6 +225,25 @@ impl ValuationServiceTrait for ValuationService {
 
         let actual_calculation_start_date = snapshots_to_process.first().unwrap().snapshot_date;
         let calculation_end_date = snapshots_to_process.last().unwrap().snapshot_date;
+
+        // Build per-asset split factors from the canonical `Split` activities so
+        // historical closes are valued in the same current-share basis the
+        // snapshot positions already use (see `portfolio::split_adjustment`).
+        // The TOTAL portfolio aggregates every account, so it needs every
+        // account's splits; a real account only needs its own. De-duplication
+        // by date inside `collect_split_factors` makes the broad load safe.
+        let split_activities = if account_id == PORTFOLIO_TOTAL_ACCOUNT_ID {
+            self.activity_repository.get_activities()?
+        } else {
+            self.activity_repository
+                .get_activities_by_account_id(account_id)?
+        };
+        let split_factors: SplitFactors = collect_split_factors(
+            &split_activities,
+            |instant| self.user_date(instant),
+            actual_calculation_start_date,
+            calculation_end_date,
+        );
 
         let mut required_asset_ids = HashSet::new();
         let mut required_fx_pairs = HashSet::new();
@@ -352,6 +388,7 @@ impl ValuationServiceTrait for ValuationService {
                     &fx_for_current_date,
                     current_date,
                     &base_curr_clone,
+                    &split_factors,
                 ) {
                     Ok(valuation_result) => Some(valuation_result),
                     Err(e) => {

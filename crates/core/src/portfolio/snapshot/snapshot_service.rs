@@ -1129,54 +1129,15 @@ impl SnapshotService {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> HashMap<String, Vec<(NaiveDate, Decimal)>> {
-        use crate::activities::ACTIVITY_TYPE_SPLIT;
-        let mut split_factors: HashMap<String, Vec<(NaiveDate, Decimal)>> = HashMap::new();
-        for activity in activities.iter().filter(|a| {
-            a.activity_type == ACTIVITY_TYPE_SPLIT
-                && self.user_date(a.activity_date) >= start_date
-                && self.user_date(a.activity_date) <= end_date
-        }) {
-            // Check if the activity amount exists and represents a valid positive split ratio
-            let asset_id = match &activity.asset_id {
-                Some(id) => id,
-                None => {
-                    warn!(
-                        "Missing asset_id for Split activity {} on {}. Ignoring split.",
-                        activity.id, activity.activity_date
-                    );
-                    continue;
-                }
-            };
-            if let Some(split_ratio) = activity.amount {
-                if split_ratio.is_sign_positive() && !split_ratio.is_zero() {
-                    // Collect valid splits (date, ratio) for the asset
-                    split_factors
-                        .entry(asset_id.clone())
-                        .or_default() // Get the Vec, create if needed
-                        .push((self.user_date(activity.activity_date), split_ratio));
-                // Push (date, ratio) tuple
-                } else {
-                    // Log warning for invalid ratio (e.g., zero or negative)
-                    warn!(
-                        "Invalid split ratio {} for Split activity {} on {}. Ignoring split.",
-                        split_ratio, activity.id, activity.activity_date
-                    );
-                }
-            } else {
-                // Log warning if amount is missing for a split activity
-                warn!(
-                    "Missing amount for Split activity {} for asset {} on {}. Ignoring split.",
-                    activity.id, asset_id, activity.activity_date
-                );
-            }
-        }
-        for splits in split_factors.values_mut() {
-            splits.sort_by_key(|k| k.0);
-            // Splits are stored per-account but are asset-level events; deduplicate by date
-            // so that assets held in multiple accounts don't over-apply the same split.
-            splits.dedup_by_key(|k| k.0);
-        }
-        split_factors
+        // Delegates to the shared collector so the quantity side (here) and
+        // the price side (valuation read path) derive split events from the
+        // exact same logic — see `crate::portfolio::split_adjustment`.
+        crate::portfolio::split_adjustment::collect_split_factors(
+            activities,
+            |instant| self.user_date(instant),
+            start_date,
+            end_date,
+        )
     }
 
     fn adjust_activities_for_splits(
