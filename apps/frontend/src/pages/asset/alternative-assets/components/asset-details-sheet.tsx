@@ -849,22 +849,99 @@ function LiabilityFields({
         />
       </div>
 
-      <FormField
-        control={form.control}
-        name="originationDate"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Origination Date</FormLabel>
-            <FormControl>
-              <DatePickerInput
-                value={field.value ?? undefined}
-                onChange={(date) => field.onChange(date ?? null)}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField
+          control={form.control}
+          name="originationDate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Origination Date</FormLabel>
+              <FormControl>
+                <DatePickerInput
+                  value={field.value ?? undefined}
+                  onChange={(date) => field.onChange(date ?? null)}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="loanDurationYears"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                Loan Duration (years)
+                <span className="text-muted-foreground ml-1 text-xs font-normal">(optional)</span>
+              </FormLabel>
+              <FormControl>
+                <QuantityInput
+                  ref={field.ref}
+                  name={field.name}
+                  value={field.value}
+                  onValueChange={(value) => field.onChange(value ?? null)}
+                  placeholder="e.g. 5"
+                  maxDecimalPlaces={1}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField
+          control={form.control}
+          name="balanceDate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                Balance Date
+                <span className="text-muted-foreground ml-1 text-xs font-normal">(optional)</span>
+              </FormLabel>
+              <FormControl>
+                <DatePickerInput
+                  value={field.value ?? undefined}
+                  onChange={(date) => field.onChange(date ?? null)}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="monthlyPayment"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                Monthly Payment (EMI)
+                <span className="text-muted-foreground ml-1 text-xs font-normal">(optional)</span>
+              </FormLabel>
+              <FormControl>
+                <MoneyInput
+                  ref={field.ref}
+                  name={field.name}
+                  value={field.value}
+                  onValueChange={(value) => field.onChange(value ?? null)}
+                  placeholder="0.00"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <p className="text-muted-foreground text-xs leading-snug">
+        EMI is your monthly installment &mdash; it&apos;s recorded for reference only. The liability
+        is the <span className="font-medium">current balance</span> above; that&apos;s what reduces
+        your net worth, not the EMI.
+      </p>
 
       {/* Linked Asset Display/Selector */}
       <FormField
