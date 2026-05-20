@@ -1,4 +1,5 @@
 import { useNetWorth, useNetWorthHistory } from "@/hooks/use-alternative-assets";
+import { excludeVehiclesFromNetWorth } from "@/lib/net-worth";
 import { useSettingsContext } from "@/lib/settings-provider";
 import type { DateRange } from "@/lib/types";
 import { formatDateISO } from "@/lib/utils";
@@ -340,11 +341,16 @@ export function NetWorthContent({ onAddAsset, onAddLiability }: NetWorthContentP
   const parsedData = useMemo((): ParsedNetWorth | null => {
     if (!netWorthData) return null;
 
+    // Exclude vehicle holdings from net worth (Feroz #14) via the shared
+    // helper, so this full balance-sheet page agrees with the net-worth
+    // widget. No-op when the user has no vehicle.
+    const data = excludeVehiclesFromNetWorth(netWorthData);
+
     return {
-      netWorth: parseFloat(netWorthData.netWorth) || 0,
+      netWorth: parseFloat(data.netWorth) || 0,
       assets: {
-        total: parseFloat(netWorthData.assets.total) || 0,
-        breakdown: (netWorthData.assets.breakdown || []).map((item) => ({
+        total: parseFloat(data.assets.total) || 0,
+        breakdown: (data.assets.breakdown || []).map((item) => ({
           category: item.category,
           name: item.name,
           value: parseFloat(item.value) || 0,
@@ -352,8 +358,8 @@ export function NetWorthContent({ onAddAsset, onAddLiability }: NetWorthContentP
         })),
       },
       liabilities: {
-        total: parseFloat(netWorthData.liabilities.total) || 0,
-        breakdown: (netWorthData.liabilities.breakdown || []).map((item) => ({
+        total: parseFloat(data.liabilities.total) || 0,
+        breakdown: (data.liabilities.breakdown || []).map((item) => ({
           category: item.category,
           name: item.name,
           value: parseFloat(item.value) || 0,
@@ -615,14 +621,16 @@ export function NetWorthContent({ onAddAsset, onAddLiability }: NetWorthContentP
                     <Icons.ChevronRight className="h-4 w-4" />
                     Manage accounts
                   </Link>
-                  <button type="button"
+                  <button
+                    type="button"
                     onClick={onAddAsset}
                     className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm transition-colors"
                   >
                     <Icons.Plus className="h-4 w-4" />
                     Add asset
                   </button>
-                  <button type="button"
+                  <button
+                    type="button"
                     onClick={onAddLiability}
                     className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm transition-colors"
                   >

@@ -14,6 +14,7 @@ import {
 } from "@mizan/ui/components/ui/tooltip";
 import { PrivacyAmount } from "@mizan/ui";
 import { useNetWorth } from "@/hooks/use-alternative-assets";
+import { excludeVehiclesFromNetWorth } from "@/lib/net-worth";
 import { useSettingsContext } from "@/lib/settings-provider";
 import { cn, parseLocalDate } from "@/lib/utils";
 import { useMemo, useState } from "react";
@@ -162,37 +163,21 @@ export const NetWorthWidget = ({
   const parsedValues = useMemo(() => {
     if (!netWorthData) return null;
 
-    // Exclude vehicle holdings from net worth (Feroz #14 — vehicles are
-    // depreciating assets and skew net worth). The backend total still
-    // includes them today, so we subtract the vehicle breakdown subtotal
-    // client-side and drop those rows from the displayed breakdown.
-    //
-    // Matching on the `category` key (not the localized display name)
-    // keeps this robust. `^vehicle` matches "vehicle"/"vehicles" but
-    // none of the other categories (cash, investments, properties,
-    // collectibles, precious, other), so there are no false positives —
-    // and when the user has no vehicle this is a strict no-op.
-    const isVehicleCategory = (category: string) => /^vehicle/i.test(category);
-
-    const assetBreakdownRaw = netWorthData.assets.breakdown;
-    const vehicleSubtotal = assetBreakdownRaw
-      .filter((item) => isVehicleCategory(item.category))
-      .reduce((acc, item) => acc + (parseFloat(item.value) || 0), 0);
-
-    const rawNetWorth = parseFloat(netWorthData.netWorth) || 0;
-    const rawTotalAssets = parseFloat(netWorthData.assets.total) || 0;
+    // Exclude vehicle holdings from net worth (Feroz #14). Done via the
+    // shared `excludeVehiclesFromNetWorth` helper so this widget and the
+    // dedicated net-worth page apply the exact same rule and never
+    // disagree. No-op when the user has no vehicle.
+    const data = excludeVehiclesFromNetWorth(netWorthData);
 
     return {
-      netWorth: rawNetWorth - vehicleSubtotal,
-      totalAssets: rawTotalAssets - vehicleSubtotal,
-      totalLiabilities: parseFloat(netWorthData.liabilities.total) || 0,
-      assetsBreakdown: assetBreakdownRaw
-        .filter((item) => !isVehicleCategory(item.category))
-        .map((item) => ({
-          label: item.name,
-          value: parseFloat(item.value) || 0,
-        })),
-      liabilitiesBreakdown: netWorthData.liabilities.breakdown.map((item) => ({
+      netWorth: parseFloat(data.netWorth) || 0,
+      totalAssets: parseFloat(data.assets.total) || 0,
+      totalLiabilities: parseFloat(data.liabilities.total) || 0,
+      assetsBreakdown: data.assets.breakdown.map((item) => ({
+        label: item.name,
+        value: parseFloat(item.value) || 0,
+      })),
+      liabilitiesBreakdown: data.liabilities.breakdown.map((item) => ({
         label: item.name,
         value: parseFloat(item.value) || 0,
         isDebt: true,
