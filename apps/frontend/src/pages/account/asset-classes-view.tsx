@@ -38,6 +38,7 @@ import { Icons, type IconName } from "@mizan/ui/components/ui/icons";
 import { Skeleton } from "@mizan/ui/components/ui/skeleton";
 import { formatCompactAmount } from "@mizan/ui";
 import { useQuery } from "@tanstack/react-query";
+import { differenceInCalendarDays, format, formatDistanceToNowStrict, isValid } from "date-fns";
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AddHoldingMenu } from "./add-holding-menu";
@@ -476,8 +477,35 @@ function HoldingRow({
             <GainText value={totalGain} currency={portfolioCurrency} />
           ) : null}
         </div>
+        <PriceAsOf asOfDate={holding.asOfDate} />
       </div>
     </li>
+  );
+}
+
+/**
+ * Provenance label for a holding's price (enterprise §5/§10). Renders
+ * "as of <date>" so a price is never shown without its as-of time. When
+ * the quote is stale (older than the freshness window) it switches to an
+ * amber "as of N days ago" so a not-recently-synced price is visible
+ * rather than silently trusted. Pairs with the backend change that now
+ * values stale holdings at the last-known price instead of swapping in
+ * cost basis — the number and this label always correspond.
+ */
+const PRICE_STALE_AFTER_DAYS = 7;
+
+function PriceAsOf({ asOfDate }: { asOfDate: string }) {
+  const parsed = new Date(asOfDate);
+  if (!isValid(parsed)) return null;
+  const ageDays = differenceInCalendarDays(new Date(), parsed);
+  const stale = ageDays > PRICE_STALE_AFTER_DAYS;
+  return (
+    <p
+      className={`mt-0.5 text-[10px] tabular-nums ${stale ? "text-amber-500" : "text-muted-foreground/70"}`}
+      title={format(parsed, "PPP")}
+    >
+      as of {ageDays <= 0 ? "today" : formatDistanceToNowStrict(parsed, { addSuffix: true })}
+    </p>
   );
 }
 

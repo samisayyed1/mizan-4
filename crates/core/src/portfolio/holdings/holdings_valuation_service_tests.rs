@@ -1859,23 +1859,28 @@ mod tests {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // Stale-quote gate + missing-FX explicit-failure tests
+    // Stale-quote handling + missing-FX explicit-failure tests
     //
-    // Two production failure modes that historically silently
-    // produced wrong dashboard totals — both now route to the same
-    // cost-basis fallback path that #19 shipped.
+    // Two distinct production behaviors:
+    //   - A STALE but real quote is still USED (last-known price),
+    //     with as_of_date carrying its real date so the UI can label
+    //     the staleness — we do NOT silently swap in cost basis
+    //     (enterprise §4: "wrong + invisible is worse than missing").
+    //   - A missing FX pair genuinely cannot be valued in base
+    //     currency, so it still routes to the cost-basis fallback —
+    //     we never fabricate an FX rate.
     // ─────────────────────────────────────────────────────────────
 
-    /// Quote older than MAX_QUOTE_AGE_DAYS (7 days) → treat as
-    /// missing → cost-basis fallback. Verifies the dashboard
-    /// doesn't keep showing a price that was correct two months
-    /// ago.
+    /// A quote 30 days old is still used for valuation (last-known
+    /// price), NOT silently swapped to cost basis. `as_of_date`
+    /// carries the real quote date so the UI can render "price as of
+    /// 30 days ago" instead of showing a wrong number with no warning.
     #[tokio::test]
-    async fn test_stale_quote_routes_to_cost_basis_fallback() {
+    async fn test_stale_quote_is_used_at_last_known_price() {
         let (_fx, market_data, valuation_service) = setup_test_env();
 
-        // Build a quote dated 30 days ago — well past the 7-day
-        // staleness threshold.
+        // Build a quote dated 30 days ago — well past any reasonable
+        // freshness window. It must still be used.
         let stale_date = Utc::now().date_naive() - chrono::Duration::days(30);
         let stale_ts =
             chrono::TimeZone::from_utc_datetime(&Utc, &stale_date.and_hms_opt(0, 0, 0).unwrap());
@@ -1901,24 +1906,33 @@ mod tests {
             .unwrap();
 
         let h = &holdings[0];
-        // Market value falls back to cost basis (not 10 × $150 = $1500
-        // from the stale quote).
+        // Market value = 10 × $150 (the stale last-known price), NOT
+        // the $1000 cost basis. The price is real; it's just old.
         assert_monetary_value_approx(
             Some(&h.market_value),
-            dec!(1000.0),
-            dec!(1000.0),
+            dec!(1500.0),
+            dec!(1500.0),
             TOLERANCE,
-            "Stale-quote fallback: market_value == cost_basis ($1000)",
+            "Stale quote is used: market_value == 10 × $150 == $1500",
         );
         assert_eq!(
             h.price,
-            Some(dec!(100.0)),
-            "Price reported is cost-basis per unit (1000/10), not the stale $150"
+            Some(dec!(150.0)),
+            "Price reported is the stale last-known price ($150), not cost-basis per unit"
         );
         assert_eq!(
             h.unrealized_gain,
-            Some(MonetaryValue::zero()),
-            "Unrealized gain == 0 when on cost-basis fallback"
+            Some(MonetaryValue {
+                local: dec!(500.0),
+                base: dec!(500.0),
+            }),
+            "Unrealized gain == $1500 market − $1000 cost == $500"
+        );
+        // The crucial provenance signal for the UI: as_of_date is the
+        // quote's real (stale) date, so the price can be labeled.
+        assert_eq!(
+            h.as_of_date, stale_date,
+            "as_of_date carries the stale quote's real date for UI labeling"
         );
     }
 
