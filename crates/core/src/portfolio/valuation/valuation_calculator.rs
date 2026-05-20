@@ -2,6 +2,7 @@ use crate::errors::{Error, Result};
 use crate::fx::currency::{normalize_amount, normalize_currency_code};
 use crate::fx::FxError;
 use crate::portfolio::snapshot::AccountStateSnapshot;
+use crate::portfolio::split_adjustment::{split_adjusted_close, SplitFactors};
 use crate::portfolio::valuation::DailyAccountValuation;
 use crate::quotes::Quote;
 
@@ -25,6 +26,9 @@ pub type DailyFxRateMap = HashMap<(String, String), Decimal>;
 /// * `fx_rates_today` - Pre-fetched FX rates for the target date.
 /// * `target_date` - The date for which the valuation is calculated.
 /// * `base_currency` - The target currency for the final valuation metrics.
+/// * `split_factors` - Per-asset split events used to express historical
+///   closes in the same current-share basis the snapshot positions already
+///   use. Pass an empty map when no splits apply.
 ///
 pub fn calculate_valuation(
     holdings_snapshot: &AccountStateSnapshot, // Holdings for target_date
@@ -32,6 +36,7 @@ pub fn calculate_valuation(
     fx_rates_today: &DailyFxRateMap,
     target_date: NaiveDate,
     base_currency: &str, // Pass base currency directly
+    split_factors: &SplitFactors,
 ) -> Result<DailyAccountValuation> {
     let account_currency = &holdings_snapshot.currency;
     let normalized_account_currency = normalize_currency_code(account_currency);
@@ -47,6 +52,7 @@ pub fn calculate_valuation(
             fx_rates_today,
             target_date,
             normalized_account_currency,
+            split_factors,
         )?;
 
     let total_cash_value_acct_ccy = calculate_cash_value_acct(
@@ -116,14 +122,23 @@ fn calculate_investment_market_value_acct(
     fx_rates_today: &DailyFxRateMap,
     target_date: NaiveDate,
     account_currency: &str,
+    split_factors: &SplitFactors,
 ) -> Result<(Decimal, Decimal)> {
     let mut total_position_market_value = Decimal::ZERO;
     let mut performance_eligible_market_value = Decimal::ZERO;
 
     for (asset_id, position) in &holdings_snapshot.positions {
         if let Some(quote) = quotes_today.get(asset_id) {
+            // Snapshot positions are already normalised to current-share terms
+            // by the split-adjustment of activities; bring the historical close
+            // into the same basis so quantity × price agrees. No splits for the
+            // asset (or any date after its last split) leaves the close as-is.
+            let adjusted_close = match split_factors.get(asset_id) {
+                Some(splits) => split_adjusted_close(quote.close, splits, target_date),
+                None => quote.close,
+            };
             let (normalized_price, normalized_quote_currency) =
-                normalize_amount(quote.close, &quote.currency);
+                normalize_amount(adjusted_close, &quote.currency);
 
             let quote_fx_rate = if normalized_quote_currency == account_currency {
                 Decimal::ONE
@@ -298,6 +313,7 @@ mod tests {
             &fx_rates_today,
             target_date,
             "CAD",
+            &SplitFactors::new(),
         )
         .unwrap();
 
@@ -305,5 +321,101 @@ mod tests {
         assert_eq!(result.total_value, dec!(0.0000329));
         assert_eq!(result.cost_basis, dec!(0));
         assert_eq!(result.fx_rate_to_base, dec!(1));
+    }
+
+    /// Golden test for split-adjusted historical valuation.
+    ///
+    /// A position bought before a 4:1 split is stored by the snapshot
+    /// calculator in post-split (current) shares: 10 original → 40. On a date
+    /// *before* the split the raw close is the pre-split price ($500). Without
+    /// adjustment the valuation would be `40 × $500 = $20,000` — quadruple the
+    /// true `$5,000`. With the split factor the close is brought into the
+    /// current-share basis (`$500 / 4 = $125`), restoring `40 × $125 = $5,000`.
+    #[test]
+    fn test_pre_split_position_is_valued_in_current_share_basis() {
+        let target_date = NaiveDate::from_ymd_opt(2019, 1, 2).unwrap();
+        let split_date = NaiveDate::from_ymd_opt(2020, 8, 31).unwrap();
+
+        let mut positions = HashMap::new();
+        positions.insert(
+            "AAPL".to_string(),
+            Position {
+                id: "POS-AAPL-acc_1".to_string(),
+                account_id: "acc_1".to_string(),
+                asset_id: "AAPL".to_string(),
+                quantity: dec!(40), // 10 pre-split shares normalised by the 4:1 split
+                average_cost: dec!(25),
+                total_cost_basis: dec!(1000),
+                currency: "USD".to_string(),
+                inception_date: Utc::now(),
+                lots: VecDeque::new(),
+                created_at: Utc::now(),
+                last_updated: Utc::now(),
+                is_alternative: false,
+                contract_multiplier: Decimal::ONE,
+            },
+        );
+
+        let snapshot = AccountStateSnapshot {
+            id: "acc_1_2019-01-02".to_string(),
+            account_id: "acc_1".to_string(),
+            snapshot_date: target_date,
+            currency: "USD".to_string(),
+            positions,
+            cash_balances: HashMap::new(),
+            cost_basis: dec!(1000),
+            net_contribution: dec!(1000),
+            net_contribution_base: dec!(1000),
+            cash_total_account_currency: dec!(0),
+            cash_total_base_currency: dec!(0),
+            realized_gains: HashMap::new(),
+            calculated_at: Utc::now().naive_utc(),
+            source: SnapshotSource::Calculated,
+        };
+
+        let quote = Quote {
+            id: "quote-aapl".to_string(),
+            asset_id: "AAPL".to_string(),
+            timestamp: Utc::now(),
+            open: dec!(500),
+            high: dec!(500),
+            low: dec!(500),
+            close: dec!(500), // raw pre-split close
+            adjclose: dec!(500),
+            volume: dec!(0),
+            currency: "USD".to_string(),
+            data_source: "MANUAL".to_string(),
+            created_at: Utc::now(),
+            notes: None,
+        };
+        let quotes_today = HashMap::from([("AAPL".to_string(), quote)]);
+        let fx_rates_today = HashMap::new();
+
+        // Without split factors: the latent bug — 40 × $500 = $20,000.
+        let unadjusted = calculate_valuation(
+            &snapshot,
+            &quotes_today,
+            &fx_rates_today,
+            target_date,
+            "USD",
+            &SplitFactors::new(),
+        )
+        .unwrap();
+        assert_eq!(unadjusted.investment_market_value, dec!(20000));
+
+        // With the 4:1 split factor: $500 / 4 = $125; 40 × $125 = $5,000.
+        let mut split_factors = SplitFactors::new();
+        split_factors.insert("AAPL".to_string(), vec![(split_date, dec!(4))]);
+        let adjusted = calculate_valuation(
+            &snapshot,
+            &quotes_today,
+            &fx_rates_today,
+            target_date,
+            "USD",
+            &split_factors,
+        )
+        .unwrap();
+        assert_eq!(adjusted.investment_market_value, dec!(5000));
+        assert_eq!(adjusted.total_value, dec!(5000));
     }
 }

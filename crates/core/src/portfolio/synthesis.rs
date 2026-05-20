@@ -28,6 +28,7 @@
 use crate::errors::{Error, Result};
 use crate::fx::FxServiceTrait;
 use crate::portfolio::holdings::{Holding, HoldingType};
+use crate::portfolio::split_adjustment::{split_adjusted_close, SplitFactors};
 use crate::portfolio::valuation::DailyAccountValuation;
 use crate::quotes::QuoteServiceTrait;
 
@@ -55,6 +56,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 /// Cash holdings are added at face value (cash is presumed stable; we
 /// don't try to back out historical cash balances from current holdings —
 /// that's not recoverable without activities).
+#[allow(clippy::too_many_arguments)]
 pub async fn synthesize_account_history(
     account_id: &str,
     account_currency: &str,
@@ -63,6 +65,7 @@ pub async fn synthesize_account_history(
     quote_service: &dyn QuoteServiceTrait,
     fx_service: &dyn FxServiceTrait,
     today: NaiveDate,
+    split_factors: &SplitFactors,
 ) -> Result<Vec<DailyAccountValuation>> {
     if holdings.is_empty() {
         return Ok(Vec::new());
@@ -168,12 +171,20 @@ pub async fn synthesize_account_history(
                 continue;
             };
 
+            // `holding.quantity` is the *current* share count, so a pre-split
+            // historical close must be expressed in the same current-share
+            // basis or the estimate inflates by the split ratio.
+            let adjusted_close = match split_factors.get(asset_id) {
+                Some(splits) => split_adjusted_close(*close, splits, date),
+                None => *close,
+            };
+
             let multiplier = if holding.contract_multiplier > Decimal::ZERO {
                 holding.contract_multiplier
             } else {
                 Decimal::ONE
             };
-            let value_local = holding.quantity * close * multiplier;
+            let value_local = holding.quantity * adjusted_close * multiplier;
 
             let value_acct = if holding.local_currency == account_currency {
                 value_local

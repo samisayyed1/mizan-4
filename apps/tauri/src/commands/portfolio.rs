@@ -266,6 +266,25 @@ pub async fn get_estimated_historical_valuation(
 
     let today = chrono::Utc::now().date_naive();
 
+    // Split factors from the canonical Split activities, so the estimated
+    // historical series is expressed in the same current-share basis as the
+    // (current) holdings it is built from. TOTAL aggregates every account.
+    let split_activities = if account_id == mizan_core::constants::PORTFOLIO_TOTAL_ACCOUNT_ID {
+        state.activity_service().get_activities()
+    } else {
+        state
+            .activity_service()
+            .get_activities_by_account_id(&account_id)
+    }
+    .map_err(|e| format!("Failed to load activities for split adjustment: {}", e))?;
+    let tz = mizan_core::utils::time_utils::parse_user_timezone_or_default(&state.get_timezone());
+    let split_factors = mizan_core::portfolio::split_adjustment::collect_split_factors(
+        &split_activities,
+        |instant| mizan_core::utils::time_utils::activity_date_in_tz(instant, tz),
+        NaiveDate::from_ymd_opt(1900, 1, 1).unwrap(),
+        today,
+    );
+
     mizan_core::portfolio::synthesis::synthesize_account_history(
         &account_id,
         &account_currency,
@@ -274,6 +293,7 @@ pub async fn get_estimated_historical_valuation(
         state.quote_service().as_ref(),
         state.fx_service().as_ref(),
         today,
+        &split_factors,
     )
     .await
     .map_err(|e| e.to_string())
