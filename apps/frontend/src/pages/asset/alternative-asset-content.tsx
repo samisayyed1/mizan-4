@@ -780,6 +780,49 @@ function getDetailRows(
           value: format(parseLocalDate(originationDate), "MMM d, yyyy"),
         });
       }
+
+      // Balance date — when the current balance was measured (§21)
+      const balanceDate = metadata.balance_date as string | undefined;
+      if (balanceDate) {
+        rows.push({
+          label: "Balance Date",
+          value: format(parseLocalDate(balanceDate), "MMM d, yyyy"),
+        });
+      }
+
+      // Loan term + auto-calculated maturity / remaining context (§22):
+      // origination date + duration in years → maturity and years left.
+      const durationStr = metadata.loan_duration_years as string | undefined;
+      if (durationStr) {
+        const years = parseFloat(durationStr);
+        let termValue = `${years} ${years === 1 ? "year" : "years"}`;
+        if (originationDate && Number.isFinite(years)) {
+          const maturity = parseLocalDate(originationDate);
+          maturity.setFullYear(maturity.getFullYear() + Math.floor(years));
+          maturity.setMonth(maturity.getMonth() + Math.round((years - Math.floor(years)) * 12));
+          const yearsLeft = (maturity.getTime() - Date.now()) / (365.25 * 24 * 60 * 60 * 1000);
+          termValue +=
+            yearsLeft > 0
+              ? ` · matures ${format(maturity, "MMM yyyy")} (~${yearsLeft.toFixed(1)} yrs left)`
+              : ` · matured ${format(maturity, "MMM yyyy")}`;
+        }
+        rows.push({ label: "Loan Term", value: termValue });
+      }
+
+      // EMI / monthly payment — context only; never reduces net worth (§23)
+      const monthlyPayment = metadata.monthly_payment as string | undefined;
+      if (monthlyPayment) {
+        rows.push({
+          label: "Monthly Payment (EMI)",
+          value: (
+            <AmountDisplay
+              value={parseFloat(monthlyPayment)}
+              currency={holding.currency}
+              isHidden={isBalanceHidden}
+            />
+          ),
+        });
+      }
       break;
     }
 

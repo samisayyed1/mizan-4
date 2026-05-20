@@ -144,6 +144,24 @@ export const liabilityDetailsSchema = baseSchema.extend({
     .max(100, "Interest rate must be 100 or less")
     .optional()
     .nullable(),
+  // Feroz step E §21/§22: balance date (when the current balance was
+  // measured) + loan duration in years (preferred over an end date —
+  // "instead of putting end date you say how many years loan is it").
+  balanceDate: z.date().optional().nullable(),
+  loanDurationYears: z.coerce
+    .number()
+    .positive("Loan duration must be greater than 0")
+    .max(100, "Loan duration must be 100 years or less")
+    .optional()
+    .nullable(),
+  // Feroz step E §23: EMI is the monthly installment the user pays —
+  // it is NOT the liability itself and does NOT reduce net worth on
+  // its own. Captured for context only.
+  monthlyPayment: z.coerce
+    .number()
+    .positive("Monthly payment must be greater than 0")
+    .optional()
+    .nullable(),
   linkedAssetId: z.string().optional().nullable(),
 });
 
@@ -255,6 +273,15 @@ export function getDefaultDetailsFormValues(
         originalAmount: origAmount ? parseFloat(origAmount as string) : null,
         originationDate: origDate ? parseLocalDate(origDate as string) : null,
         interestRate: metadata?.interest_rate ? parseFloat(metadata.interest_rate as string) : null,
+        balanceDate: metadata?.balance_date
+          ? parseLocalDate(metadata.balance_date as string)
+          : null,
+        loanDurationYears: metadata?.loan_duration_years
+          ? parseFloat(metadata.loan_duration_years as string)
+          : null,
+        monthlyPayment: metadata?.monthly_payment
+          ? parseFloat(metadata.monthly_payment as string)
+          : null,
         linkedAssetId: (metadata?.linked_asset_id as string) ?? null,
       };
 
@@ -332,6 +359,13 @@ export function formValuesToMetadata(values: AssetDetailsFormValues): Record<str
       if (values.originationDate)
         metadata.origination_date = formatDateToISO(values.originationDate);
       if (values.interestRate != null) metadata.interest_rate = values.interestRate.toString();
+      if (values.balanceDate) metadata.balance_date = formatDateToISO(values.balanceDate);
+      if (values.loanDurationYears != null)
+        metadata.loan_duration_years = values.loanDurationYears.toString();
+      // EMI / monthly payment — captured for context only; it is NOT
+      // the liability and never reduces net worth on its own (§23).
+      if (values.monthlyPayment != null)
+        metadata.monthly_payment = values.monthlyPayment.toString();
       if (values.linkedAssetId) metadata.linked_asset_id = values.linkedAssetId;
       break;
 
