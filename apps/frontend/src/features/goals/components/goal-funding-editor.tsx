@@ -386,7 +386,7 @@ export function GoalFundingEditor({
     <>
       <Card>
         <CardHeader className="flex-row items-start justify-between pb-4">
-          <CardTitle className="text-md leading-none tracking-tight">Account Shares</CardTitle>
+          <CardTitle className="text-md leading-none tracking-tight">Portfolio Shares</CardTitle>
           {isEditing ? (
             <div className="flex gap-1.5">
               <Button
@@ -421,7 +421,7 @@ export function GoalFundingEditor({
               <button
                 type="button"
                 onClick={() => setEditing(true)}
-                aria-label="Edit Account Shares"
+                aria-label="Edit Portfolio Shares"
                 className="text-muted-foreground hover:text-foreground inline-flex shrink-0 items-center gap-1.5 text-sm transition-colors"
               >
                 <Icons.Pencil className="h-3.5 w-3.5" />
@@ -467,7 +467,8 @@ export function GoalFundingEditor({
 
                           {/* Tax bucket pill (retirement only) */}
                           {isRetirement && !isDcLinked && (
-                            <button type="button"
+                            <button
+                              type="button"
                               onClick={() => cycleTaxBucket(a.id)}
                               className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors ${
                                 tb
@@ -512,7 +513,8 @@ export function GoalFundingEditor({
 
                           {/* Remove button */}
                           {!isDcLinked && (
-                            <button type="button"
+                            <button
+                              type="button"
                               onClick={() => removeAccount(a.id)}
                               className="text-muted-foreground hover:text-foreground shrink-0 rounded-md p-1 transition-colors"
                               aria-label={`Remove ${a.name}`}
@@ -559,10 +561,11 @@ export function GoalFundingEditor({
               {availableAccounts.length > 0 && (
                 <div className="space-y-1">
                   <p className="text-muted-foreground px-1 text-[10px] uppercase tracking-wider">
-                    Add accounts
+                    Add portfolios
                   </p>
                   {availableAccounts.map((a) => (
-                    <button type="button"
+                    <button
+                      type="button"
                       key={a.id}
                       onClick={() => addAccount(a.id)}
                       className="hover:bg-muted/50 flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition-colors"
@@ -576,7 +579,7 @@ export function GoalFundingEditor({
               )}
 
               {activeAccounts.length === 0 && (
-                <p className="text-muted-foreground text-xs">No active accounts found.</p>
+                <p className="text-muted-foreground text-xs">No active portfolios found.</p>
               )}
 
               {hasInvalidAllocations && (
@@ -592,12 +595,13 @@ export function GoalFundingEditor({
             <div>
               {includedAccounts.length === 0 ? (
                 <p className="text-muted-foreground py-2 text-xs">
-                  No accounts assigned.{" "}
-                  <button type="button"
+                  No portfolios assigned.{" "}
+                  <button
+                    type="button"
                     className="text-foreground underline underline-offset-2"
                     onClick={() => setEditing(true)}
                   >
-                    Add accounts
+                    Add portfolios
                   </button>
                 </p>
               ) : (
@@ -665,19 +669,19 @@ function AllocationDetailsSheet({
         <SheetHeader className="border-border border-b px-6 py-5">
           <SheetTitle>Allocation details</SheetTitle>
           <SheetDescription>
-            Active goal shares by account. Each account can be allocated up to 100%.
+            Active goal shares by portfolio. Each portfolio can be allocated up to 100%.
           </SheetDescription>
         </SheetHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
           {rows.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No active account shares yet.</p>
+            <p className="text-muted-foreground text-sm">No active portfolio shares yet.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] border-separate border-spacing-0 text-sm">
                 <thead>
                   <tr className="text-muted-foreground text-left text-[10px] uppercase tracking-[0.18em]">
-                    <th className="border-border border-b py-2 pr-4 font-medium">Account</th>
+                    <th className="border-border border-b py-2 pr-4 font-medium">Portfolio</th>
                     {goalColumns.map((goal) => (
                       <th
                         key={goal.id}
