@@ -13,22 +13,6 @@ use rust_decimal_macros::dec;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
-/// A quote older than this many days is treated as **missing** for the
-/// purpose of dashboard valuation — the cost-basis fallback fires
-/// instead.
-///
-/// Rationale: an actively-traded security should produce a fresh
-/// quote on every trading day. Weekends + a typical national holiday
-/// week buys us five calendar days; seven gives a single comfortable
-/// retry window before we surface a "this hasn't synced lately"
-/// signal. Manual/illiquid assets that genuinely only quote once a
-/// week or less are MANUAL-mode and route through a different code
-/// path that doesn't hit this gate.
-///
-/// Pulled out as a `const` so a future user setting can override it
-/// per-asset if needed; for now everyone gets the same threshold.
-const MAX_QUOTE_AGE_DAYS: i64 = 7;
-
 #[async_trait]
 pub trait HoldingsValuationServiceTrait: Send + Sync {
     async fn calculate_holdings_live_valuation(&self, holdings: &mut [Holding]) -> Result<()>;
@@ -119,19 +103,6 @@ impl HoldingsValuationService {
                 None
             }
         }
-    }
-
-    /// True iff `quote_timestamp` is within the staleness window
-    /// (`MAX_QUOTE_AGE_DAYS`) of `today`. Quotes older than that are
-    /// treated as missing — see [`MAX_QUOTE_AGE_DAYS`] for rationale.
-    fn quote_is_fresh(
-        &self,
-        quote_timestamp: chrono::DateTime<chrono::Utc>,
-        today: chrono::NaiveDate,
-    ) -> bool {
-        let quote_date = quote_timestamp.date_naive();
-        let age_days = today.signed_duration_since(quote_date).num_days();
-        age_days <= MAX_QUOTE_AGE_DAYS
     }
 
     // Helper to fetch necessary market data in batches
@@ -322,41 +293,32 @@ impl HoldingsValuationService {
 
         // --- Fetch and Process Quote Data (For Non-Zero Quantity) ---
         //
-        // Three reasons we'd refuse to use the live quote and route to
-        // the cost-basis fallback instead:
+        // Two reasons we route a holding to the cost-basis fallback
+        // instead of valuing it from a quote:
         //   (a) no quote at all for this asset
-        //   (b) quote is older than `MAX_QUOTE_AGE_DAYS`
-        //   (c) FX rate quote_ccy → base_ccy is not registered
+        //   (c) FX rate quote_ccy → base_ccy is not registered — we can
+        //       NOT fabricate a rate (valuing an SGD position as if it
+        //       were USD would be flatly wrong), so cost basis is the
+        //       only honest answer until the FX pair exists.
         //
-        // (b) and (c) were both silent-failure paths historically:
-        // stale quotes were treated as live, and a missing FX pair
-        // returned 1.0 (valuing SGD-denominated positions at SGD == USD).
-        // Both produced wildly wrong dashboard totals. We gate them
-        // explicitly here so the same code path that handles "no
-        // quote" — the cost-basis fallback — handles "no usable
-        // quote" too.
-        let today = self.today_in_user_timezone();
+        // We deliberately do NOT reject *stale* quotes (enterprise §4).
+        // A stale-but-real last price is closer to the truth than
+        // silently swapping in cost basis, and `holding.as_of_date`
+        // already carries the quote's real date — so the UI labels the
+        // staleness explicitly ("price as of N days ago") instead of
+        // showing a wrong number with no warning. The previous behavior
+        // (drop quotes older than 7 days → cost basis) silently changed
+        // the displayed number AND its meaning under the user; that is
+        // the exact "wrong + invisible" failure we are removing.
         let usable_quote = latest_quote_pairs.get(asset_id).and_then(|qp| {
-            // (b) staleness check
-            if !self.quote_is_fresh(qp.latest.timestamp, today) {
-                let age_days = today
-                    .signed_duration_since(qp.latest.timestamp.date_naive())
-                    .num_days();
-                warn!(
-                    "{}: Latest quote is {} days old (> {} threshold). \
-                     Falling back to cost-basis valuation.",
-                    context_msg, age_days, MAX_QUOTE_AGE_DAYS
-                );
-                return None;
-            }
             // (c) FX availability check — only matters if the quote
             // currency differs from the base currency. Same-currency
             // is short-circuited inside `try_get_fx_rate`.
             let normalized_quote_ccy_check = normalize_currency_code(&qp.latest.currency);
             // If no FX rate is available the closure yields None (quote
             // unusable → cost-basis fallback fires below). The `?` keeps
-            // the exact same behavior — and the warning is still logged
-            // as a side effect inside try_get_fx_rate, which `?` still calls.
+            // that behavior — and the warning is still logged as a side
+            // effect inside try_get_fx_rate, which `?` still calls.
             self.try_get_fx_rate(
                 normalized_quote_ccy_check,
                 base_currency,
