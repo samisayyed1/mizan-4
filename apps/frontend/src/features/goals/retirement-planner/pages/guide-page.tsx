@@ -92,7 +92,7 @@ export default function GuidePage({ country }: { country?: string }) {
           </Term>
           <Term t="Plan input cards">
             The cards on the right are the editable inputs: Plan inputs, Retirement Spending,
-            Retirement Income, Projection Assumptions, Withdrawal Taxes, and Account Shares.
+            Retirement Income, Projection Assumptions, Withdrawal Taxes, and Portfolio Shares.
           </Term>
           <Term t="Year-by-Year Snapshot">
             The table shows the projected end portfolio, yearly contribution, retirement income,

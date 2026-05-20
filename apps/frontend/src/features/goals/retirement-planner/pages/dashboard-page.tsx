@@ -1473,7 +1473,7 @@ export default function DashboardPage({
       {portfolioNow === 0 && (
         <Card>
           <CardContent className="text-muted-foreground py-8 text-center text-sm">
-            No portfolio data found. Add accounts and holdings to see your retirement projection.
+            No portfolio data found. Add portfolios and holdings to see your retirement projection.
           </CardContent>
         </Card>
       )}
