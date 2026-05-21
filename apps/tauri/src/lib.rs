@@ -523,6 +523,7 @@ pub fn run() {
             commands::market_data::import_quotes_csv,
             commands::market_data::get_exchanges,
             commands::market_data::fetch_yahoo_dividends,
+            commands::market_data::get_provider_health,
             // Taxonomy commands
             commands::taxonomy::get_taxonomies,
             commands::taxonomy::get_taxonomy,

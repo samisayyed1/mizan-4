@@ -13,7 +13,7 @@ mod skip_reason;
 mod validator;
 
 pub use circuit_breaker::{CircuitBreaker, CircuitState};
-pub use provider_registry::ProviderRegistry;
+pub use provider_registry::{ProviderHealth, ProviderRegistry};
 pub use rate_limiter::{RateLimitConfig, RateLimiter};
 pub use skip_reason::{FetchDiagnostics, ProviderAttempt, SkipReason};
 pub use validator::{QuoteValidator, ValidationSeverity};

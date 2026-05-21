@@ -28,6 +28,15 @@ pub async fn search_symbol(
         .map_err(|e| format!("Failed to search ticker: {}", e))
 }
 
+/// Current health of every market-data provider (circuit state, consecutive
+/// failures, rate-limit headroom), highest-priority first. Read-only.
+#[tauri::command]
+pub async fn get_provider_health(
+    state: State<'_, Arc<ServiceContext>>,
+) -> Result<Vec<mizan_core::quotes::ProviderHealth>, String> {
+    Ok(state.quote_service().get_provider_health().await)
+}
+
 #[tauri::command]
 pub async fn sync_market_data(
     asset_ids: Option<Vec<String>>,

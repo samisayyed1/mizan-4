@@ -440,6 +440,12 @@ impl MarketDataClient {
         self.registry.providers().len()
     }
 
+    /// Snapshot the current health (circuit state, rate-limit headroom) of
+    /// every registered provider. Read-only and safe to poll.
+    pub fn provider_health(&self) -> Vec<mizan_market_data::ProviderHealth> {
+        self.registry.provider_health()
+    }
+
     /// Fetch split history for an asset over the given date range.
     ///
     /// Returns empty vec if no provider supports splits for this asset.

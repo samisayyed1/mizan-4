@@ -276,6 +276,11 @@ pub trait QuoteServiceTrait: Send + Sync {
     /// by symbol+exchange and sorted by relevance to account_currency.
     async fn search_symbol(&self, query: &str) -> Result<Vec<SymbolSearchResult>>;
 
+    /// Snapshot the current health of every market-data provider (circuit
+    /// state, consecutive failures, rate-limit headroom), highest-priority
+    /// first. Read-only; lets the UI explain why sync is degraded.
+    async fn get_provider_health(&self) -> Vec<mizan_market_data::ProviderHealth>;
+
     /// Search for symbols with account currency for relevance sorting.
     ///
     /// # Arguments
@@ -974,6 +979,10 @@ where
 
     async fn search_symbol(&self, query: &str) -> Result<Vec<SymbolSearchResult>> {
         self.search_symbol_with_currency(query, None).await
+    }
+
+    async fn get_provider_health(&self) -> Vec<mizan_market_data::ProviderHealth> {
+        self.client.read().await.provider_health()
     }
 
     async fn search_symbol_with_currency(

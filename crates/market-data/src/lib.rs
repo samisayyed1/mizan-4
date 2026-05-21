@@ -89,6 +89,6 @@ pub use provider::{MarketDataProvider, ProviderCapabilities, RateLimit};
 
 // Re-export registry types
 pub use registry::{
-    CircuitBreaker, CircuitState, FetchDiagnostics, ProviderAttempt, ProviderRegistry,
-    QuoteValidator, RateLimiter, SkipReason, ValidationSeverity,
+    CircuitBreaker, CircuitState, FetchDiagnostics, ProviderAttempt, ProviderHealth,
+    ProviderRegistry, QuoteValidator, RateLimiter, SkipReason, ValidationSeverity,
 };

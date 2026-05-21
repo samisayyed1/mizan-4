@@ -87,6 +87,10 @@ pub use constants::*;
 // Re-export client
 pub use client::{MarketDataClient, ProviderConfig};
 
+// Re-export provider health so consumers (and the AI crate) can reference it
+// without taking a direct dependency on the market-data crate.
+pub use mizan_market_data::ProviderHealth;
+
 // Re-export provider settings types
 pub use provider_settings::{
     MarketDataProviderInfo, MarketDataProviderSetting, ProviderCapabilities,
