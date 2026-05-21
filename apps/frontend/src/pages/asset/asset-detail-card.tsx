@@ -17,6 +17,9 @@ interface AssetDetail {
   todaysReturnPercent: number | null;
   totalReturn: number;
   totalReturnPercent: number;
+  realizedGain: number | null;
+  realizedGainPercent: number | null;
+  dividendIncome: number | null;
   currency: string;
   quoteCurrency?: string | null;
   quote?: {
@@ -58,6 +61,9 @@ const AssetDetailCard: React.FC<AssetDetailProps> = ({ assetData, className }) =
     todaysReturnPercent,
     totalReturn,
     totalReturnPercent,
+    realizedGain,
+    realizedGainPercent,
+    dividendIncome,
     currency,
     quoteCurrency,
     quote,
@@ -111,6 +117,41 @@ const AssetDetailCard: React.FC<AssetDetailProps> = ({ assetData, className }) =
       ),
       color: totalReturn < 0 ? "text-destructive" : "text-success",
     },
+    // Realized gain — profit booked from (partial) sales of this holding.
+    // Omitted entirely until something has actually been sold.
+    ...(realizedGain !== null
+      ? [
+          {
+            label: "Realized gain",
+            value: (
+              <>
+                <AmountDisplay
+                  value={realizedGain}
+                  currency={currency}
+                  isHidden={isBalanceHidden}
+                />
+                {realizedGainPercent !== null && <> ({formatPercent(realizedGainPercent)})</>}
+              </>
+            ),
+            color: realizedGain < 0 ? "text-destructive" : "text-success",
+          },
+        ]
+      : []),
+    // Lifetime dividend income from this holding; omitted if none received.
+    ...(dividendIncome !== null
+      ? [
+          {
+            label: "Total dividend income",
+            value: (
+              <AmountDisplay
+                value={dividendIncome}
+                currency={currency}
+                isHidden={isBalanceHidden}
+              />
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (

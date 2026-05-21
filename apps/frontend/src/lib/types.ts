@@ -662,6 +662,9 @@ export interface Holding {
   unrealizedGainPct?: number | null;
   realizedGain?: MonetaryValue | null;
   realizedGainPct?: number | null;
+  /** Lifetime gross dividend income received from this holding. Income, not
+   * disposal P&L — null when the holding never paid a dividend. */
+  dividendIncome?: MonetaryValue | null;
   totalGain?: MonetaryValue | null;
   totalGainPct?: number | null;
   dayChange?: MonetaryValue | null;
