@@ -113,6 +113,18 @@ pub struct RealizedGainEntry {
     pub quantity_sold: Decimal,
     /// Most recent sale date — useful for "last sold" display and YTD reports.
     pub last_sale_date: Option<NaiveDate>,
+    /// Lifetime gross dividend income booked for this asset (each DIVIDEND
+    /// activity's amount, FX-converted at its pay date). Tracked here so a
+    /// holding can show "total dividend income" alongside realized capital
+    /// gains. It is income, NOT disposal P&L, so it is intentionally kept
+    /// separate from `realized_gain_*` and never folded into it.
+    ///
+    /// Defaulted so realized-gain entries written before dividends were
+    /// tracked still deserialize cleanly.
+    #[serde(default)]
+    pub dividend_income_account_ccy: Decimal,
+    #[serde(default)]
+    pub dividend_income_base_ccy: Decimal,
 }
 
 impl RealizedGainEntry {

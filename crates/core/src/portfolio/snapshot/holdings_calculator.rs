@@ -585,7 +585,9 @@ impl HoldingsCalculator {
         state: &mut AccountStateSnapshot,
         account_currency: &str,
     ) -> Result<()> {
-        use crate::activities::{ACTIVITY_SUBTYPE_BONUS, ACTIVITY_TYPE_CREDIT};
+        use crate::activities::{
+            ACTIVITY_SUBTYPE_BONUS, ACTIVITY_TYPE_CREDIT, ACTIVITY_TYPE_DIVIDEND,
+        };
 
         let activity_currency = &activity.currency;
         let activity_amount = activity.amt();
@@ -593,6 +595,43 @@ impl HoldingsCalculator {
         // Book cash in ACTIVITY currency (amount - fee)
         let net_amount = activity_amount - activity.fee_amt();
         add_cash(state, activity_currency, net_amount);
+
+        // Accumulate gross dividend income per asset so a holding can display
+        // its lifetime dividend total. Only DIVIDEND (not INTEREST/CREDIT) and
+        // only when tied to a specific asset.
+        if activity.effective_type() == ACTIVITY_TYPE_DIVIDEND {
+            if let Some(asset_id) = activity.asset_id.as_deref() {
+                let activity_date = self.activity_local_date(activity);
+                let dividend_acct = self.convert_to_account_currency(
+                    activity_amount,
+                    activity,
+                    account_currency,
+                    "Dividend Income",
+                );
+                let base_ccy = self.base_currency.read().unwrap().clone();
+                let dividend_base = self
+                    .fx_service
+                    .convert_currency_for_date(
+                        activity_amount,
+                        activity_currency,
+                        &base_ccy,
+                        activity_date,
+                    )
+                    .unwrap_or_else(|e| {
+                        warn!(
+                            "Dividend Income ({}): {}->{} on {}: {}. Falling back to activity-ccy magnitude.",
+                            activity.id, activity_currency, &base_ccy, activity_date, e
+                        );
+                        activity_amount
+                    });
+                let entry = state
+                    .realized_gains
+                    .entry(asset_id.to_string())
+                    .or_default();
+                entry.dividend_income_account_ccy += dividend_acct;
+                entry.dividend_income_base_ccy += dividend_base;
+            }
+        }
 
         // CREDIT/BONUS is external contribution (new capital entering portfolio)
         // Other CREDIT subtypes (REBATE, REFUND) and income types don't affect net_contribution

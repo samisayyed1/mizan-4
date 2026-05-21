@@ -242,26 +242,40 @@ impl HoldingsService {
             // every SELL the calculator has processed up to this date —
             // here we just read both currency rails and compute the % vs
             // cost basis of the disposed lots.
-            let (realized_gain_view, realized_gain_pct_view) = latest_snapshot
-                .realized_gains
-                .get(&snapshot_pos.asset_id)
-                .map(|entry| {
-                    let local = entry.realized_gain_account_ccy();
-                    let base = entry.realized_gain_base_ccy();
-                    let pct = if entry.cost_basis_base_ccy != Decimal::ZERO {
-                        Some((base / entry.cost_basis_base_ccy).round_dp(4))
-                    } else if base != Decimal::ZERO {
-                        // Cost basis was zero but proceeds non-zero —
-                        // can happen for transferred-in lots without a
-                        // recorded basis. Express as 100% gain so the UI
-                        // surfaces a meaningful number rather than null.
-                        Some(Decimal::ONE)
-                    } else {
-                        Some(Decimal::ZERO)
-                    };
-                    (Some(MonetaryValue { local, base }), pct)
-                })
-                .unwrap_or((None, None));
+            let (realized_gain_view, realized_gain_pct_view, dividend_income_view) =
+                latest_snapshot
+                    .realized_gains
+                    .get(&snapshot_pos.asset_id)
+                    .map(|entry| {
+                        let local = entry.realized_gain_account_ccy();
+                        let base = entry.realized_gain_base_ccy();
+                        let pct = if entry.cost_basis_base_ccy != Decimal::ZERO {
+                            Some((base / entry.cost_basis_base_ccy).round_dp(4))
+                        } else if base != Decimal::ZERO {
+                            // Cost basis was zero but proceeds non-zero —
+                            // can happen for transferred-in lots without a
+                            // recorded basis. Express as 100% gain so the UI
+                            // surfaces a meaningful number rather than null.
+                            Some(Decimal::ONE)
+                        } else {
+                            Some(Decimal::ZERO)
+                        };
+                        // Surface dividend income only when some was actually
+                        // received, so holdings that never paid a dividend stay
+                        // null (the UI renders "—") rather than a misleading $0.
+                        let dividend = if entry.dividend_income_account_ccy != Decimal::ZERO
+                            || entry.dividend_income_base_ccy != Decimal::ZERO
+                        {
+                            Some(MonetaryValue {
+                                local: entry.dividend_income_account_ccy,
+                                base: entry.dividend_income_base_ccy,
+                            })
+                        } else {
+                            None
+                        };
+                        (Some(MonetaryValue { local, base }), pct, dividend)
+                    })
+                    .unwrap_or((None, None, None));
 
             let holding_view = Holding {
                 id: format!("{}-{}-{}", id_prefix, account_id, snapshot_pos.asset_id),
@@ -287,6 +301,7 @@ impl HoldingsService {
                 unrealized_gain_pct: None,
                 realized_gain: realized_gain_view,
                 realized_gain_pct: realized_gain_pct_view,
+                dividend_income: dividend_income_view,
                 total_gain: None,
                 total_gain_pct: None,
                 day_change: None,
@@ -343,6 +358,7 @@ impl HoldingsService {
                 unrealized_gain_pct: Some(Decimal::ZERO),
                 realized_gain: Some(MonetaryValue::zero()),
                 realized_gain_pct: Some(Decimal::ZERO),
+                dividend_income: None,
                 total_gain: Some(MonetaryValue::zero()),
                 total_gain_pct: Some(Decimal::ZERO),
                 day_change: Some(MonetaryValue::zero()),
@@ -839,6 +855,7 @@ impl HoldingsServiceTrait for HoldingsService {
                 unrealized_gain_pct: None,
                 realized_gain: None,
                 realized_gain_pct: None,
+                dividend_income: None,
                 total_gain: None,
                 total_gain_pct: None,
                 day_change: None,
@@ -884,6 +901,7 @@ impl HoldingsServiceTrait for HoldingsService {
                 unrealized_gain_pct: None,
                 realized_gain: None,
                 realized_gain_pct: None,
+                dividend_income: None,
                 total_gain: None,
                 total_gain_pct: None,
                 day_change: None,
@@ -1378,6 +1396,7 @@ mod tests {
             unrealized_gain_pct: Some(dec!(0.03)),
             realized_gain: None,
             realized_gain_pct: None,
+            dividend_income: None,
             total_gain: Some(MonetaryValue {
                 local: dec!(90),
                 base: dec!(0.9),
@@ -1450,6 +1469,7 @@ mod tests {
             unrealized_gain_pct: Some(Decimal::ZERO),
             realized_gain: Some(MonetaryValue::zero()),
             realized_gain_pct: Some(Decimal::ZERO),
+            dividend_income: None,
             total_gain: Some(MonetaryValue::zero()),
             total_gain_pct: Some(Decimal::ZERO),
             day_change: Some(MonetaryValue {

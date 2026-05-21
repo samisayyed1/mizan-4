@@ -528,8 +528,9 @@ mod tests {
             prev_close_value: None,    // To be calculated
             realized_gain: None,       // To be calculated
             realized_gain_pct: None,   // To be calculated
-            total_gain: None,          // To be calculated
-            total_gain_pct: None,      // To be calculated
+            dividend_income: None,
+            total_gain: None,     // To be calculated
+            total_gain_pct: None, // To be calculated
             metadata: None,
         }
     }

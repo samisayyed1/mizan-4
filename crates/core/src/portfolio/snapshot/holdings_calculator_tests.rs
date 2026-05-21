@@ -774,6 +774,74 @@ mod tests {
         assert_eq!(realized.realized_gain_account_ccy(), dec!(48));
         assert_eq!(realized.realized_gain_base_ccy(), dec!(48));
         assert_eq!(realized.last_sale_date, Some(target_date));
+        // A pure sell pays no dividend.
+        assert_eq!(realized.dividend_income_account_ccy, dec!(0));
+    }
+
+    #[test]
+    fn test_dividend_income_accumulates_per_asset() {
+        // DIVIDEND activities accumulate gross income per asset, separately
+        // from realized capital gains (which stay zero — a dividend is not a
+        // disposal). Two dividends sum.
+        let mock_fx_service = Arc::new(MockFxService::new());
+        let account_currency = "USD";
+        let base_currency = Arc::new(RwLock::new(account_currency.to_string()));
+        let calculator = create_calculator(mock_fx_service.clone(), base_currency);
+
+        let prev = create_initial_snapshot("acc_1", account_currency, "2024-01-01");
+
+        let mut div1 = create_default_activity(
+            "div_1",
+            ActivityType::Dividend,
+            "AAPL",
+            Decimal::ZERO,
+            Decimal::ZERO,
+            Decimal::ZERO,
+            account_currency,
+            "2024-02-01",
+        );
+        div1.amount = Some(dec!(12));
+        let target1 = NaiveDate::from_str("2024-02-01").unwrap();
+        let state1 = calculator
+            .calculate_next_holdings(&prev, &[div1], target1)
+            .unwrap()
+            .snapshot;
+
+        let entry = state1
+            .realized_gains
+            .get("AAPL")
+            .expect("a dividend should create a per-asset entry");
+        assert_eq!(entry.dividend_income_account_ccy, dec!(12));
+        assert_eq!(entry.dividend_income_base_ccy, dec!(12));
+        // Income, not disposal P&L:
+        assert_eq!(entry.realized_gain_account_ccy(), dec!(0));
+        assert_eq!(entry.quantity_sold, dec!(0));
+
+        // A second dividend the next month accumulates onto the same entry.
+        let mut div2 = create_default_activity(
+            "div_2",
+            ActivityType::Dividend,
+            "AAPL",
+            Decimal::ZERO,
+            Decimal::ZERO,
+            Decimal::ZERO,
+            account_currency,
+            "2024-03-01",
+        );
+        div2.amount = Some(dec!(8));
+        let target2 = NaiveDate::from_str("2024-03-01").unwrap();
+        let state2 = calculator
+            .calculate_next_holdings(&state1, &[div2], target2)
+            .unwrap()
+            .snapshot;
+        assert_eq!(
+            state2
+                .realized_gains
+                .get("AAPL")
+                .unwrap()
+                .dividend_income_account_ccy,
+            dec!(20)
+        );
     }
 
     #[test]

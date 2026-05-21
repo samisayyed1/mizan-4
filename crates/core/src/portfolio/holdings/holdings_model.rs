@@ -109,6 +109,9 @@ pub struct Holding {
     pub unrealized_gain_pct: Option<Decimal>,
     pub realized_gain: Option<MonetaryValue>,
     pub realized_gain_pct: Option<Decimal>,
+    /// Lifetime gross dividend income received from this holding. Income, not
+    /// disposal P&L — kept separate from realized/total gain.
+    pub dividend_income: Option<MonetaryValue>,
     pub total_gain: Option<MonetaryValue>,
     pub total_gain_pct: Option<Decimal>,
 
