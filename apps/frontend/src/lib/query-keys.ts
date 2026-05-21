@@ -66,6 +66,7 @@ export const QueryKeys = {
   MARKET_DATA_PROVIDERS: "marketDataProviders",
   MARKET_DATA_PROVIDER_SETTINGS: "marketDataProviderSettings",
   CUSTOM_PROVIDERS: "CUSTOM_PROVIDERS",
+  PROVIDER_HEALTH: "providerHealth",
 
   // AI Providers
   AI_PROVIDERS: "aiProviders",

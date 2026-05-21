@@ -507,6 +507,17 @@ export interface MarketDataProviderInfo {
   providerType?: string;
 }
 
+/** Read-only health snapshot of a market-data provider, from the
+ * `get_provider_health` command (rate limiter + circuit breaker). */
+export interface ProviderHealth {
+  id: string;
+  priority: number;
+  circuitState: "Closed" | "Open" | "HalfOpen";
+  available: boolean;
+  consecutiveFailures: number;
+  rateLimitTokensRemaining: number;
+}
+
 export interface MarketData {
   createdAt: Date;
   dataSource: string;
