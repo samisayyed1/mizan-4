@@ -8,6 +8,20 @@ use crate::errors::Result;
 #[async_trait::async_trait]
 pub trait AssetServiceTrait: Send + Sync {
     fn get_assets(&self) -> Result<Vec<Asset>>;
+
+    /// Find assets that probably represent the same instrument stored as
+    /// separate rows (e.g. one with an exchange and one without, or two
+    /// sharing an ISIN). Read-only — surfaces candidates for the user to
+    /// review and merge deliberately; never merges anything itself. See
+    /// [`super::duplicate_detection`].
+    fn find_duplicate_assets(
+        &self,
+    ) -> Result<Vec<super::duplicate_detection::DuplicateAssetGroup>> {
+        Ok(super::duplicate_detection::find_duplicate_asset_groups(
+            &self.get_assets()?,
+        ))
+    }
+
     fn get_asset_by_id(&self, asset_id: &str) -> Result<Asset>;
     async fn delete_asset(&self, asset_id: &str) -> Result<()>;
     async fn update_asset_profile(
