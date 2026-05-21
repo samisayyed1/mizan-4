@@ -87,6 +87,9 @@ interface AssetDetailData {
   todaysReturnPercent: number | null;
   totalReturn: number;
   totalReturnPercent: number;
+  realizedGain: number | null;
+  realizedGainPercent: number | null;
+  dividendIncome: number | null;
   currency: string;
   quoteCurrency: string | null;
   quote: {
@@ -484,6 +487,12 @@ export const AssetProfilePage = () => {
       todaysReturnPercent: todaysReturnPercent != null ? Number(todaysReturnPercent) : null,
       totalReturn: Number(holding.totalGain?.local ?? 0),
       totalReturnPercent: Number(holding.totalGainPct ?? 0),
+      // Null (not 0) when the holding has never been sold / never paid a
+      // dividend, so the card omits the row instead of showing a flat 0.
+      realizedGain: holding.realizedGain?.local != null ? Number(holding.realizedGain.local) : null,
+      realizedGainPercent: holding.realizedGainPct != null ? Number(holding.realizedGainPct) : null,
+      dividendIncome:
+        holding.dividendIncome?.local != null ? Number(holding.dividendIncome.local) : null,
       currency: holding.localCurrency ?? holding.instrument?.currency ?? baseCurrency,
       quoteCurrency: quoteData?.quoteCurrency ?? null,
       quote: quoteData?.quote ?? null,
