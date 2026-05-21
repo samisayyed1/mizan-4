@@ -10,6 +10,7 @@ import { useMemo, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { SettingsHeader } from "../settings-header";
+import { ProviderHealthSection } from "./provider-health-section";
 
 import { getSecret, type MarketDataProviderSetting } from "@/adapters";
 import {
@@ -807,6 +808,8 @@ export default function MarketDataSettingsPage() {
         </div>
       </SettingsHeader>
       <Separator />
+
+      <ProviderHealthSection />
 
       <Tabs defaultValue="builtin" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
