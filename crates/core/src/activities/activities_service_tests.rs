@@ -437,6 +437,10 @@ mod tests {
             unimplemented!()
         }
 
+        async fn get_provider_health(&self) -> Vec<mizan_market_data::ProviderHealth> {
+            Vec::new()
+        }
+
         async fn search_symbol_with_currency(
             &self,
             query: &str,

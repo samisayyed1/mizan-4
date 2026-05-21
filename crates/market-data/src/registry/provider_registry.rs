@@ -13,9 +13,11 @@ use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 use log::{debug, warn};
+use serde::{Deserialize, Serialize};
 
 use super::{
-    CircuitBreaker, FetchDiagnostics, QuoteValidator, RateLimitConfig, RateLimiter, SkipReason,
+    CircuitBreaker, CircuitState, FetchDiagnostics, QuoteValidator, RateLimitConfig, RateLimiter,
+    SkipReason,
 };
 use crate::errors::{MarketDataError, RetryClass};
 use crate::models::{
@@ -520,6 +522,42 @@ impl ProviderRegistry {
         self.circuit_breaker.reset(provider_id);
     }
 
+    /// Snapshot the current health of every registered provider.
+    ///
+    /// Read-only: queries the circuit-breaker state and rate-limiter headroom
+    /// without consuming a token or forcing an `Open -> HalfOpen` transition,
+    /// so it is safe to poll. `available` reflects whether the circuit is not
+    /// currently `Open` (a half-open provider is still tried).
+    pub fn provider_health(&self) -> Vec<ProviderHealth> {
+        self.ordered_providers_for_health()
+    }
+
+    fn ordered_providers_for_health(&self) -> Vec<ProviderHealth> {
+        let mut health: Vec<ProviderHealth> = self
+            .providers
+            .iter()
+            .map(|provider| {
+                let id: ProviderId = Cow::Borrowed(provider.id());
+                let state = self.circuit_breaker.state(&id);
+                ProviderHealth {
+                    id: provider.id().to_string(),
+                    priority: self
+                        .custom_priorities
+                        .get(provider.id())
+                        .map(|p| *p as i64)
+                        .unwrap_or_else(|| provider.priority() as i64),
+                    circuit_state: state.to_string(),
+                    available: state != CircuitState::Open,
+                    consecutive_failures: self.circuit_breaker.failure_count(&id),
+                    rate_limit_tokens_remaining: self.rate_limiter.remaining_tokens(&id),
+                }
+            })
+            .collect();
+        // Surface highest-priority (lowest value) providers first.
+        health.sort_by_key(|h| h.priority);
+        health
+    }
+
     /// Search for symbols matching the query.
     ///
     /// Tries providers that support search until one succeeds.
@@ -872,6 +910,27 @@ impl ProviderRegistry {
     }
 }
 
+/// A read-only snapshot of one provider's current health, suitable for
+/// surfacing to the UI so a user can see why market-data sync is degraded
+/// (which provider is in cooldown, how close it is to its rate limit, etc.).
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderHealth {
+    /// Provider identifier, e.g. `"YAHOO"`.
+    pub id: String,
+    /// Effective priority (custom override if set, else the provider default);
+    /// lower means tried first.
+    pub priority: i64,
+    /// Circuit-breaker state: `"Closed"`, `"Open"`, or `"HalfOpen"`.
+    pub circuit_state: String,
+    /// Whether the provider is currently usable (circuit not `Open`).
+    pub available: bool,
+    /// Consecutive recorded failures driving the circuit breaker.
+    pub consecutive_failures: u32,
+    /// Approximate rate-limit tokens left before requests start being throttled.
+    pub rate_limit_tokens_remaining: f64,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1038,6 +1097,42 @@ mod tests {
         assert_eq!(ordered[0].id(), "HIGH_PRIORITY");
         assert_eq!(ordered[1].id(), "MED_PRIORITY");
         assert_eq!(ordered[2].id(), "LOW_PRIORITY");
+    }
+
+    #[test]
+    fn test_provider_health_reflects_priority_and_circuit_state() {
+        let providers: Vec<Arc<dyn MarketDataProvider>> = vec![
+            Arc::new(MockProvider::new("PROVIDER_B", 20, false)),
+            Arc::new(MockProvider::new("PROVIDER_A", 5, false)),
+        ];
+        let resolver = Arc::new(MockResolver);
+        let registry = ProviderRegistry::new(providers, resolver);
+
+        // Initially healthy, sorted highest-priority (lowest value) first.
+        let health = registry.provider_health();
+        assert_eq!(health.len(), 2);
+        assert_eq!(health[0].id, "PROVIDER_A");
+        assert_eq!(health[0].priority, 5);
+        assert!(health[0].available);
+        assert_eq!(health[0].circuit_state, "Closed");
+        assert_eq!(health[0].consecutive_failures, 0);
+        assert_eq!(health[1].id, "PROVIDER_B");
+
+        // Trip PROVIDER_A's circuit by recording enough failures.
+        let id: ProviderId = Cow::Borrowed("PROVIDER_A");
+        for _ in 0..10 {
+            registry.circuit_breaker.record_failure(&id);
+        }
+
+        let health = registry.provider_health();
+        let a = health.iter().find(|h| h.id == "PROVIDER_A").unwrap();
+        assert_eq!(a.circuit_state, "Open");
+        assert!(!a.available);
+        assert!(a.consecutive_failures >= 5);
+        // The other provider is unaffected.
+        let b = health.iter().find(|h| h.id == "PROVIDER_B").unwrap();
+        assert!(b.available);
+        assert_eq!(b.circuit_state, "Closed");
     }
 
     #[test]

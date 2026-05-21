@@ -990,6 +990,10 @@ pub mod test_env {
             self.search_symbol_with_currency(query, None).await
         }
 
+        async fn get_provider_health(&self) -> Vec<mizan_core::quotes::ProviderHealth> {
+            Vec::new()
+        }
+
         async fn search_symbol_with_currency(
             &self,
             _query: &str,
