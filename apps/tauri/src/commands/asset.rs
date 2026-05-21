@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::context::ServiceContext;
-use mizan_core::assets::{Asset, NewAsset, UpdateAssetProfile};
+use mizan_core::assets::{Asset, DuplicateAssetGroup, NewAsset, UpdateAssetProfile};
 use tauri::State;
 
 #[tauri::command]
@@ -20,6 +20,19 @@ pub async fn get_assets(state: State<'_, Arc<ServiceContext>>) -> Result<Vec<Ass
     state
         .asset_service()
         .get_assets()
+        .map_err(|e| e.to_string())
+}
+
+/// Read-only: assets that probably represent the same instrument stored as
+/// separate rows (missing exchange, or a shared ISIN). Surfaces candidates for
+/// review; performs no merge.
+#[tauri::command]
+pub async fn find_duplicate_assets(
+    state: State<'_, Arc<ServiceContext>>,
+) -> Result<Vec<DuplicateAssetGroup>, String> {
+    state
+        .asset_service()
+        .find_duplicate_assets()
         .map_err(|e| e.to_string())
 }
 

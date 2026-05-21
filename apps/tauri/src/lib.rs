@@ -496,6 +496,7 @@ pub fn run() {
             // Asset commands
             commands::asset::get_asset_profile,
             commands::asset::get_assets,
+            commands::asset::find_duplicate_assets,
             commands::asset::update_asset_profile,
             commands::asset::update_quote_mode,
             commands::asset::delete_asset,

@@ -10,6 +10,7 @@ mod assets_service;
 mod assets_traits;
 mod auto_classification;
 mod classification_service;
+mod duplicate_detection;
 
 #[cfg(test)]
 mod assets_model_tests;
@@ -42,3 +43,4 @@ pub use auto_classification::{
 pub use classification_service::{
     AssetClassificationService, AssetClassifications, CategoryWithWeight,
 };
+pub use duplicate_detection::{find_duplicate_asset_groups, DuplicateAssetGroup, DuplicateReason};
