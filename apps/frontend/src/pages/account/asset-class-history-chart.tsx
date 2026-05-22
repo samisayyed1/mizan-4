@@ -31,6 +31,7 @@ import { HistoryChart } from "@/components/history-chart";
 import { useValuationHistory } from "@/hooks/use-valuation-history";
 import {
   ASSET_CLASS_LABELS,
+  assetClassColor,
   scaleHistoryByWeight,
   type AssetClass,
   type AssetClassBucket,
@@ -103,7 +104,7 @@ export function AssetClassHistoryChart({
         </div>
 
         <div className="h-[200px]">
-          <HistoryChart data={chartData} isLoading={isLoading} />
+          <HistoryChart data={chartData} isLoading={isLoading} accentColor={assetClassColor(cls)} />
         </div>
 
         <IntervalSelector

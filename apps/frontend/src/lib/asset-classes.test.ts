@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   AssetClass,
   ASSET_CLASS_ORDER,
+  assetClassColor,
   classifyHolding,
   groupHoldingsByAssetClass,
   parseAssetClassParam,
@@ -595,5 +596,17 @@ describe("scaleHistoryByWeight", () => {
     const out = scaleHistoryByWeight(history, 33.33, "USD");
     expect(out[0]?.totalValue).toBeCloseTo(333.3, 5);
     expect(out[0]?.netContribution).toBeCloseTo(133.32, 5);
+  });
+});
+
+describe("assetClassColor", () => {
+  it("assigns a distinct color to every asset class (Feroz: a different colored graph per class)", () => {
+    const colors = ASSET_CLASS_ORDER.map(assetClassColor);
+    expect(new Set(colors).size).toBe(ASSET_CLASS_ORDER.length);
+  });
+
+  it("returns a stable theme chart-ramp token per class", () => {
+    expect(assetClassColor(AssetClass.STOCKS)).toBe("var(--chart-1)");
+    expect(assetClassColor(AssetClass.STOCKS)).toBe(assetClassColor(AssetClass.STOCKS));
   });
 });

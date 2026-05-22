@@ -94,7 +94,7 @@ const AccountSummaryComponent = React.memo(
     const accountId = item.accountId;
 
     const subText = isGroup
-      ? `${item.accountCount} ${item.accountCount === 1 ? "account" : "accounts"}`
+      ? `${item.accountCount} ${item.accountCount === 1 ? "portfolio" : "portfolios"}`
       : useAccountCurrency
         ? (item.accountCurrency ?? item.baseCurrency)
         : item.baseCurrency;
@@ -396,7 +396,7 @@ export const AccountsSummary = React.memo(
                 <Icons.AlertTriangle className="text-destructive h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-destructive text-sm font-medium">Failed to load accounts</p>
+                <p className="text-destructive text-sm font-medium">Failed to load portfolios</p>
                 <p className="text-muted-foreground mt-1 break-words text-xs">
                   {errorAccounts?.message || "An unexpected error occurred"}
                 </p>
@@ -412,12 +412,12 @@ export const AccountsSummary = React.memo(
       if (!combinedAccountViews || combinedAccountViews.length === 0) {
         return (
           <div className="border-border/50 bg-success/10 rounded-lg border p-6 text-center md:p-8">
-            <p className="text-sm">No accounts found.</p>
+            <p className="text-sm">No portfolios found.</p>
             <Link
               to="/settings/accounts"
               className="text-muted-foreground hover:text-foreground mt-2 inline-flex items-center gap-1 text-xs underline-offset-4 hover:underline"
             >
-              Add your first account
+              Add your first portfolio
               <Icons.ChevronRight className="h-3 w-3" />
             </Link>
           </div>

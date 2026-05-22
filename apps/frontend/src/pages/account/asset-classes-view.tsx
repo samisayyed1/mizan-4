@@ -11,8 +11,8 @@
  * The component is intentionally self-contained: it fetches its own
  * holdings (cache shared with AccountHoldings via QueryKeys.HOLDINGS),
  * derives groupings via the pure classifier in `lib/asset-classes.ts`,
- * and exposes a single `onAddHoldings` prop for the empty-state CTAs
- * (which the parent page wires to the existing edit-mode sheet).
+ * and exposes an `onAddForClass(cls)` prop for the drill-down/empty-state
+ * CTAs (which the parent page routes to the correct per-class editor).
  *
  * Reference: .claude/product-notes/feroz-meeting-2026-05-17.md
  * decisions #5, #9, #10, #13.
@@ -24,6 +24,7 @@ import {
   AssetClass,
   ASSET_CLASS_ICON_NAMES,
   ASSET_CLASS_LABELS,
+  assetClassColor,
   groupHoldingsByAssetClass,
   parseAssetClassParam,
   partitionBuckets,
@@ -46,10 +47,10 @@ import { AssetClassHistoryChart } from "./asset-class-history-chart";
 
 interface AssetClassesViewProps {
   accountId: string;
-  onAddHoldings?: () => void;
+  onAddForClass?: (cls: AssetClass) => void;
 }
 
-export function AssetClassesView({ accountId, onAddHoldings }: AssetClassesViewProps) {
+export function AssetClassesView({ accountId, onAddForClass }: AssetClassesViewProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedClass = parseAssetClassParam(searchParams.get("class"));
 
@@ -106,7 +107,7 @@ export function AssetClassesView({ accountId, onAddHoldings }: AssetClassesViewP
         portfolioCurrency={portfolioCurrency}
         accountId={accountId}
         onBack={handleBackToClasses}
-        onAddHoldings={onAddHoldings}
+        onAddForClass={onAddForClass}
       />
     );
   }
@@ -236,7 +237,7 @@ function AssetClassCard({ bucket, portfolioCurrency, onClick }: AssetClassCardPr
         </div>
 
         <div className="mt-auto">
-          <WeightBar percent={bucket.weightPercent} />
+          <WeightBar percent={bucket.weightPercent} color={assetClassColor(bucket.cls)} />
         </div>
       </CardContent>
     </Card>
@@ -312,7 +313,7 @@ interface AssetClassDrilldownProps {
   portfolioCurrency: string;
   accountId: string;
   onBack: () => void;
-  onAddHoldings?: () => void;
+  onAddForClass?: (cls: AssetClass) => void;
 }
 
 function AssetClassDrilldown({
@@ -321,7 +322,7 @@ function AssetClassDrilldown({
   portfolioCurrency,
   accountId,
   onBack,
-  onAddHoldings,
+  onAddForClass,
 }: AssetClassDrilldownProps) {
   const labels = ASSET_CLASS_LABELS[cls];
   const Icon = Icons[ASSET_CLASS_ICON_NAMES[cls] as IconName];
@@ -349,11 +350,11 @@ function AssetClassDrilldown({
           <Icons.ArrowLeft className="mr-1 h-4 w-4" />
           Asset Classes
         </Button>
-        {onAddHoldings ? (
+        {onAddForClass ? (
           <AddHoldingMenu
             cls={cls}
             accountId={accountId}
-            onManualAdd={onAddHoldings}
+            onManualAdd={() => onAddForClass(cls)}
             size="inline"
           />
         ) : null}
@@ -393,11 +394,13 @@ function AssetClassDrilldown({
             </p>
           </div>
         </div>
-        {sortedHoldings.length > 0 && <WeightBar percent={weightPercent} />}
+        {sortedHoldings.length > 0 && (
+          <WeightBar percent={weightPercent} color={assetClassColor(cls)} />
+        )}
       </div>
 
       {sortedHoldings.length === 0 ? (
-        <AssetClassEmptyState cls={cls} accountId={accountId} onAddHoldings={onAddHoldings} />
+        <AssetClassEmptyState cls={cls} accountId={accountId} onAddForClass={onAddForClass} />
       ) : (
         <>
           {bucket && bucket.weightPercent > 0 && (
@@ -512,10 +515,10 @@ function PriceAsOf({ asOfDate }: { asOfDate: string }) {
 interface AssetClassEmptyStateProps {
   cls: AssetClass;
   accountId: string;
-  onAddHoldings?: () => void;
+  onAddForClass?: (cls: AssetClass) => void;
 }
 
-function AssetClassEmptyState({ cls, accountId, onAddHoldings }: AssetClassEmptyStateProps) {
+function AssetClassEmptyState({ cls, accountId, onAddForClass }: AssetClassEmptyStateProps) {
   const labels = ASSET_CLASS_LABELS[cls];
   const Icon = Icons[ASSET_CLASS_ICON_NAMES[cls] as IconName];
 
@@ -529,12 +532,12 @@ function AssetClassEmptyState({ cls, accountId, onAddHoldings }: AssetClassEmpty
         <p className="text-muted-foreground mt-1 max-w-sm text-xs">
           You don&apos;t have any {labels.plural.toLowerCase()}. Please add now.
         </p>
-        {onAddHoldings ? (
+        {onAddForClass ? (
           <div className="mt-4">
             <AddHoldingMenu
               cls={cls}
               accountId={accountId}
-              onManualAdd={onAddHoldings}
+              onManualAdd={() => onAddForClass(cls)}
               size="cta"
             />
           </div>
@@ -550,9 +553,11 @@ function AssetClassEmptyState({ cls, accountId, onAddHoldings }: AssetClassEmpty
 
 interface WeightBarProps {
   percent: number;
+  /** Per-asset-class accent so the bar matches that class's history chart. */
+  color?: string;
 }
 
-function WeightBar({ percent }: WeightBarProps) {
+function WeightBar({ percent, color }: WeightBarProps) {
   // Cosmetic clamp — defensive against off-by-floating-point overshoot
   // and any future caller that passes 0..1 by mistake.
   const clamped = Math.max(0, Math.min(100, percent));
@@ -562,8 +567,8 @@ function WeightBar({ percent }: WeightBarProps) {
     <div className="space-y-1">
       <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
         <div
-          className="bg-primary h-full rounded-full transition-all"
-          style={{ width: `${clamped}%` }}
+          className={`h-full rounded-full transition-all ${color ? "" : "bg-primary"}`}
+          style={{ width: `${clamped}%`, ...(color ? { backgroundColor: color } : {}) }}
           aria-hidden
         />
       </div>

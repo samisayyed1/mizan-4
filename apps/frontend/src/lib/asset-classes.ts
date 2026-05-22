@@ -82,6 +82,29 @@ export const ASSET_CLASS_ICON_NAMES: Record<AssetClass, string> = {
 };
 
 /**
+ * A stable accent color per asset class (Feroz: "every asset class a
+ * different colored graph"). Drawn from the theme's chart ramp
+ * (--chart-1..9) so each class owns a distinct on-brand swatch that
+ * still adapts to light/dark. Consumed by the per-class history chart
+ * and the asset-class card weight bar so the two stay in sync.
+ */
+const ASSET_CLASS_CHART_VAR: Record<AssetClass, string> = {
+  STOCKS: "var(--chart-1)",
+  SUKUKS: "var(--chart-2)",
+  ETFS: "var(--chart-3)",
+  BONDS: "var(--chart-4)",
+  BANK_ACCOUNTS: "var(--chart-5)",
+  PROPERTY: "var(--chart-6)",
+  COLLECTIBLES: "var(--chart-7)",
+  PRECIOUS_METALS: "var(--chart-8)",
+  OTHER: "var(--chart-9)",
+};
+
+export function assetClassColor(cls: AssetClass): string {
+  return ASSET_CLASS_CHART_VAR[cls] ?? "var(--chart-1)";
+}
+
+/**
  * Stable display order on the Portfolio detail page. Matches the order
  * Feroz enumerated on the call. New classes append at the end (before
  * OTHER) — never insert in the middle.
