@@ -86,6 +86,7 @@ fn kind_of(instrument: &ProviderInstrument) -> InstrumentKind {
         }
         ProviderInstrument::MetalSymbol { .. } => InstrumentKind::Metal,
         ProviderInstrument::BondIsin { .. } => InstrumentKind::Bond,
+        ProviderInstrument::FutureSymbol { .. } => InstrumentKind::Futures,
     }
 }
 
@@ -99,6 +100,8 @@ fn market_for_kind(kind: InstrumentKind) -> Option<&'static str> {
         InstrumentKind::Fx | InstrumentKind::Metal => Some("forex"),
         // Government/sovereign bonds (e.g. TVC:US10Y) via the bond feed.
         InstrumentKind::Bond => Some("bond"),
+        // Futures (oil CL, gas NG, gold GC, index ES/NQ) via the futures feed.
+        InstrumentKind::Futures => Some("futures"),
         // Options aren't in TradingView's screener.
         InstrumentKind::Option => None,
     }
@@ -128,6 +131,8 @@ fn screener_name(instrument: &ProviderInstrument) -> Option<String> {
         // "US10Y"); the asset's stored bond symbol/ISIN field is used as the
         // name filter. ISIN-only corporate bonds won't match and fall through.
         ProviderInstrument::BondIsin { isin } => Some(isin.to_uppercase()),
+        // Futures root/ticker, e.g. "CL", "NG", "GC", "ES".
+        ProviderInstrument::FutureSymbol { symbol } => Some(symbol.to_uppercase()),
     }
 }
 
@@ -195,6 +200,7 @@ impl MarketDataProvider for TradingViewProvider {
                 InstrumentKind::Fx,
                 InstrumentKind::Metal,
                 InstrumentKind::Bond,
+                InstrumentKind::Futures,
             ],
             coverage: Coverage::global_best_effort(),
             supports_latest: true,
@@ -341,6 +347,8 @@ mod tests {
         assert_eq!(market_for_kind(InstrumentKind::Metal), Some("forex"));
         // Sovereign bonds via the bond feed.
         assert_eq!(market_for_kind(InstrumentKind::Bond), Some("bond"));
+        // Futures via the futures feed.
+        assert_eq!(market_for_kind(InstrumentKind::Futures), Some("futures"));
         assert_eq!(market_for_kind(InstrumentKind::Option), None);
     }
 
@@ -379,6 +387,14 @@ mod tests {
             })
             .as_deref(),
             Some("US10Y")
+        );
+        // Futures root/ticker.
+        assert_eq!(
+            screener_name(&ProviderInstrument::FutureSymbol {
+                symbol: ProviderSymbol::from("cl")
+            })
+            .as_deref(),
+            Some("CL")
         );
     }
 

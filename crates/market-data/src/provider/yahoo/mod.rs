@@ -116,6 +116,8 @@ impl YahooProvider {
             ProviderInstrument::FxPair { from, to } => Ok(format!("{}{}=X", from, to)),
             ProviderInstrument::MetalSymbol { symbol, .. } => Ok(symbol.to_string()),
             ProviderInstrument::BondIsin { isin } => Ok(isin.to_string()),
+            // Yahoo futures use a "=F" suffix, e.g. "CL=F".
+            ProviderInstrument::FutureSymbol { symbol } => Ok(format!("{}=F", symbol)),
         }
     }
 

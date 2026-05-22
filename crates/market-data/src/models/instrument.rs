@@ -8,12 +8,13 @@ use super::types::{Currency, Mic};
 /// Used for provider capability filtering (separate from portfolio's AssetKind).
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum InstrumentKind {
-    Equity, // Exchange-traded securities
-    Crypto, // Cryptocurrencies
-    Fx,     // Foreign exchange pairs
-    Metal,  // Precious metals
-    Option, // Options contracts
-    Bond,   // Fixed-income instruments
+    Equity,  // Exchange-traded securities
+    Crypto,  // Cryptocurrencies
+    Fx,      // Foreign exchange pairs
+    Metal,   // Precious metals
+    Option,  // Options contracts
+    Bond,    // Fixed-income instruments
+    Futures, // Futures contracts (commodity, index, rate, FX)
 }
 
 /// Asset classification
@@ -55,6 +56,10 @@ pub enum InstrumentId {
 
     /// Fixed-income instrument (ISIN)
     Bond { isin: Arc<str> },
+
+    /// Futures contract, identified by its root/ticker symbol (e.g. "CL",
+    /// "NG", "GC", "ES"). Quote currency is carried for valuation.
+    Future { symbol: Arc<str>, quote: Currency },
 }
 
 impl InstrumentId {
@@ -65,6 +70,7 @@ impl InstrumentId {
             Self::Crypto { .. } => AssetKind::Crypto,
             Self::Fx { .. } => AssetKind::FxRate,
             Self::Metal { .. } => AssetKind::Commodity,
+            Self::Future { .. } => AssetKind::Commodity,
             Self::Option { .. } => AssetKind::Option,
             Self::Bond { .. } => AssetKind::Security,
         }
@@ -79,6 +85,7 @@ impl InstrumentId {
             Self::Metal { .. } => InstrumentKind::Metal,
             Self::Option { .. } => InstrumentKind::Option,
             Self::Bond { .. } => InstrumentKind::Bond,
+            Self::Future { .. } => InstrumentKind::Futures,
         }
     }
 }

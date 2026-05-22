@@ -45,12 +45,13 @@ pub enum AssetKind {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum InstrumentType {
-    Equity, // Stocks, ETFs, funds
-    Crypto, // Cryptocurrencies
-    Fx,     // Currency exchange rates
-    Option, // Options contracts
-    Metal,  // Precious metal spot prices (XAU, XAG)
-    Bond,   // Fixed-income instruments (bonds, T-bills, notes)
+    Equity,  // Stocks, ETFs, funds
+    Crypto,  // Cryptocurrencies
+    Fx,      // Currency exchange rates
+    Option,  // Options contracts
+    Metal,   // Precious metal spot prices (XAU, XAG)
+    Bond,    // Fixed-income instruments (bonds, T-bills, notes)
+    Futures, // Futures contracts (commodity/index/rate/FX, e.g. CL, NG, GC, ES)
 }
 
 /// How the asset is priced/quoted
@@ -82,6 +83,7 @@ impl InstrumentType {
             InstrumentType::Option => "OPTION",
             InstrumentType::Metal => "METAL",
             InstrumentType::Bond => "BOND",
+            InstrumentType::Futures => "FUTURES",
         }
     }
 
@@ -94,6 +96,7 @@ impl InstrumentType {
             "OPTION" => Some(InstrumentType::Option),
             "METAL" => Some(InstrumentType::Metal),
             "BOND" => Some(InstrumentType::Bond),
+            "FUTURES" => Some(InstrumentType::Futures),
             _ => None,
         }
     }
@@ -101,8 +104,10 @@ impl InstrumentType {
     /// Parses provider/UI instrument labels into the canonical instrument type.
     pub fn from_external_str(s: &str) -> Option<Self> {
         match s.trim().to_uppercase().as_str() {
-            "EQUITY" | "STOCK" | "ETF" | "MUTUALFUND" | "MUTUAL_FUND" | "MUTUAL FUND" | "INDEX"
-            | "FUTURE" | "FUTURES" => Some(InstrumentType::Equity),
+            "EQUITY" | "STOCK" | "ETF" | "MUTUALFUND" | "MUTUAL_FUND" | "MUTUAL FUND" | "INDEX" => {
+                Some(InstrumentType::Equity)
+            }
+            "FUTURE" | "FUTURES" => Some(InstrumentType::Futures),
             "CRYPTO" | "CRYPTOCURRENCY" => Some(InstrumentType::Crypto),
             "FX" | "FOREX" | "CURRENCY" => Some(InstrumentType::Fx),
             "OPTION" => Some(InstrumentType::Option),
@@ -447,6 +452,10 @@ impl Asset {
                     isin: Arc::from(symbol.as_str()),
                 })
             }
+            InstrumentType::Futures => Some(InstrumentId::Future {
+                symbol: Arc::from(symbol.as_str()),
+                quote: Cow::Owned(self.quote_ccy.clone()),
+            }),
         }
     }
 
@@ -893,7 +902,8 @@ pub fn canonicalize_market_identity(
     match instrument_type {
         Some(InstrumentType::Equity)
         | Some(InstrumentType::Option)
-        | Some(InstrumentType::Metal) => {
+        | Some(InstrumentType::Metal)
+        | Some(InstrumentType::Futures) => {
             if let Some(raw) = instrument_symbol.as_deref() {
                 let (base, suffix_mic) = parse_symbol_with_exchange_suffix(raw);
                 instrument_symbol = Some(base.to_uppercase());
