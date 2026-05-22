@@ -97,8 +97,10 @@ fn market_for_kind(kind: InstrumentKind) -> Option<&'static str> {
         InstrumentKind::Crypto => Some("crypto"),
         // Spot metals (XAUUSD, XAGUSD) trade on TradingView's forex/CFD feed.
         InstrumentKind::Fx | InstrumentKind::Metal => Some("forex"),
-        // Options aren't in the screener; bonds keep their dedicated providers.
-        InstrumentKind::Option | InstrumentKind::Bond => None,
+        // Government/sovereign bonds (e.g. TVC:US10Y) via the bond feed.
+        InstrumentKind::Bond => Some("bond"),
+        // Options aren't in TradingView's screener.
+        InstrumentKind::Option => None,
     }
 }
 
@@ -122,8 +124,10 @@ fn screener_name(instrument: &ProviderInstrument) -> Option<String> {
         ProviderInstrument::MetalSymbol { symbol, quote } => {
             Some(format!("{}{}", symbol.to_uppercase(), quote.to_uppercase()))
         }
-        // Bonds keep their dedicated providers — see `market_for_kind`.
-        ProviderInstrument::BondIsin { .. } => None,
+        // Sovereign bonds are matched by their TradingView ticker (e.g.
+        // "US10Y"); the asset's stored bond symbol/ISIN field is used as the
+        // name filter. ISIN-only corporate bonds won't match and fall through.
+        ProviderInstrument::BondIsin { isin } => Some(isin.to_uppercase()),
     }
 }
 
@@ -190,6 +194,7 @@ impl MarketDataProvider for TradingViewProvider {
                 InstrumentKind::Crypto,
                 InstrumentKind::Fx,
                 InstrumentKind::Metal,
+                InstrumentKind::Bond,
             ],
             coverage: Coverage::global_best_effort(),
             supports_latest: true,
@@ -334,8 +339,9 @@ mod tests {
         assert_eq!(market_for_kind(InstrumentKind::Fx), Some("forex"));
         // Spot metals ride the forex/CFD feed.
         assert_eq!(market_for_kind(InstrumentKind::Metal), Some("forex"));
+        // Sovereign bonds via the bond feed.
+        assert_eq!(market_for_kind(InstrumentKind::Bond), Some("bond"));
         assert_eq!(market_for_kind(InstrumentKind::Option), None);
-        assert_eq!(market_for_kind(InstrumentKind::Bond), None);
     }
 
     #[test]
@@ -366,11 +372,14 @@ mod tests {
             .as_deref(),
             Some("XAUUSD")
         );
-        // Bonds are not served by the screener.
-        assert!(screener_name(&ProviderInstrument::BondIsin {
-            isin: ProviderSymbol::from("US0378331005")
-        })
-        .is_none());
+        // Sovereign bond matched by its TradingView ticker / stored symbol.
+        assert_eq!(
+            screener_name(&ProviderInstrument::BondIsin {
+                isin: ProviderSymbol::from("us10y")
+            })
+            .as_deref(),
+            Some("US10Y")
+        );
     }
 
     #[test]
