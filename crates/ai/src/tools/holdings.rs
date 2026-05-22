@@ -317,6 +317,7 @@ mod tests {
                 prev_close_value: None,
                 realized_gain: None,
                 realized_gain_pct: None,
+                dividend_income: None,
                 total_gain: None,
                 total_gain_pct: None,
                 metadata: None,

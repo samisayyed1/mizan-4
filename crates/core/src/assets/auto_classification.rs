@@ -105,6 +105,7 @@ fn map_instrument_type_to_taxonomy_category(
         InstrumentType::Option => Some("OPTION"),
         InstrumentType::Bond => Some("BOND_CORPORATE"),
         InstrumentType::Metal => Some("PHYSICAL_METAL"),
+        InstrumentType::Futures => None,
         InstrumentType::Fx => None,
     }
 }
@@ -118,6 +119,7 @@ fn map_instrument_type_to_asset_class(instrument_type: &InstrumentType) -> Optio
         InstrumentType::Option => Some("EQUITY"),
         InstrumentType::Bond => Some("FIXED_INCOME"),
         InstrumentType::Metal => Some("COMMODITIES"),
+        InstrumentType::Futures => Some("COMMODITIES"),
         InstrumentType::Fx => None,
     }
 }

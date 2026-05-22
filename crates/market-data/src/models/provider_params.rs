@@ -35,6 +35,9 @@ pub enum ProviderInstrument {
 
     /// Bond identified by ISIN
     BondIsin { isin: ProviderSymbol },
+
+    /// Futures contract identified by its root/ticker symbol (e.g. "CL").
+    FutureSymbol { symbol: ProviderSymbol },
 }
 
 impl ProviderInstrument {
@@ -51,6 +54,7 @@ impl ProviderInstrument {
             ProviderInstrument::FxPair { from, to } => format!("{}{}=X", from, to),
             ProviderInstrument::MetalSymbol { symbol, .. } => symbol.to_string(),
             ProviderInstrument::BondIsin { isin } => isin.to_string(),
+            ProviderInstrument::FutureSymbol { symbol } => symbol.to_string(),
         }
     }
 }

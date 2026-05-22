@@ -111,6 +111,7 @@ impl SymbolResolver for ResolverChain {
             InstrumentId::Metal { quote, .. } => Some(quote.clone()),
             InstrumentId::Option { .. } => None,
             InstrumentId::Bond { .. } => None,
+            InstrumentId::Future { quote, .. } => Some(quote.clone()),
         }
     }
 }
