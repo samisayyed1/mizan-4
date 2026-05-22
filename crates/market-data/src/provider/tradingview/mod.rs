@@ -95,9 +95,10 @@ fn market_for_kind(kind: InstrumentKind) -> Option<&'static str> {
     match kind {
         InstrumentKind::Equity => Some("global"),
         InstrumentKind::Crypto => Some("crypto"),
-        InstrumentKind::Fx => Some("forex"),
-        // Metals, options and bonds are not served by this fallback.
-        InstrumentKind::Metal | InstrumentKind::Option | InstrumentKind::Bond => None,
+        // Spot metals (XAUUSD, XAGUSD) trade on TradingView's forex/CFD feed.
+        InstrumentKind::Fx | InstrumentKind::Metal => Some("forex"),
+        // Options aren't in the screener; bonds keep their dedicated providers.
+        InstrumentKind::Option | InstrumentKind::Bond => None,
     }
 }
 
@@ -117,8 +118,12 @@ fn screener_name(instrument: &ProviderInstrument) -> Option<String> {
         ProviderInstrument::FxPair { from, to } => {
             Some(format!("{}{}", from.to_uppercase(), to.to_uppercase()))
         }
-        // Not served — see `market_for_kind`.
-        ProviderInstrument::MetalSymbol { .. } | ProviderInstrument::BondIsin { .. } => None,
+        // Spot metal as code + quote, e.g. XAU + USD -> "XAUUSD".
+        ProviderInstrument::MetalSymbol { symbol, quote } => {
+            Some(format!("{}{}", symbol.to_uppercase(), quote.to_uppercase()))
+        }
+        // Bonds keep their dedicated providers — see `market_for_kind`.
+        ProviderInstrument::BondIsin { .. } => None,
     }
 }
 
@@ -184,6 +189,7 @@ impl MarketDataProvider for TradingViewProvider {
                 InstrumentKind::Equity,
                 InstrumentKind::Crypto,
                 InstrumentKind::Fx,
+                InstrumentKind::Metal,
             ],
             coverage: Coverage::global_best_effort(),
             supports_latest: true,
@@ -326,7 +332,8 @@ mod tests {
         assert_eq!(market_for_kind(InstrumentKind::Equity), Some("global"));
         assert_eq!(market_for_kind(InstrumentKind::Crypto), Some("crypto"));
         assert_eq!(market_for_kind(InstrumentKind::Fx), Some("forex"));
-        assert_eq!(market_for_kind(InstrumentKind::Metal), None);
+        // Spot metals ride the forex/CFD feed.
+        assert_eq!(market_for_kind(InstrumentKind::Metal), Some("forex"));
         assert_eq!(market_for_kind(InstrumentKind::Option), None);
         assert_eq!(market_for_kind(InstrumentKind::Bond), None);
     }
@@ -350,7 +357,16 @@ mod tests {
             .as_deref(),
             Some("BTCUSD")
         );
-        // Unsupported kinds yield no name.
+        // Spot metal: code + quote.
+        assert_eq!(
+            screener_name(&ProviderInstrument::MetalSymbol {
+                symbol: ProviderSymbol::from("xau"),
+                quote: Currency::from("usd"),
+            })
+            .as_deref(),
+            Some("XAUUSD")
+        );
+        // Bonds are not served by the screener.
         assert!(screener_name(&ProviderInstrument::BondIsin {
             isin: ProviderSymbol::from("US0378331005")
         })
