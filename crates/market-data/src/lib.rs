@@ -57,6 +57,7 @@
 
 pub mod errors;
 pub mod models;
+pub mod news;
 pub mod provider;
 pub mod registry;
 pub mod resolver;
@@ -87,6 +88,9 @@ pub use provider::tradingview::TradingViewProvider;
 pub use provider::us_treasury_calc::{TreasuryBondDetails, UsTreasuryCalcProvider};
 pub use provider::yahoo::{YahooDividend, YahooProvider};
 pub use provider::{MarketDataProvider, ProviderCapabilities, RateLimit};
+
+// Re-export news types
+pub use news::{NewsArticle, NewsProvider};
 
 // Re-export registry types
 pub use registry::{

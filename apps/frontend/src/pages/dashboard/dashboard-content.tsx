@@ -1,5 +1,6 @@
 import { getEstimatedHistoricalValuation } from "@/adapters";
 import { HistoryChart } from "@/components/history-chart";
+import { TickerConveyor } from "@/components/ticker-conveyor";
 import { useHapticFeedback } from "@/hooks";
 import { useHoldings } from "@/hooks/use-holdings";
 import { useValuationHistory } from "@/hooks/use-valuation-history";
@@ -150,6 +151,7 @@ export function DashboardContent() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <TickerConveyor />
       <div className="px-4 pb-1 pt-2 md:px-6 md:pb-2 lg:px-8">
         <PortfolioUpdateTrigger lastCalculatedAt={currentValuation?.calculatedAt}>
           <div className="flex items-start gap-2">

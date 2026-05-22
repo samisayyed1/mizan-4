@@ -48,6 +48,7 @@ pub mod service;
 pub mod store;
 pub mod sync;
 pub mod sync_state;
+pub mod ticker_symbols;
 pub mod types;
 
 #[cfg(test)]

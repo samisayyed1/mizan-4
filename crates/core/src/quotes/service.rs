@@ -184,6 +184,20 @@ pub struct LatestQuoteSnapshot {
     pub quote_date: String,
 }
 
+/// A single live quote for the dashboard ticker conveyor (curated indices /
+/// commodities). `price`/`currency` are `None` when the symbol couldn't be
+/// resolved, so the chip degrades to label-only. `change_pct` is `None` in v1
+/// (the resolve path returns price only).
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TickerQuote {
+    pub symbol: String,
+    pub label: String,
+    pub price: Option<rust_decimal::Decimal>,
+    pub change_pct: Option<rust_decimal::Decimal>,
+    pub currency: Option<String>,
+}
+
 /// Unified trait for all quote operations.
 #[async_trait]
 pub trait QuoteServiceTrait: Send + Sync {
@@ -318,6 +332,13 @@ pub trait QuoteServiceTrait: Send + Sync {
             preferred_provider,
         );
         Ok(ResolvedQuote::default())
+    }
+
+    /// Live quotes for the curated dashboard ticker symbols (indices /
+    /// commodities). Best-effort: unresolved symbols return a price-less entry.
+    /// Default returns empty so mock implementations need not override it.
+    async fn get_ticker_quotes(&self) -> Vec<TickerQuote> {
+        Vec::new()
     }
 
     /// Get asset profile from provider.
@@ -1253,6 +1274,33 @@ where
         }
 
         Ok(ResolvedQuote::default())
+    }
+
+    async fn get_ticker_quotes(&self) -> Vec<TickerQuote> {
+        use crate::quotes::ticker_symbols::CURATED_TICKER_SYMBOLS;
+
+        // Resolve each curated symbol concurrently; a failure yields a
+        // price-less chip rather than dropping the symbol.
+        let futures = CURATED_TICKER_SYMBOLS.iter().map(|curated| async move {
+            let resolved = self
+                .resolve_symbol_quote(
+                    curated.symbol,
+                    None,
+                    Some(&curated.instrument_type),
+                    None,
+                    None,
+                )
+                .await
+                .ok();
+            TickerQuote {
+                symbol: curated.symbol.to_string(),
+                label: curated.label.to_string(),
+                price: resolved.as_ref().and_then(|r| r.price),
+                change_pct: None,
+                currency: resolved.and_then(|r| r.currency),
+            }
+        });
+        futures::future::join_all(futures).await
     }
 
     async fn get_asset_profile(&self, asset: &Asset) -> Result<ProviderProfile> {
