@@ -40,6 +40,7 @@ use mizan_storage_sqlite::{
     health::HealthDismissalRepository,
     limits::ContributionLimitRepository,
     market_data::{MarketDataRepository, QuoteSyncStateRepository},
+    news::NewsRepository,
     portfolio::{snapshot::SnapshotRepository, valuation::ValuationRepository},
     settings::SettingsRepository,
     sync::{AppSyncRepository, BrokerSyncStateRepository, ImportRunRepository, PlatformRepository},
@@ -81,6 +82,8 @@ pub async fn initialize_context(
     let asset_repository = Arc::new(AssetRepository::new(pool.clone(), writer.clone()));
     let goal_repo = Arc::new(GoalRepository::new(pool.clone(), writer.clone()));
     let market_data_repo = Arc::new(MarketDataRepository::new(pool.clone(), writer.clone()));
+    let news_repository = Arc::new(NewsRepository::new(pool.clone(), writer.clone()));
+    let news_service = Arc::new(mizan_core::news::NewsService::new(news_repository.clone()));
     let limit_repository = Arc::new(ContributionLimitRepository::new(
         pool.clone(),
         writer.clone(),
@@ -365,6 +368,7 @@ pub async fn initialize_context(
             asset_service,
             goal_service,
             quote_service,
+            news_service,
             limits_service,
             fx_service,
             performance_service,

@@ -19,6 +19,11 @@ export function NewsHero({ article }: { article: NewsArticle }) {
         <h2 className="font-heading mt-3 text-xl font-bold leading-tight tracking-tight group-hover:underline md:text-2xl">
           {article.title}
         </h2>
+        {article.summary && (
+          <p className="text-muted-foreground mt-2 line-clamp-3 text-sm leading-relaxed">
+            {article.summary}
+          </p>
+        )}
         {article.relatedSymbols.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-1.5">
             {article.relatedSymbols.slice(0, 6).map((symbol) => (
