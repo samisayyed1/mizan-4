@@ -41,8 +41,8 @@ use mizan_market_data::{
     AlphaVantageProvider, AssetProfile as MarketAssetProfile, BoerseFrankfurtProvider,
     BondQuoteMetadata, FinnhubProvider, MarketDataAppProvider, MetalPriceApiProvider,
     OpenFigiProvider, ProviderId, ProviderRegistry, Quote as MarketQuote, QuoteContext,
-    ResolverChain, SearchResult as MarketSearchResult, SplitEvent, UsTreasuryCalcProvider,
-    YahooProvider,
+    ResolverChain, SearchResult as MarketSearchResult, SplitEvent, TradingViewProvider,
+    UsTreasuryCalcProvider, YahooProvider,
 };
 
 /// Market data error types.
@@ -238,6 +238,12 @@ impl MarketDataClient {
             DATA_SOURCE_BOERSE_FRANKFURT => {
                 // European bond pricing via Börse Frankfurt (no API key)
                 Ok(Some(Arc::new(BoerseFrankfurtProvider::new())))
+            }
+            DATA_SOURCE_TRADINGVIEW => {
+                // TradingView screener fallback for live prices (no API key).
+                // Only instantiated when a user has explicitly enabled the
+                // provider; latest-quote only, ranked below Yahoo.
+                Ok(Some(Arc::new(TradingViewProvider::new())))
             }
             _ => {
                 warn!("Unknown provider ID: {}", provider_id);
