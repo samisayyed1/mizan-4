@@ -326,6 +326,20 @@ diesel::table! {
 }
 
 diesel::table! {
+    market_news (id_hash) {
+        id_hash -> Text,
+        source -> Text,
+        title -> Text,
+        url -> Text,
+        summary -> Nullable<Text>,
+        related_symbols -> Text,
+        urgency -> Nullable<BigInt>,
+        published_at -> BigInt,
+        created_at -> BigInt,
+    }
+}
+
+diesel::table! {
     platforms (id) {
         id -> Text,
         name -> Nullable<Text>,
@@ -522,6 +536,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     import_templates,
     import_runs,
     market_data_providers,
+    market_news,
     platforms,
     quote_sync_state,
     quotes,

@@ -4,7 +4,7 @@ use mizan_core::{
     self, accounts, activities,
     assets::{self, AlternativeAssetServiceTrait},
     events::DomainEventSink,
-    fx, goals, health, limits, portfolio, quotes, settings, taxonomies,
+    fx, goals, health, limits, news, portfolio, quotes, settings, taxonomies,
 };
 use mizan_device_sync::{engine::DeviceSyncRuntimeState, DeviceEnrollService};
 use mizan_storage_sqlite::{portfolio::snapshot::SnapshotRepository, sync::AppSyncRepository};
@@ -33,6 +33,7 @@ pub struct ServiceContext {
     pub goal_service: Arc<dyn goals::GoalServiceTrait>,
     pub asset_service: Arc<dyn assets::AssetServiceTrait>,
     pub quote_service: Arc<dyn quotes::QuoteServiceTrait>,
+    pub news_service: Arc<news::NewsService>,
     pub limits_service: Arc<dyn limits::ContributionLimitServiceTrait>,
     pub fx_service: Arc<dyn fx::FxServiceTrait>,
     pub performance_service: Arc<dyn portfolio::performance::PerformanceServiceTrait>,
@@ -95,6 +96,10 @@ impl ServiceContext {
 
     pub fn quote_service(&self) -> Arc<dyn quotes::QuoteServiceTrait> {
         Arc::clone(&self.quote_service)
+    }
+
+    pub fn news_service(&self) -> Arc<news::NewsService> {
+        Arc::clone(&self.news_service)
     }
 
     pub fn limits_service(&self) -> Arc<dyn limits::ContributionLimitServiceTrait> {

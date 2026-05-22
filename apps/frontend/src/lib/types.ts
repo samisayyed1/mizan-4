@@ -526,6 +526,8 @@ export interface NewsArticle {
   published: number;
   source: string;
   url: string;
+  /** Short summary/description, when the source provides one. */
+  summary?: string | null;
   relatedSymbols: string[];
   urgency?: number | null;
 }

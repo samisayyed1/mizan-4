@@ -12,9 +12,14 @@ export function NewsCard({ article }: { article: NewsArticle }) {
   return (
     <ExternalLink href={article.url} className="group block h-full" rel="noopener noreferrer">
       <Card className="hover:bg-muted/30 flex h-full flex-col gap-2 p-4 transition-colors">
-        <h3 className="line-clamp-3 text-sm font-semibold leading-snug group-hover:underline">
+        <h3 className="line-clamp-2 text-sm font-semibold leading-snug group-hover:underline">
           {article.title}
         </h3>
+        {article.summary && (
+          <p className="text-muted-foreground line-clamp-2 text-xs leading-relaxed">
+            {article.summary}
+          </p>
+        )}
         <div className="text-muted-foreground mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
           {article.source && <span className="font-medium">{article.source}</span>}
           {time && <span>· {time}</span>}
