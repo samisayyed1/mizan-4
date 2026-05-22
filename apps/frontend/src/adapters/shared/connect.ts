@@ -14,6 +14,7 @@ import type {
   BrokerAccount,
   BrokerConnection,
   BrokerSyncState,
+  Entitlements,
   ImportRun,
   PlansResponse,
   UserInfo,
@@ -94,6 +95,15 @@ export async function getSubscriptionPlansPublic(): Promise<PlansResponse> {
 
 export async function getUserInfo(): Promise<UserInfo> {
   return invoke<UserInfo>("get_user_info");
+}
+
+/**
+ * Resolve the current user's entitlements matrix. Returns the Free defaults for
+ * signed-out users (the backend command degrades gracefully), so callers can
+ * treat this as always-available.
+ */
+export async function getEntitlements(): Promise<Entitlements> {
+  return invoke<Entitlements>("get_entitlements");
 }
 
 export async function getBrokerSyncStates(): Promise<BrokerSyncState[]> {

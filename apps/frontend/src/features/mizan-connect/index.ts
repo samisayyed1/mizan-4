@@ -3,6 +3,11 @@
 
 // Provider and hook
 export { MizanConnectProvider, useMizanConnect } from "./providers/mizan-connect-provider";
+export { UpgradeGateProvider, useUpgradeGate } from "./providers/upgrade-gate-provider";
+
+// Entitlements
+export { useEntitlements } from "./hooks/use-entitlements";
+export { parseGatedError } from "./lib/gated-error";
 
 // Components
 export { ConnectedView } from "./components/connected-view";
@@ -43,4 +48,8 @@ export type {
   UserTeam,
   DateFormat,
   UserInfo,
+  Entitlements,
+  GatedError,
+  GatedFeature,
 } from "./types";
+export { UNLIMITED, withinLimit } from "./types";

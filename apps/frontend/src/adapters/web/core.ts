@@ -252,6 +252,7 @@ export const COMMANDS: CommandMap = {
   get_subscription_plans: { method: "GET", path: "/connect/plans" },
   get_subscription_plans_public: { method: "GET", path: "/connect/plans/public" },
   get_user_info: { method: "GET", path: "/connect/user" },
+  get_entitlements: { method: "GET", path: "/connect/entitlements" },
   // Local data queries (from local database)
   get_synced_accounts: { method: "GET", path: "/connect/synced-accounts" },
   get_platforms: { method: "GET", path: "/connect/platforms" },
@@ -1251,6 +1252,7 @@ export const invoke = async <T>(command: string, payload?: Record<string, unknow
     case "get_subscription_plans":
     case "get_subscription_plans_public":
     case "get_user_info":
+    case "get_entitlements":
     case "get_synced_accounts":
     case "get_platforms":
     case "get_broker_sync_states":

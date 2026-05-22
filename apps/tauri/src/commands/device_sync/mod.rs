@@ -674,6 +674,16 @@ pub async fn enroll_device(
 ) -> Result<EnrollDeviceResponse, String> {
     info!("[DeviceSync] Enrolling device: {}", display_name);
 
+    // Device sync is a paid feature — gate enrollment (the entry point).
+    let entitlements = crate::commands::entitlements::resolve_entitlements(state.inner()).await;
+    crate::commands::entitlements::gated(
+        entitlements.device_sync,
+        "device_sync",
+        "basic",
+        &entitlements.plan,
+        "Securely sync your encrypted wealth data across devices with a Mizan subscription.",
+    )?;
+
     let token = get_access_token(state.inner()).await?;
     let client = create_client()?;
 

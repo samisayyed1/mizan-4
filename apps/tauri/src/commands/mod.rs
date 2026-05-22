@@ -12,6 +12,7 @@ pub mod custom_provider;
 pub mod device_enroll_service;
 #[cfg(feature = "device-sync")]
 pub mod device_sync;
+pub mod entitlements;
 pub mod error;
 pub mod fire;
 pub mod goal;

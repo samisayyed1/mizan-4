@@ -8,3 +8,4 @@ export {
 } from "./use-sync-broker-data";
 export { useBrokerAccounts } from "./use-broker-accounts";
 export { useCreateBrokerLoginPortal } from "./use-create-broker-login-portal";
+export { useEntitlements } from "./use-entitlements";

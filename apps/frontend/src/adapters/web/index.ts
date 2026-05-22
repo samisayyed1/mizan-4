@@ -255,6 +255,7 @@ export {
   getBrokerSyncStates,
   getDevice,
   getDeviceSyncState,
+  getEntitlements,
   getImportRuns,
   getPairingSourceStatus,
   getPairing,

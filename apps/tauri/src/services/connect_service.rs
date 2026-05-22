@@ -6,8 +6,8 @@
 use std::sync::Arc;
 
 use mizan_connect::{
-    ensure_valid_access_token, ConnectApiClient, TokenLifecycleConfig, TokenLifecycleState,
-    DEFAULT_CLOUD_API_URL,
+    ensure_valid_access_token, ConnectApiClient, Entitlements, TokenLifecycleConfig,
+    TokenLifecycleState, DEFAULT_CLOUD_API_URL,
 };
 use mizan_core::secrets::SecretStore;
 
@@ -121,5 +121,21 @@ impl ConnectService {
     pub async fn has_broker_sync(&self) -> Result<bool, String> {
         let client = self.get_api_client().await?;
         client.has_broker_sync().await.map_err(|e| e.to_string())
+    }
+
+    /// Resolve the current user's entitlements matrix.
+    ///
+    /// When the build has no cloud session (or the dev bypass is unset and the
+    /// user is signed out) this surfaces the underlying error; callers that
+    /// want a safe default for signed-out users should fall back to
+    /// [`mizan_connect::Entitlements::default`] on `Err`.
+    pub async fn get_entitlements(&self) -> Result<Entitlements, String> {
+        // The dev bypass must work even with no token / no cloud build, so
+        // short-circuit before requiring an API client.
+        if ConnectApiClient::plan_check_bypassed() {
+            return Ok(Entitlements::unlimited());
+        }
+        let client = self.get_api_client().await?;
+        client.get_entitlements().await.map_err(|e| e.to_string())
     }
 }

@@ -32,6 +32,8 @@ import { FixedDepositDialog } from "@/components/fixed-deposit-dialog";
 import { PrivacyToggle } from "@/components/privacy-toggle";
 import { RecurringBuyDialog } from "@/components/recurring-buy-dialog";
 import { useAccounts } from "@/hooks/use-accounts";
+import { useEntitlements, useUpgradeGate } from "@/features/mizan-connect";
+import { withinLimit } from "@/features/mizan-connect/types";
 import { useRecalculatePortfolioMutation } from "@/hooks/use-calculate-portfolio";
 import { useValuationHistory } from "@/hooks/use-valuation-history";
 import { canAddHoldings } from "@/lib/activity-restrictions";
@@ -151,6 +153,8 @@ const AccountPage = () => {
   const [accountDetailTab, setAccountDetailTab] = useState<AccountDetailTab>("holdings");
 
   const recalculatePortfolioMutation = useRecalculatePortfolioMutation();
+  const { entitlements } = useEntitlements();
+  const { requestUpgrade } = useUpgradeGate();
   const { accounts, isLoading: isAccountsLoading } = useAccounts();
   const account = useMemo(() => accounts?.find((acc) => acc.id === id), [accounts, id]);
 
@@ -366,27 +370,36 @@ const AccountPage = () => {
   // classes open the holdings editor, bank accounts and physical/alternative
   // assets each open their dedicated modal (Feroz: "click bank → add bank",
   // no detour through the generic securities form).
-  const handleAddForClass = useCallback((cls: AssetClass) => {
-    switch (cls) {
-      case AssetClass.BANK_ACCOUNTS:
-        setBankModalOpen(true);
-        break;
-      case AssetClass.PROPERTY:
-        setAltKind(AlternativeAssetKind.PROPERTY);
-        setAltModalOpen(true);
-        break;
-      case AssetClass.COLLECTIBLES:
-        setAltKind(AlternativeAssetKind.COLLECTIBLE);
-        setAltModalOpen(true);
-        break;
-      case AssetClass.PRECIOUS_METALS:
-        setAltKind(AlternativeAssetKind.PRECIOUS_METAL);
-        setAltModalOpen(true);
-        break;
-      default:
-        setIsEditingHoldings(true);
-    }
-  }, []);
+  const handleAddForClass = useCallback(
+    (cls: AssetClass) => {
+      // Proactive free-tier gate: stop at the holdings cap with an upgrade
+      // prompt rather than opening an editor the save would then reject.
+      if (!withinLimit(holdings?.length ?? 0, entitlements.maxHoldings)) {
+        requestUpgrade("max_holdings");
+        return;
+      }
+      switch (cls) {
+        case AssetClass.BANK_ACCOUNTS:
+          setBankModalOpen(true);
+          break;
+        case AssetClass.PROPERTY:
+          setAltKind(AlternativeAssetKind.PROPERTY);
+          setAltModalOpen(true);
+          break;
+        case AssetClass.COLLECTIBLES:
+          setAltKind(AlternativeAssetKind.COLLECTIBLE);
+          setAltModalOpen(true);
+          break;
+        case AssetClass.PRECIOUS_METALS:
+          setAltKind(AlternativeAssetKind.PRECIOUS_METAL);
+          setAltModalOpen(true);
+          break;
+        default:
+          setIsEditingHoldings(true);
+      }
+    },
+    [holdings, entitlements.maxHoldings, requestUpgrade],
+  );
 
   const handleAccountSwitch = (selectedAccount: Account) => {
     navigate(`/accounts/${selectedAccount.id}`);

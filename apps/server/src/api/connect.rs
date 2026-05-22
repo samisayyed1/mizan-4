@@ -798,6 +798,22 @@ async fn get_user_info(State(state): State<Arc<AppState>>) -> ApiResult<Json<Use
     Ok(Json(user_info))
 }
 
+/// Resolve the current user's entitlements. Mirrors the Tauri
+/// `get_entitlements` command: dev-bypass → unlimited, signed-out / errors →
+/// Free default, so web mode degrades the same way the desktop does.
+async fn get_entitlements(
+    State(state): State<Arc<AppState>>,
+) -> ApiResult<Json<mizan_connect::Entitlements>> {
+    if ConnectApiClient::plan_check_bypassed() {
+        return Ok(Json(mizan_connect::Entitlements::unlimited()));
+    }
+    let entitlements = match create_connect_client(&state).await {
+        Ok(client) => client.get_entitlements().await.unwrap_or_default(),
+        Err(_) => mizan_connect::Entitlements::default(),
+    };
+    Ok(Json(entitlements))
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // List Operations (fetch from cloud without syncing to local)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1303,6 +1319,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/connect/plans", get(get_subscription_plans))
         .route("/connect/plans/public", get(get_subscription_plans_public))
         .route("/connect/user", get(get_user_info))
+        .route("/connect/entitlements", get(get_entitlements))
         // Device Sync / Enrollment
         .route("/connect/device/sync-state", get(get_device_sync_state))
         .route("/connect/device/enable", post(enable_device_sync))
