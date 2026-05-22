@@ -83,25 +83,26 @@ export const ASSET_CLASS_ICON_NAMES: Record<AssetClass, string> = {
 
 /**
  * A stable accent color per asset class (Feroz: "every asset class a
- * different colored graph"). Drawn from the theme's chart ramp
- * (--chart-1..9) so each class owns a distinct on-brand swatch that
- * still adapts to light/dark. Consumed by the per-class history chart
- * and the asset-class card weight bar so the two stay in sync.
+ * different colored graph"). Each class maps to a distinct Flexoki hue
+ * defined as a theme token in `globals.css` (`--asset-*`), so the colors
+ * are genuinely different yet stay inside the app's paper palette and
+ * adapt to light/dark. Consumed by the per-class history chart and the
+ * asset-class card weight bar so the two always agree.
  */
-const ASSET_CLASS_CHART_VAR: Record<AssetClass, string> = {
-  STOCKS: "var(--chart-1)",
-  SUKUKS: "var(--chart-2)",
-  ETFS: "var(--chart-3)",
-  BONDS: "var(--chart-4)",
-  BANK_ACCOUNTS: "var(--chart-5)",
-  PROPERTY: "var(--chart-6)",
-  COLLECTIBLES: "var(--chart-7)",
-  PRECIOUS_METALS: "var(--chart-8)",
-  OTHER: "var(--chart-9)",
+const ASSET_CLASS_TOKEN: Record<AssetClass, string> = {
+  STOCKS: "var(--asset-stocks)",
+  SUKUKS: "var(--asset-sukuks)",
+  ETFS: "var(--asset-etfs)",
+  BONDS: "var(--asset-bonds)",
+  BANK_ACCOUNTS: "var(--asset-bank)",
+  PROPERTY: "var(--asset-property)",
+  COLLECTIBLES: "var(--asset-collectibles)",
+  PRECIOUS_METALS: "var(--asset-metals)",
+  OTHER: "var(--asset-other)",
 };
 
 export function assetClassColor(cls: AssetClass): string {
-  return ASSET_CLASS_CHART_VAR[cls] ?? "var(--chart-1)";
+  return ASSET_CLASS_TOKEN[cls] ?? "var(--asset-other)";
 }
 
 /**

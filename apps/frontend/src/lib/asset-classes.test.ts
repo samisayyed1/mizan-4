@@ -605,8 +605,13 @@ describe("assetClassColor", () => {
     expect(new Set(colors).size).toBe(ASSET_CLASS_ORDER.length);
   });
 
-  it("returns a stable theme chart-ramp token per class", () => {
-    expect(assetClassColor(AssetClass.STOCKS)).toBe("var(--chart-1)");
-    expect(assetClassColor(AssetClass.STOCKS)).toBe(assetClassColor(AssetClass.STOCKS));
+  it("returns a stable per-class theme token (not the gain/loss colors)", () => {
+    expect(assetClassColor(AssetClass.STOCKS)).toBe("var(--asset-stocks)");
+    expect(assetClassColor(AssetClass.PRECIOUS_METALS)).toBe("var(--asset-metals)");
+    // never the reserved gain/loss tokens
+    for (const cls of ASSET_CLASS_ORDER) {
+      expect(assetClassColor(cls)).not.toBe("var(--success)");
+      expect(assetClassColor(cls)).not.toBe("var(--destructive)");
+    }
   });
 });
