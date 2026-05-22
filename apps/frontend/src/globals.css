@@ -900,6 +900,21 @@ number-flow-react.muted-fraction::part(fraction) {
   animation: subtle-pulse 1.2s ease-in-out infinite;
 }
 
+/* Dashboard ticker conveyor: the row holds the content duplicated twice, so a
+   -50% translate scrolls exactly one copy before seamlessly looping. */
+@keyframes ticker-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@utility animate-ticker {
+  animation: ticker-marquee var(--ticker-duration, 40s) linear infinite;
+}
+
 /* app.css - lockdown styles only apply when .app-lockdown class is present */
 html.app-lockdown,
 html.app-lockdown body {

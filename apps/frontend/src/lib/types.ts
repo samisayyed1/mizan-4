@@ -518,6 +518,30 @@ export interface ProviderHealth {
   rateLimitTokensRemaining: number;
 }
 
+/** A financial news headline from the `fetch_financial_news` command. */
+export interface NewsArticle {
+  id: string;
+  title: string;
+  /** Publish time, unix seconds. */
+  published: number;
+  source: string;
+  url: string;
+  relatedSymbols: string[];
+  urgency?: number | null;
+}
+
+/** A single live quote for the dashboard ticker (`get_ticker_quotes`). */
+export interface TickerQuote {
+  symbol: string;
+  label: string;
+  price?: number | null;
+  changePct?: number | null;
+  currency?: string | null;
+}
+
+/** Which news feed to show on the News page. */
+export type NewsScope = "forYou" | "markets";
+
 export interface MarketData {
   createdAt: Date;
   dataSource: string;

@@ -10,10 +10,10 @@ use crate::{
 
 use log::{debug, error};
 use mizan_core::quotes::{
-    service::ProviderInfo, LatestQuoteSnapshot, MarketSyncMode, Quote, QuoteImport,
-    SymbolSearchResult,
+    service::{ProviderInfo, TickerQuote},
+    LatestQuoteSnapshot, MarketSyncMode, Quote, QuoteImport, SymbolSearchResult,
 };
-use mizan_market_data::ExchangeInfo;
+use mizan_market_data::{ExchangeInfo, NewsArticle, NewsProvider};
 use tauri::{AppHandle, State};
 
 #[tauri::command]
@@ -269,4 +269,63 @@ pub async fn fetch_yahoo_dividends(
         .fetch_dividends(&symbol)
         .await
         .map_err(|e| e.to_string())
+}
+
+/// Fetch financial news. With no symbols → the general "Markets" feed; with
+/// symbols (TradingView `EXCHANGE:TICKER` form) → personalized "For You" news,
+/// merged across symbols, de-duplicated, newest first.
+///
+/// Best-effort: any provider failure resolves to an empty list (logged), so a
+/// news outage never breaks the page.
+#[tauri::command]
+pub async fn fetch_financial_news(
+    symbols: Option<Vec<String>>,
+) -> Result<Vec<NewsArticle>, String> {
+    use std::collections::HashSet;
+
+    let provider = NewsProvider::new();
+    let symbols: Vec<String> = symbols.unwrap_or_default();
+
+    if symbols.is_empty() {
+        return match provider.fetch_news(None).await {
+            Ok(articles) => Ok(articles),
+            Err(e) => {
+                debug!("News: general feed failed (showing empty): {}", e);
+                Ok(Vec::new())
+            }
+        };
+    }
+
+    // Personalized: fetch per symbol concurrently (cap to keep it snappy).
+    const MAX_SYMBOLS: usize = 12;
+    let futures = symbols
+        .iter()
+        .take(MAX_SYMBOLS)
+        .map(|sym| provider.fetch_news(Some(sym)));
+    let results = futures::future::join_all(futures).await;
+
+    let mut seen: HashSet<String> = HashSet::new();
+    let mut merged: Vec<NewsArticle> = Vec::new();
+    for result in results {
+        match result {
+            Ok(articles) => {
+                for article in articles {
+                    if seen.insert(article.id.clone()) {
+                        merged.push(article);
+                    }
+                }
+            }
+            Err(e) => debug!("News: per-symbol feed failed (skipped): {}", e),
+        }
+    }
+    merged.sort_by_key(|a| std::cmp::Reverse(a.published));
+    Ok(merged)
+}
+
+/// Live quotes for the curated dashboard ticker (indices/commodities).
+#[tauri::command]
+pub async fn get_ticker_quotes(
+    state: State<'_, Arc<ServiceContext>>,
+) -> Result<Vec<TickerQuote>, String> {
+    Ok(state.quote_service().get_ticker_quotes().await)
 }

@@ -86,6 +86,7 @@ import {
   Monitor,
   Moon,
   MoreVertical,
+  Newspaper,
   OctagonX,
   Package,
   Palette,
@@ -269,6 +270,7 @@ const IconsInternal = {
   Percent: Percent,
   Store: Store,
   Package: Package,
+  Newspaper: Newspaper,
   Star: Star,
   Shield: Shield,
   ShieldAlert: ShieldAlert,
@@ -816,6 +818,7 @@ export type IconName =
   | "Percent"
   | "Store"
   | "Package"
+  | "Newspaper"
   | "Star"
   | "Shield"
   | "ShieldAlert"

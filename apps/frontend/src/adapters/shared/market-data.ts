@@ -8,6 +8,8 @@ import type {
   UpdateAssetProfile,
   MarketDataProviderInfo,
   ProviderHealth,
+  NewsArticle,
+  TickerQuote,
   ExchangeInfo,
   ResolvedQuote,
 } from "@/lib/types";
@@ -153,6 +155,24 @@ export const getProviderHealth = async (): Promise<ProviderHealth[]> => {
     return await invoke<ProviderHealth[]>("get_provider_health");
   } catch (error) {
     logger.error("Error fetching provider health.");
+    throw error;
+  }
+};
+
+export const fetchFinancialNews = async (symbols?: string[]): Promise<NewsArticle[]> => {
+  try {
+    return await invoke<NewsArticle[]>("fetch_financial_news", { symbols });
+  } catch (error) {
+    logger.error("Error fetching financial news.");
+    throw error;
+  }
+};
+
+export const getTickerQuotes = async (): Promise<TickerQuote[]> => {
+  try {
+    return await invoke<TickerQuote[]>("get_ticker_quotes");
+  } catch (error) {
+    logger.error("Error fetching ticker quotes.");
     throw error;
   }
 };

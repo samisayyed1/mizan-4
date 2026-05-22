@@ -525,6 +525,8 @@ pub fn run() {
             commands::market_data::get_exchanges,
             commands::market_data::fetch_yahoo_dividends,
             commands::market_data::get_provider_health,
+            commands::market_data::fetch_financial_news,
+            commands::market_data::get_ticker_quotes,
             // Taxonomy commands
             commands::taxonomy::get_taxonomies,
             commands::taxonomy::get_taxonomy,

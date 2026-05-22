@@ -40,6 +40,13 @@ const staticNavigation: NavigationProps = {
       label: "View Holdings",
     },
     {
+      icon: <Icons.Newspaper className="size-6" />,
+      title: "News",
+      href: "/news",
+      keywords: ["news", "headlines", "markets", "financial"],
+      label: "Financial News",
+    },
+    {
       icon: <Icons.Activity className="size-6" />,
       title: "Activities",
       href: "/activities",
