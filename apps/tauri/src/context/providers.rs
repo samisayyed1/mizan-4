@@ -315,7 +315,9 @@ pub async fn initialize_context(
         Arc::new(HealthDismissalRepository::new(pool.clone(), writer.clone()));
     let health_service = Arc::new(HealthService::new(health_dismissal_repository));
 
-    // Create AI environment and chat service
+    // Create AI environment and chat service. `connect_service` lets the AI
+    // dispatcher resolve a Mizan Connect JWT when the user picks the managed
+    // `mizan` provider (M3.1).
     let ai_environment = Arc::new(TauriAiEnvironment::new(
         base_currency.clone(),
         account_service.clone(),
@@ -331,6 +333,7 @@ pub async fn initialize_context(
         performance_service.clone(),
         income_service.clone(),
         health_service.clone(),
+        Some(connect_service.clone()),
     ));
     let ai_chat_service = Arc::new(ChatService::new(ai_environment, ChatConfig::default()));
 
