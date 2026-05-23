@@ -5,6 +5,7 @@
 
 use std::sync::{Arc, RwLock};
 
+use async_trait::async_trait;
 use mizan_ai::{AiEnvironment, ChatRepositoryTrait};
 use mizan_core::{
     accounts::AccountServiceTrait, activities::ActivityServiceTrait,
@@ -13,6 +14,8 @@ use mizan_core::{
     performance::PerformanceServiceTrait, quotes::QuoteServiceTrait, secrets::SecretStore,
     settings::SettingsServiceTrait, valuation::ValuationServiceTrait,
 };
+
+use crate::services::{cloud_api_base_url, ConnectService};
 
 /// Tauri-side implementation of AiEnvironment.
 ///
@@ -33,6 +36,9 @@ pub struct TauriAiEnvironment {
     performance_service: Arc<dyn PerformanceServiceTrait + Send + Sync>,
     income_service: Arc<dyn IncomeServiceTrait + Send + Sync>,
     health_service: Arc<dyn HealthServiceTrait + Send + Sync>,
+    /// Lets the AI dispatcher resolve a Mizan Connect JWT for the managed
+    /// `mizan` provider. `None` for tests / non-cloud builds.
+    connect_service: Option<Arc<ConnectService>>,
 }
 
 impl TauriAiEnvironment {
@@ -53,6 +59,7 @@ impl TauriAiEnvironment {
         performance_service: Arc<dyn PerformanceServiceTrait + Send + Sync>,
         income_service: Arc<dyn IncomeServiceTrait + Send + Sync>,
         health_service: Arc<dyn HealthServiceTrait + Send + Sync>,
+        connect_service: Option<Arc<ConnectService>>,
     ) -> Self {
         Self {
             base_currency,
@@ -69,10 +76,12 @@ impl TauriAiEnvironment {
             performance_service,
             income_service,
             health_service,
+            connect_service,
         }
     }
 }
 
+#[async_trait]
 impl AiEnvironment for TauriAiEnvironment {
     fn base_currency(&self) -> String {
         self.base_currency.read().unwrap().clone()
@@ -128,5 +137,23 @@ impl AiEnvironment for TauriAiEnvironment {
 
     fn health_service(&self) -> Arc<dyn HealthServiceTrait> {
         self.health_service.clone()
+    }
+
+    async fn connect_access_token(&self) -> Option<String> {
+        // The connect service's get_valid_access_token returns
+        // `Result<String, String>` — Err on signed-out users or no-cloud
+        // builds. Either case translates to `None` here so the chat
+        // dispatcher refuses the mizan provider cleanly; the IPC-layer
+        // `managed_ai` gate has already explained "upgrade required" to the
+        // user upstream.
+        let svc = self.connect_service.as_ref()?;
+        svc.get_valid_access_token().await.ok()
+    }
+
+    async fn connect_api_url(&self) -> Option<String> {
+        // `cloud_api_base_url()` already honors `CONNECT_API_URL` at compile
+        // time + falls back to `DEFAULT_CLOUD_API_URL`. Returns None when
+        // no cloud-sync feature is compiled in.
+        cloud_api_base_url()
     }
 }

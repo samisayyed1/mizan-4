@@ -74,6 +74,25 @@ pub trait AiEnvironment: Send + Sync {
 
     /// Get the health service for portfolio health diagnostics.
     fn health_service(&self) -> Arc<dyn HealthServiceTrait>;
+
+    /// Resolve a fresh Mizan Connect JWT for the managed AI provider, if the
+    /// user is signed in to the cloud. Returns `None` when there's no session
+    /// — the chat dispatcher will then refuse to construct the `mizan` client
+    /// (free users get the BYO-key flow regardless of provider selection).
+    ///
+    /// Default impl returns `None` so non-Tauri environments (tests, future
+    /// embedded mode) don't have to wire Mizan Connect.
+    async fn connect_access_token(&self) -> Option<String> {
+        None
+    }
+
+    /// Base URL of Mizan Connect (e.g. `https://mizan-connect.fly.dev`). The
+    /// managed AI provider points its OpenAI-compatible client at
+    /// `<connect_api_url>/v1/chat/completions`. Returns `None` when Mizan
+    /// Connect isn't configured in this build.
+    async fn connect_api_url(&self) -> Option<String> {
+        None
+    }
 }
 
 #[cfg(test)]

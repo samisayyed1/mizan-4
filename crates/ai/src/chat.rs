@@ -1102,6 +1102,32 @@ async fn spawn_chat_stream<E: AiEnvironment + 'static>(
     let provider_url = provider_service.get_provider_url(&provider_id);
     let mut capabilities = provider_service.get_model_capabilities(&provider_id, &model_id);
 
+    // Managed Mizan AI provider: override the BYO-key / catalog-URL pair with
+    // the user's Mizan Connect JWT + cloud base URL. The cloud's
+    // `/v1/chat/completions` endpoint is OpenAI-compatible, so the dispatch
+    // below falls through to `create_openai_client` and rig-core sends the
+    // JWT as `Authorization: Bearer`.
+    //
+    // No env session = refuse cleanly with a copyable message — the desktop's
+    // upgrade modal handles signed-out / unsubscribed users at the IPC layer
+    // (`commands::ai_chat::stream_ai_chat` already enforces `managed_ai`).
+    let (api_key, provider_url) = if provider_id == "mizan" {
+        let token = env
+            .connect_access_token()
+            .await
+            .ok_or_else(|| AiError::MissingApiKey("mizan".to_string()))?;
+        let cloud = env
+            .connect_api_url()
+            .await
+            .ok_or_else(|| AiError::Provider("Mizan Connect not configured".to_string()))?;
+        (
+            Some(token),
+            Some(format!("{}/v1", cloud.trim_end_matches('/'))),
+        )
+    } else {
+        (api_key, provider_url)
+    };
+
     // Best-effort preflight for Ollama: if we can list models and the selected model
     // is definitely missing, fail fast with a clear actionable error.
     if provider_id == "ollama" {
