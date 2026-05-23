@@ -8,3 +8,4 @@ pub mod snapshot;
 pub mod split_adjustment;
 pub mod synthesis;
 pub mod valuation;
+pub mod zakat;
