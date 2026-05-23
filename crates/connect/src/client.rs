@@ -12,8 +12,8 @@ use std::time::Duration;
 
 use crate::broker::{
     BrokerAccount, BrokerBrokerage, BrokerConnection, BrokerConnectionBrokerage,
-    BrokerHoldingsResponse, MonthlyReport, MonthlyReportsResponse, PaginatedUniversalActivity,
-    PlansResponse, UserInfo, UserTeam,
+    BrokerHoldingsResponse, MonthlyReport, MonthlyReportsResponse, MyTeamsResponse,
+    PaginatedUniversalActivity, PlansResponse, TeamMembersResponse, UserInfo, UserTeam,
 };
 use crate::entitlements::{entitlements_for_plan, Entitlements};
 use mizan_core::errors::{Error, Result};
@@ -513,6 +513,18 @@ impl ConnectApiClient {
     pub async fn request_monthly_report(&self) -> Result<MonthlyReport> {
         self.post_json("/api/v1/reports/monthly", &serde_json::json!({}))
             .await
+    }
+
+    /// List every team the caller is a member of (M5.2).
+    pub async fn list_my_teams(&self) -> Result<MyTeamsResponse> {
+        self.get("/api/v1/me/teams").await
+    }
+
+    /// List members of a specific team (M5.2). Returns 403 if the caller
+    /// isn't a member of the team.
+    pub async fn list_team_members(&self, team_id: &str) -> Result<TeamMembersResponse> {
+        let path = format!("/api/v1/teams/{}/members", team_id);
+        self.get(&path).await
     }
 
     /// Get available subscription plans (authenticated).

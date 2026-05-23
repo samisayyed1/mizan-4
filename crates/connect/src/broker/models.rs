@@ -907,3 +907,43 @@ pub struct MonthlyReport {
 pub struct MonthlyReportsResponse {
     pub reports: Vec<MonthlyReport>,
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Teams (M5.2)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// One team in a `/v1/me/teams` response. Mirrors cloud's TeamSummary.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TeamSummary {
+    pub id: String,
+    pub name: String,
+    pub owner_user_id: String,
+    pub branding_logo_url: Option<String>,
+    pub branding_color: Option<String>,
+    /// The caller's role on this team: `owner`, `advisor`, or `viewer`.
+    pub my_role: Option<String>,
+    pub created_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MyTeamsResponse {
+    pub teams: Vec<TeamSummary>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TeamMemberDto {
+    pub user_id: String,
+    pub role: String,
+    pub joined_at: Option<String>,
+    pub display_name: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TeamMembersResponse {
+    pub team_id: String,
+    pub members: Vec<TeamMemberDto>,
+}
