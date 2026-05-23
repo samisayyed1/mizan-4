@@ -105,6 +105,9 @@ export const QueryKeys = {
   USER_INFO: "userInfo",
   ENTITLEMENTS: "entitlements",
   MONTHLY_REPORTS: "monthlyReports",
+  MY_TEAMS: "myTeams",
+  TEAM_MEMBERS: "teamMembers",
+  teamMembers: (teamId: string) => [QueryKeys.TEAM_MEMBERS, teamId],
   BROKER_SYNC_STATES: "brokerSyncStates",
   IMPORT_RUNS: "importRuns",
 

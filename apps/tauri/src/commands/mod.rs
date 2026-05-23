@@ -32,5 +32,6 @@ pub mod settings;
 #[cfg(feature = "device-sync")]
 pub mod sync_crypto;
 pub mod taxonomy;
+pub mod teams;
 pub mod utilities;
 pub mod zakat;

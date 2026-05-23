@@ -7,7 +7,8 @@ use std::sync::Arc;
 
 use mizan_connect::{
     ensure_valid_access_token, ConnectApiClient, Entitlements, MonthlyReport,
-    MonthlyReportsResponse, TokenLifecycleConfig, TokenLifecycleState, DEFAULT_CLOUD_API_URL,
+    MonthlyReportsResponse, MyTeamsResponse, TeamMembersResponse, TokenLifecycleConfig,
+    TokenLifecycleState, DEFAULT_CLOUD_API_URL,
 };
 use mizan_core::secrets::SecretStore;
 
@@ -153,6 +154,21 @@ impl ConnectService {
         let client = self.get_api_client().await?;
         client
             .request_monthly_report()
+            .await
+            .map_err(|e| e.to_string())
+    }
+
+    /// List every team the caller is a member of (M5.2).
+    pub async fn list_my_teams(&self) -> Result<MyTeamsResponse, String> {
+        let client = self.get_api_client().await?;
+        client.list_my_teams().await.map_err(|e| e.to_string())
+    }
+
+    /// Roster of one team (M5.2). Returns 403 when the caller isn't a member.
+    pub async fn list_team_members(&self, team_id: &str) -> Result<TeamMembersResponse, String> {
+        let client = self.get_api_client().await?;
+        client
+            .list_team_members(team_id)
             .await
             .map_err(|e| e.to_string())
     }

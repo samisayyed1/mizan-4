@@ -16,10 +16,11 @@ pub mod token_lifecycle;
 pub use broker::{
     AccountUniversalActivity, BrokerAccount, BrokerApiClient, BrokerBrokerage, BrokerConnection,
     BrokerSyncService, BrokerSyncServiceTrait, MonthlyReport, MonthlyReportsResponse,
-    NoOpProgressReporter, PaginatedUniversalActivity, PlanLimitValue, PlanLimits, PlanPricing,
-    PlansResponse, PlatformRepositoryTrait, SubscriptionPlan, SyncAccountsResponse,
+    MyTeamsResponse, NoOpProgressReporter, PaginatedUniversalActivity, PlanLimitValue, PlanLimits,
+    PlanPricing, PlansResponse, PlatformRepositoryTrait, SubscriptionPlan, SyncAccountsResponse,
     SyncActivitiesResponse, SyncConfig, SyncConnectionsResponse, SyncOrchestrator,
-    SyncProgressPayload, SyncProgressReporter, SyncResult, SyncStatus, UserInfo, UserTeam,
+    SyncProgressPayload, SyncProgressReporter, SyncResult, SyncStatus, TeamMemberDto,
+    TeamMembersResponse, TeamSummary, UserInfo, UserTeam,
 };
 
 // Re-export the HTTP client and public functions

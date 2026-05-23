@@ -112,6 +112,9 @@ export * from "../shared/monthly-reports";
 // Pro reports — amortization + portfolio health (M4.2)
 export * from "../shared/reports";
 
+// Teams (M5.2)
+export * from "../shared/teams";
+
 // AI Providers Commands
 export * from "../shared/ai-providers";
 
