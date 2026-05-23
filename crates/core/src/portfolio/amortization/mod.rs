@@ -6,9 +6,11 @@
 //!
 //! The math is the standard French amortization formula:
 //!
-//!     monthly_rate = annual_rate / 12
-//!     EMI = principal * monthly_rate * (1 + monthly_rate)^n
-//!                                    / ((1 + monthly_rate)^n - 1)
+//! ```text
+//! monthly_rate = annual_rate / 12
+//! EMI = principal * monthly_rate * (1 + monthly_rate)^n
+//!                                / ((1 + monthly_rate)^n - 1)
+//! ```
 //!
 //! where `n` is the number of monthly payments.
 //!
