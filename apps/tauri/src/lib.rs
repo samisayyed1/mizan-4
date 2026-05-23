@@ -410,6 +410,9 @@ pub fn run() {
             commands::entitlements::get_entitlements,
             // Zakat assessment (Pro)
             commands::zakat::compute_zakat,
+            // Monthly AI wealth reports (M3.6)
+            commands::monthly_reports::list_monthly_reports,
+            commands::monthly_reports::request_monthly_report,
             commands::entitlements::open_checkout,
             commands::entitlements::open_billing_portal,
             commands::entitlements::report_usage,

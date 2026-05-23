@@ -12,7 +12,8 @@ use std::time::Duration;
 
 use crate::broker::{
     BrokerAccount, BrokerBrokerage, BrokerConnection, BrokerConnectionBrokerage,
-    BrokerHoldingsResponse, PaginatedUniversalActivity, PlansResponse, UserInfo, UserTeam,
+    BrokerHoldingsResponse, MonthlyReport, MonthlyReportsResponse, PaginatedUniversalActivity,
+    PlansResponse, UserInfo, UserTeam,
 };
 use crate::entitlements::{entitlements_for_plan, Entitlements};
 use mizan_core::errors::{Error, Result};
@@ -497,6 +498,21 @@ impl ConnectApiClient {
             team.plan.as_deref(),
             team.subscription_status.as_deref(),
         ))
+    }
+
+    /// List the current user's stored monthly wealth reports (M3.6).
+    /// Returns up to `limit` rows newest-first; the cloud clamps to [1, 24].
+    pub async fn list_monthly_reports(&self, limit: i64) -> Result<MonthlyReportsResponse> {
+        let path = format!("/api/v1/reports/monthly?limit={}", limit.clamp(1, 24));
+        self.get(&path).await
+    }
+
+    /// Enqueue an on-demand monthly report regeneration for the current
+    /// period. Idempotent: a second call within the same calendar month
+    /// returns the existing row (HTTP 200 instead of 202 — same shape).
+    pub async fn request_monthly_report(&self) -> Result<MonthlyReport> {
+        self.post_json("/api/v1/reports/monthly", &serde_json::json!({}))
+            .await
     }
 
     /// Get available subscription plans (authenticated).
