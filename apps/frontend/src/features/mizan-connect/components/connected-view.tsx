@@ -1,3 +1,5 @@
+import { formatDistanceToNowStrict } from "date-fns";
+
 import { ComingSoonCard } from "@/components/coming-soon-card";
 import { ExternalLink } from "@/components/external-link";
 import { DeviceSyncSection } from "@/features/devices-sync";
@@ -230,6 +232,19 @@ function BrokerConnectionRow({ connection }: { connection: BrokerConnection }) {
     connection.brokerage?.display_name ?? connection.brokerage?.name ?? "Unknown Broker";
   const isConnected = connection.status === "connected" && !connection.disabled;
 
+  // M3.5: surface a relative-time "last synced" hint sourced from the
+  // connection's own `updated_at` (the cloud bumps it whenever sync results
+  // for this connection are persisted, so it's a faithful proxy for "last
+  // synced" without needing to join across sync_states).
+  const lastSynced = (() => {
+    if (!connection.updated_at) return null;
+    try {
+      return formatDistanceToNowStrict(new Date(connection.updated_at), { addSuffix: true });
+    } catch {
+      return null;
+    }
+  })();
+
   const disconnect = useMutation({
     mutationFn: () => deleteBrokerConnection(connection.id),
     // Optimistically mark the connection disabled in the cache so the
@@ -287,7 +302,14 @@ function BrokerConnectionRow({ connection }: { connection: BrokerConnection }) {
           {brokerageName.charAt(0)}
         </AvatarFallback>
       </Avatar>
-      <span className="min-w-0 flex-1 truncate text-sm font-medium">{brokerageName}</span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium leading-tight">{brokerageName}</p>
+        {lastSynced && isConnected && (
+          <p className="text-muted-foreground mt-0.5 truncate text-[11px]">
+            Last synced {lastSynced}
+          </p>
+        )}
+      </div>
       <Badge
         className={`shrink-0 ${
           isConnected
