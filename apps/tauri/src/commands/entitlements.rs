@@ -88,3 +88,38 @@ pub async fn get_entitlements(
 ) -> Result<Entitlements, String> {
     Ok(resolve_entitlements(&state).await)
 }
+
+/// Fetch a Stripe Checkout URL for the given plan + interval. Caller opens
+/// the URL in the default browser via the shell plugin; on return, focus
+/// listeners invalidate the entitlements query so the unlocked plan takes
+/// effect without a reload.
+#[tauri::command]
+pub async fn open_checkout(
+    plan: String,
+    interval: String,
+    state: State<'_, Arc<ServiceContext>>,
+) -> Result<String, String> {
+    state
+        .connect_service()
+        .create_checkout_url(&plan, &interval)
+        .await
+}
+
+/// Fetch a Stripe Customer Portal URL for self-service plan management.
+#[tauri::command]
+pub async fn open_billing_portal(state: State<'_, Arc<ServiceContext>>) -> Result<String, String> {
+    state.connect_service().create_billing_portal_url().await
+}
+
+/// Fire-and-forget usage report (`/api/v1/usage`). Returns `Ok(())`
+/// regardless of cloud success so the caller's local action isn't blocked
+/// by transient cloud unavailability.
+#[tauri::command]
+pub async fn report_usage(
+    metric: String,
+    units: i32,
+    state: State<'_, Arc<ServiceContext>>,
+) -> Result<(), String> {
+    state.connect_service().report_usage(&metric, units).await;
+    Ok(())
+}

@@ -103,6 +103,10 @@ pub async fn sync_broker_data(
         "Connect your broker and keep your portfolio updated automatically — included with Mizan Pro.",
     )?;
 
+    // Fire-and-forget usage report after passing the gate. Authoritative
+    // count lives in the cloud ledger; failure here doesn't abort the sync.
+    state.connect_service().report_usage("broker_poll", 1).await;
+
     info!("[Connect] Starting broker data sync ...");
 
     // Clone what we need for the spawned task

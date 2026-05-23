@@ -106,6 +106,34 @@ export async function getEntitlements(): Promise<Entitlements> {
   return invoke<Entitlements>("get_entitlements");
 }
 
+/**
+ * Fetch a Stripe Checkout URL for the requested plan + interval. Caller is
+ * expected to open the URL in the user's default browser (via
+ * `@tauri-apps/plugin-shell`'s `open` in desktop, or `window.open` in web).
+ */
+export async function openCheckout(
+  plan: "basic" | "pro" | "enterprise",
+  interval: "monthly" | "yearly",
+): Promise<string> {
+  return invoke<string>("open_checkout", { plan, interval });
+}
+
+/** Fetch a Stripe Customer Portal URL for self-service plan management. */
+export async function openBillingPortal(): Promise<string> {
+  return invoke<string>("open_billing_portal");
+}
+
+/**
+ * Fire-and-forget usage report to the cloud ledger. Failures are swallowed
+ * (cloud is authoritative; we just keep its counter warm).
+ */
+export async function reportUsage(
+  metric: "ai_reply" | "broker_poll" | "csv_intel" | "market_refresh",
+  units: number,
+): Promise<void> {
+  return invoke<void>("report_usage", { metric, units });
+}
+
 export async function getBrokerSyncStates(): Promise<BrokerSyncState[]> {
   return invoke<BrokerSyncState[]>("get_broker_ingest_states");
 }

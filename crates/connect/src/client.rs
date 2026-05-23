@@ -120,6 +120,20 @@ pub struct LoginPortalResponse {
     pub expires_at: String,
 }
 
+/// Response of `POST /api/v1/billing/checkout-session`. `url` is a Stripe
+/// Checkout hosted-session URL the caller opens in the user's default browser.
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct CheckoutSessionResponse {
+    pub url: String,
+}
+
+/// Response of `POST /api/v1/billing/portal`. `url` is a Stripe Customer
+/// Portal hosted-session URL.
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct BillingPortalResponse {
+    pub url: String,
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Connect API Client
 // ─────────────────────────────────────────────────────────────────────────────
@@ -193,6 +207,44 @@ impl ConnectApiClient {
             .map_err(|e| Error::Unexpected(format!("Request failed: {}", e)))?;
 
         self.parse_response(response).await
+    }
+
+    /// Make a JSON POST request and parse the response.
+    async fn post_json<B: serde::Serialize, T: DeserializeOwned>(
+        &self,
+        path: &str,
+        body: &B,
+    ) -> Result<T> {
+        let url = format!("{}{}", self.base_url, path);
+        let response = self
+            .client
+            .post(&url)
+            .headers(self.headers())
+            .json(body)
+            .send()
+            .await
+            .map_err(|e| Error::Unexpected(format!("Request failed: {}", e)))?;
+        self.parse_response(response).await
+    }
+
+    /// Fire-and-forget POST that ignores the response body. Used by usage
+    /// reporting where the caller doesn't care about the (empty) reply.
+    async fn post_no_response<B: serde::Serialize>(&self, path: &str, body: &B) -> Result<()> {
+        let url = format!("{}{}", self.base_url, path);
+        let response = self
+            .client
+            .post(&url)
+            .headers(self.headers())
+            .json(body)
+            .send()
+            .await
+            .map_err(|e| Error::Unexpected(format!("Request failed: {}", e)))?;
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().await.unwrap_or_default();
+            return Err(Error::Unexpected(format!("HTTP {}: {}", status, body)));
+        }
+        Ok(())
     }
 
     /// Parse an HTTP response, handling errors appropriately.
@@ -389,6 +441,35 @@ impl ConnectApiClient {
         const COMPILE_TIME_BYPASS: Option<&str> = option_env!("CONNECT_BYPASS_PLAN_CHECK");
         let runtime_bypass = std::env::var("CONNECT_BYPASS_PLAN_CHECK").ok();
         COMPILE_TIME_BYPASS == Some("true") || runtime_bypass.as_deref() == Some("true")
+    }
+
+    /// Open Stripe Checkout for a subscription. Returns the hosted-session URL
+    /// the caller should open in the user's default browser.
+    pub async fn create_checkout_session(
+        &self,
+        plan: &str,
+        interval: &str,
+    ) -> Result<CheckoutSessionResponse> {
+        let body = serde_json::json!({ "plan": plan, "interval": interval });
+        self.post_json("/api/v1/billing/checkout-session", &body)
+            .await
+    }
+
+    /// Open the Stripe Customer Portal for self-service plan management.
+    /// Returns `Err` (404) when the user has no Stripe customer yet — caller
+    /// should fall back to the upgrade modal in that case.
+    pub async fn create_billing_portal_session(&self) -> Result<BillingPortalResponse> {
+        let body = serde_json::json!({});
+        self.post_json("/api/v1/billing/portal", &body).await
+    }
+
+    /// Fire-and-forget usage report. The cloud increments AI-credit balances
+    /// and ledger rows; the desktop calls this after metered local actions
+    /// (broker poll trigger, CSV import, market refresh) so the cloud has the
+    /// authoritative count.
+    pub async fn report_usage(&self, metric: &str, units: i32) -> Result<()> {
+        let body = serde_json::json!({ "metric": metric, "units": units });
+        self.post_no_response("/api/v1/usage", &body).await
     }
 
     /// Resolve the current user's [`Entitlements`].

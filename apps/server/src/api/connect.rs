@@ -814,6 +814,59 @@ async fn get_entitlements(
     Ok(Json(entitlements))
 }
 
+#[derive(serde::Deserialize)]
+struct OpenCheckoutRequest {
+    plan: String,
+    interval: String,
+}
+
+#[derive(serde::Serialize)]
+struct UrlResponse {
+    url: String,
+}
+
+/// Mirror of the Tauri `open_checkout` command — fetches a Stripe Checkout
+/// URL the caller opens in the browser.
+async fn open_checkout(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<OpenCheckoutRequest>,
+) -> ApiResult<Json<UrlResponse>> {
+    let client = create_connect_client(&state).await?;
+    let url = client
+        .create_checkout_session(&req.plan, &req.interval)
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?
+        .url;
+    Ok(Json(UrlResponse { url }))
+}
+
+/// Mirror of the Tauri `open_billing_portal` command.
+async fn open_billing_portal(State(state): State<Arc<AppState>>) -> ApiResult<Json<UrlResponse>> {
+    let client = create_connect_client(&state).await?;
+    let url = client
+        .create_billing_portal_session()
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?
+        .url;
+    Ok(Json(UrlResponse { url }))
+}
+
+#[derive(serde::Deserialize)]
+struct ReportUsageRequest {
+    metric: String,
+    units: i32,
+}
+
+/// Mirror of the Tauri `report_usage` command — fire-and-forget to /api/v1/usage.
+async fn report_usage(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<ReportUsageRequest>,
+) -> ApiResult<Json<()>> {
+    let client = create_connect_client(&state).await?;
+    let _ = client.report_usage(&req.metric, req.units).await;
+    Ok(Json(()))
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // List Operations (fetch from cloud without syncing to local)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1320,6 +1373,9 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/connect/plans/public", get(get_subscription_plans_public))
         .route("/connect/user", get(get_user_info))
         .route("/connect/entitlements", get(get_entitlements))
+        .route("/connect/billing/checkout", post(open_checkout))
+        .route("/connect/billing/portal", post(open_billing_portal))
+        .route("/connect/usage", post(report_usage))
         // Device Sync / Enrollment
         .route("/connect/device/sync-state", get(get_device_sync_state))
         .route("/connect/device/enable", post(enable_device_sync))

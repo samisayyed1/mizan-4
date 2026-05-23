@@ -185,6 +185,29 @@ pub async fn create_alternative_asset(
     request: CreateAlternativeAssetRequest,
     state: State<'_, Arc<ServiceContext>>,
 ) -> Result<CreateAlternativeAssetResponse, String> {
+    // Holdings-cap gate. Alt-assets ARE holdings under the consolidated
+    // portfolio, so they count toward `max_holdings`. We approximate "current
+    // alt-asset count" by listing the TOTAL portfolio's holdings — cheap and
+    // sufficient for the Free-tier guardrail. Owning broker holdings already
+    // contribute too, which is consistent with the cap's intent.
+    let entitlements = crate::commands::entitlements::resolve_entitlements(&state).await;
+    if entitlements.max_holdings != mizan_connect::UNLIMITED {
+        let base_currency = state.get_base_currency();
+        let current = state
+            .holdings_service()
+            .get_holdings("TOTAL", &base_currency)
+            .await
+            .map(|h| h.len() as i32)
+            .unwrap_or(0);
+        crate::commands::entitlements::gated(
+            mizan_connect::Entitlements::within(current, entitlements.max_holdings),
+            "max_holdings",
+            "basic",
+            &entitlements.plan,
+            "You've reached your holdings limit. Upgrade to track your full wealth without limits.",
+        )?;
+    }
+
     // Parse string values to typed values
     let current_value: Decimal = request
         .current_value

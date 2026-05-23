@@ -253,6 +253,9 @@ export const COMMANDS: CommandMap = {
   get_subscription_plans_public: { method: "GET", path: "/connect/plans/public" },
   get_user_info: { method: "GET", path: "/connect/user" },
   get_entitlements: { method: "GET", path: "/connect/entitlements" },
+  open_checkout: { method: "POST", path: "/connect/billing/checkout" },
+  open_billing_portal: { method: "POST", path: "/connect/billing/portal" },
+  report_usage: { method: "POST", path: "/connect/usage" },
   // Local data queries (from local database)
   get_synced_accounts: { method: "GET", path: "/connect/synced-accounts" },
   get_platforms: { method: "GET", path: "/connect/platforms" },
@@ -391,6 +394,20 @@ export const invoke = async <T>(command: string, payload?: Record<string, unknow
     case "create_account": {
       const data = payload as { account: Record<string, unknown> };
       body = JSON.stringify(data.account);
+      break;
+    }
+    case "open_checkout": {
+      const data = payload as { plan: string; interval: string };
+      body = JSON.stringify({ plan: data.plan, interval: data.interval });
+      break;
+    }
+    case "open_billing_portal": {
+      body = JSON.stringify({});
+      break;
+    }
+    case "report_usage": {
+      const data = payload as { metric: string; units: number };
+      body = JSON.stringify({ metric: data.metric, units: data.units });
       break;
     }
     case "backup_database_to_path": {
@@ -1488,6 +1505,10 @@ export const invoke = async <T>(command: string, payload?: Record<string, unknow
   if (command === "backup_database_to_path") {
     const parsed = (await res.json()) as { path: string };
     return parsed.path as T;
+  }
+  if (command === "open_checkout" || command === "open_billing_portal") {
+    const parsed = (await res.json()) as { url: string };
+    return parsed.url as T;
   }
   // Handle responses with no body (204 No Content, 202 Accepted, or empty 200)
   if (res.status === 204 || res.status === 202) {

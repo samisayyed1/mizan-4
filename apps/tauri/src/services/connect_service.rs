@@ -138,4 +138,38 @@ impl ConnectService {
         let client = self.get_api_client().await?;
         client.get_entitlements().await.map_err(|e| e.to_string())
     }
+
+    /// Fetch a Stripe Checkout URL for the requested plan/interval. The
+    /// caller opens this in the user's default browser; on return, focus
+    /// listeners invalidate the entitlements query so the new plan unlocks.
+    pub async fn create_checkout_url(&self, plan: &str, interval: &str) -> Result<String, String> {
+        let client = self.get_api_client().await?;
+        client
+            .create_checkout_session(plan, interval)
+            .await
+            .map(|r| r.url)
+            .map_err(|e| e.to_string())
+    }
+
+    /// Fetch a Stripe Customer Portal URL for self-service plan management.
+    pub async fn create_billing_portal_url(&self) -> Result<String, String> {
+        let client = self.get_api_client().await?;
+        client
+            .create_billing_portal_session()
+            .await
+            .map(|r| r.url)
+            .map_err(|e| e.to_string())
+    }
+
+    /// Fire-and-forget usage report. Failures are logged but don't abort the
+    /// caller — the cloud's authoritative reading of /user/me corrects any
+    /// drift on the next refresh.
+    pub async fn report_usage(&self, metric: &str, units: i32) {
+        let Ok(client) = self.get_api_client().await else {
+            return;
+        };
+        if let Err(e) = client.report_usage(metric, units).await {
+            log::warn!("usage report failed (metric={metric}, units={units}): {e}");
+        }
+    }
 }

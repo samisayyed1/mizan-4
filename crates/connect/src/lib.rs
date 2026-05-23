@@ -24,7 +24,8 @@ pub use broker::{
 
 // Re-export the HTTP client and public functions
 pub use client::{
-    fetch_subscription_plans_public, ConnectApiClient, LoginPortalResponse, DEFAULT_CLOUD_API_URL,
+    fetch_subscription_plans_public, BillingPortalResponse, CheckoutSessionResponse,
+    ConnectApiClient, LoginPortalResponse, DEFAULT_CLOUD_API_URL,
 };
 pub use entitlements::{entitlements_for_plan, Entitlements, UNLIMITED};
 pub use token_lifecycle::{
