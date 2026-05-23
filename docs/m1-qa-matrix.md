@@ -101,3 +101,31 @@ passes regardless of cloud state. Used to verify UI paths without billing.
 - Backend `create_activity` holdings cap — frontend already gates proactively;
   backend chokepoint needs symbol resolution to avoid blocking buys of existing
   positions. Alt-asset creation IS gated.
+
+---
+
+## M2 additions (UI simplification)
+
+### Tier-agnostic structure
+| # | Action | Expected |
+|---|---|---|
+| M2-1 | Desktop sidebar | 5 items: Home, Portfolio, Add, Goals, Assistant. "Settings" appears in the lower (secondary) group. |
+| M2-2 | Click "Add" in sidebar | Wizard dialog opens with 7 tiles. No URL change. |
+| M2-3 | Wizard → "Stocks, ETFs, Sukuk or Bonds" | Closes; navigates to `/accounts/:default-portfolio-id?addHoldings=1`; holdings editor sheet auto-opens; URL param is stripped after consumption. |
+| M2-4 | Wizard → "Bank account or cash" | Closes; AddBankAccountModal opens. |
+| M2-5 | Wizard → "Property" / "Gold" / "Collectibles" / "Loan or liability" / "Something else" | AlternativeAssetQuickAddModal opens with the matching `defaultKind`. |
+| M2-6 | Click "Portfolio" tab | Navigates to `/portfolio` — PortfolioListPage with AccountsSummary + "Add asset" CTA. |
+| M2-7 | Drill into `/accounts/:id` | "Portfolio" tab still highlighted in the sidebar (isPathActive treats `/accounts/*` as inside Portfolio). |
+| M2-8 | Mobile bottom nav | All 5 primary tabs visible. Add fires the wizard (no nav change). Search via Cmd/Ctrl+K still works. |
+| M2-9 | Settings → desktop sidebar | Six sections: Preferences, Wealth, Sync, AI, Advanced, About. "Sync" collapses the old Connect/Market Data/AI Providers grouping; advanced surfaces collapsed under "Advanced". |
+| M2-10 | Settings → "AI" → Providers | Mizan AI hero card on top (locked if Free, "Included" badge if paid). BYO-key list below excludes the `mizan` provider catalog entry. |
+| M2-11 | Performance page / Assistant performance tool | Labels read "Investment growth" / "Net performance" (no more "TWR" / "MWR" in user-visible strings). |
+| M2-12 | Settings → Advanced → Market Data | Card title reads "Data connections" (no more "Provider health"). |
+| M2-13 | New install onboarding step 1 | Friendly welcome with 3 trust bullets (privacy / setup time / no-account-required). No more "Holdings vs Transactions" upfront jargon. |
+
+### Free / Basic / Pro / Bypass interactions with M2
+| # | Tier | Action | Expected |
+|---|---|---|---|
+| M2-F1 | Free | Click "Add" → "Bank" → save → repeat to 21st holding | UpgradeModal raises on the 21st save (M1.5 alt-asset backend gate fires). |
+| M2-F2 | Free | Settings → AI → Mizan AI hero CTA | UpgradeModal with "Meet Mizan AI" copy → Stripe Checkout. |
+| M2-Bypass | Bypass | Same flows | Modal never raises; all actions complete. |

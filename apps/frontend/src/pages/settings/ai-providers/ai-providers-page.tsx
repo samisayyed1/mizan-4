@@ -13,6 +13,8 @@ import {
   useAiProviderApiKey,
   useListAiModels,
 } from "@/features/ai-assistant";
+import { useEntitlements, useUpgradeGate } from "@/features/mizan-connect";
+import { UNLIMITED } from "@/features/mizan-connect/types";
 import type { ModelCapabilityOverrides, ProviderTuningOverrides } from "@/lib/types";
 
 /**
@@ -117,7 +119,13 @@ export default function AiProvidersPage() {
     );
   }
 
-  const sortedProviders = [...providers].sort((a, b) => a.priority - b.priority);
+  // The Mizan provider catalog entry is hidden from the BYO-key list (its
+  // request path needs the cloud); we surface it here as a hero card so the
+  // user sees "Mizan AI is included" or "Upgrade to unlock" at the top of the
+  // page regardless of which BYO keys they've configured.
+  const sortedProviders = [...providers]
+    .filter((p) => p.id !== "mizan")
+    .sort((a, b) => a.priority - b.priority);
 
   return (
     <div className="text-foreground space-y-6">
@@ -126,6 +134,7 @@ export default function AiProvidersPage() {
         text="Configure AI providers for portfolio insights."
       />
       <Separator />
+      <MizanAiHero />
       <div>
         {sortedProviders.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -229,5 +238,70 @@ function ProviderSettingsCardWrapper({
       fetchModelsError={fetchModelsError?.message ?? null}
       onRefreshModels={() => refetchModels()}
     />
+  );
+}
+
+/**
+ * Mizan AI hero — sits above the BYO-key provider list.
+ *
+ * Locked state (Free / `managedAi=false`): "Mizan AI is included with a Mizan
+ * subscription" + upgrade CTA. Unlocked state shows the current plan + the
+ * remaining-credits counter when the plan has a finite monthly cap.
+ *
+ * Wired against the M1.5 entitlements machinery — no new state needed.
+ */
+function MizanAiHero() {
+  const { entitlements, isPaid } = useEntitlements();
+  const { requestUpgrade } = useUpgradeGate();
+
+  if (entitlements.managedAi) {
+    const remaining =
+      entitlements.aiCreditsMonthly === UNLIMITED
+        ? "Unlimited"
+        : `${entitlements.aiCreditsMonthly} credits / month`;
+    return (
+      <div className="border-primary/20 from-primary/5 to-card bg-linear-to-br flex items-start gap-4 rounded-lg border p-5">
+        <div className="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+          <Icons.Sparkles className="h-5 w-5" />
+        </div>
+        <div className="flex-1 space-y-1">
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-semibold">Mizan AI</h3>
+            <span className="bg-primary/15 text-primary rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+              Included
+            </span>
+          </div>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            You're on the{" "}
+            <span className="text-foreground font-medium capitalize">{entitlements.plan}</span> plan
+            — {remaining}. No API key required.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-muted/30 flex items-start gap-4 rounded-lg border border-dashed p-5">
+      <div className="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+        <Icons.Sparkles className="h-5 w-5" />
+      </div>
+      <div className="flex-1 space-y-2">
+        <h3 className="text-base font-semibold">Mizan AI — included with a subscription</h3>
+        <p className="text-muted-foreground text-sm leading-relaxed">
+          Ask questions about your portfolio, net worth, goals, and monthly changes — no API key
+          setup required. Bring your own key below if you prefer offline / local-only AI on the Free
+          plan.
+        </p>
+        <Button
+          size="sm"
+          variant="default"
+          onClick={() => requestUpgrade("managed_ai")}
+          className="mt-1"
+        >
+          {isPaid ? "Switch plan" : "Upgrade to unlock"}
+        </Button>
+      </div>
+    </div>
   );
 }
