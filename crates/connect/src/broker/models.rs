@@ -875,3 +875,35 @@ pub struct UserInfo {
     pub team_role: Option<String>,
     pub team: Option<UserTeam>,
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Monthly AI Wealth Reports (M3.6)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// One stored monthly report from `/api/v1/reports/monthly`.
+///
+/// The cloud cron seeds rows at first-of-month and the worker fills in
+/// `summary_md` once generation succeeds. The desktop renders the markdown
+/// verbatim — no further processing needed.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MonthlyReport {
+    pub id: String,
+    pub user_id: String,
+    /// ISO 8601 date (YYYY-MM-DD).
+    pub period_start: String,
+    pub period_end: String,
+    pub summary_md: Option<String>,
+    pub model: Option<String>,
+    pub credits_charged: i32,
+    /// One of `pending`/`succeeded`/`failed`.
+    pub status: String,
+    pub error: Option<String>,
+    pub requested_at: String,
+    pub generated_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MonthlyReportsResponse {
+    pub reports: Vec<MonthlyReport>,
+}

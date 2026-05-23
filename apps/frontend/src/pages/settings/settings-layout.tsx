@@ -54,6 +54,12 @@ const settingsSections = [
         subtitle: "Annual Zakat assessment (Pro)",
         icon: <Icons.Coins className="size-5" />,
       },
+      {
+        title: "Monthly reports",
+        href: "/reports",
+        subtitle: "AI wealth summary, generated each month",
+        icon: <Icons.Sparkles className="size-5" />,
+      },
     ],
   },
   {

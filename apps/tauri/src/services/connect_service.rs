@@ -6,8 +6,8 @@
 use std::sync::Arc;
 
 use mizan_connect::{
-    ensure_valid_access_token, ConnectApiClient, Entitlements, TokenLifecycleConfig,
-    TokenLifecycleState, DEFAULT_CLOUD_API_URL,
+    ensure_valid_access_token, ConnectApiClient, Entitlements, MonthlyReport,
+    MonthlyReportsResponse, TokenLifecycleConfig, TokenLifecycleState, DEFAULT_CLOUD_API_URL,
 };
 use mizan_core::secrets::SecretStore;
 
@@ -137,6 +137,24 @@ impl ConnectService {
         }
         let client = self.get_api_client().await?;
         client.get_entitlements().await.map_err(|e| e.to_string())
+    }
+
+    /// List the user's stored monthly AI wealth reports (M3.6).
+    pub async fn list_monthly_reports(&self, limit: i64) -> Result<MonthlyReportsResponse, String> {
+        let client = self.get_api_client().await?;
+        client
+            .list_monthly_reports(limit)
+            .await
+            .map_err(|e| e.to_string())
+    }
+
+    /// Enqueue an on-demand monthly report regeneration (M3.6).
+    pub async fn request_monthly_report(&self) -> Result<MonthlyReport, String> {
+        let client = self.get_api_client().await?;
+        client
+            .request_monthly_report()
+            .await
+            .map_err(|e| e.to_string())
     }
 
     /// Fetch a Stripe Checkout URL for the requested plan/interval. The

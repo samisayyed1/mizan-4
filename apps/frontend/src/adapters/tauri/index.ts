@@ -106,6 +106,9 @@ export * from "../shared/connect";
 // Zakat assessment (M3.7, Pro)
 export * from "../shared/zakat";
 
+// Monthly AI Wealth Reports (M3.6)
+export * from "../shared/monthly-reports";
+
 // AI Providers Commands
 export * from "../shared/ai-providers";
 

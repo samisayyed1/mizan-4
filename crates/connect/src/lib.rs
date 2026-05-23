@@ -15,11 +15,11 @@ pub mod token_lifecycle;
 #[cfg(feature = "broker")]
 pub use broker::{
     AccountUniversalActivity, BrokerAccount, BrokerApiClient, BrokerBrokerage, BrokerConnection,
-    BrokerSyncService, BrokerSyncServiceTrait, NoOpProgressReporter, PaginatedUniversalActivity,
-    PlanLimitValue, PlanLimits, PlanPricing, PlansResponse, PlatformRepositoryTrait,
-    SubscriptionPlan, SyncAccountsResponse, SyncActivitiesResponse, SyncConfig,
-    SyncConnectionsResponse, SyncOrchestrator, SyncProgressPayload, SyncProgressReporter,
-    SyncResult, SyncStatus, UserInfo, UserTeam,
+    BrokerSyncService, BrokerSyncServiceTrait, MonthlyReport, MonthlyReportsResponse,
+    NoOpProgressReporter, PaginatedUniversalActivity, PlanLimitValue, PlanLimits, PlanPricing,
+    PlansResponse, PlatformRepositoryTrait, SubscriptionPlan, SyncAccountsResponse,
+    SyncActivitiesResponse, SyncConfig, SyncConnectionsResponse, SyncOrchestrator,
+    SyncProgressPayload, SyncProgressReporter, SyncResult, SyncStatus, UserInfo, UserTeam,
 };
 
 // Re-export the HTTP client and public functions

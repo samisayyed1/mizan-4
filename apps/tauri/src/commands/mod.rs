@@ -21,6 +21,7 @@ pub mod limits;
 pub mod market_data;
 #[cfg(any(feature = "connect-sync", feature = "device-sync"))]
 pub mod mizan_connect;
+pub mod monthly_reports;
 pub mod platform;
 pub mod portfolio;
 pub mod providers_settings;
