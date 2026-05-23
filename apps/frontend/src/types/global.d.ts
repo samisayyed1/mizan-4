@@ -1,5 +1,5 @@
 // Global ambient type declarations to avoid `any` for globals
-import type { QueryClient } from '@tanstack/react-query';
+import type { QueryClient } from "@tanstack/react-query";
 
 declare global {
   interface Window {
@@ -23,4 +23,3 @@ declare global {
 }
 
 export {};
-

@@ -25,17 +25,20 @@ import {
   TooltipTrigger,
   getInitialIntervalData,
 } from "@mizan/ui";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { ActionPalette, type ActionPaletteGroup } from "@/components/action-palette";
 import { FixedDepositDialog } from "@/components/fixed-deposit-dialog";
 import { PrivacyToggle } from "@/components/privacy-toggle";
 import { RecurringBuyDialog } from "@/components/recurring-buy-dialog";
 import { useAccounts } from "@/hooks/use-accounts";
+import { useEntitlements, useUpgradeGate } from "@/features/mizan-connect";
+import { withinLimit } from "@/features/mizan-connect/types";
 import { useRecalculatePortfolioMutation } from "@/hooks/use-calculate-portfolio";
 import { useValuationHistory } from "@/hooks/use-valuation-history";
 import { canAddHoldings } from "@/lib/activity-restrictions";
-import { AccountType, HoldingType } from "@/lib/constants";
+import { AssetClass } from "@/lib/asset-classes";
+import { AccountType, AlternativeAssetKind, HoldingType } from "@/lib/constants";
 import { QueryKeys } from "@/lib/query-keys";
 import { useSettingsContext } from "@/lib/settings-provider";
 import {
@@ -52,6 +55,8 @@ import { ActivityTableMobile } from "@/pages/activity/components/activity-table/
 import { BulkHoldingsModal } from "@/pages/activity/components/forms/bulk-holdings-modal";
 import { PortfolioUpdateTrigger } from "@/pages/dashboard/portfolio-update-trigger";
 import { HoldingsEditMode } from "@/pages/holdings/components/holdings-edit-mode";
+import { AddBankAccountModal } from "@/pages/asset/alternative-assets/components/add-bank-account-modal";
+import { AlternativeAssetQuickAddModal } from "@/pages/asset/alternative-assets/components/alternative-asset-quick-add-modal";
 import { useCalculatePerformanceHistory } from "@/pages/performance/hooks/use-performance-data";
 import { useQuery } from "@tanstack/react-query";
 import { Icons, type Icon } from "@mizan/ui";
@@ -135,6 +140,9 @@ const AccountPage = () => {
   const [mobileSelectorOpen, setMobileSelectorOpen] = useState(false);
   const [actionPaletteOpen, setActionPaletteOpen] = useState(false);
   const [isEditingHoldings, setIsEditingHoldings] = useState(false);
+  const [bankModalOpen, setBankModalOpen] = useState(false);
+  const [altModalOpen, setAltModalOpen] = useState(false);
+  const [altKind, setAltKind] = useState<AlternativeAssetKind>(AlternativeAssetKind.PROPERTY);
   const [showSnapshotMarkers, setShowSnapshotMarkers] = useState(false);
   const [editingSnapshotDate, setEditingSnapshotDate] = useState<string | null>(null);
   const [selectedActivityDate, setSelectedActivityDate] = useState<string | null>(null);
@@ -145,6 +153,8 @@ const AccountPage = () => {
   const [accountDetailTab, setAccountDetailTab] = useState<AccountDetailTab>("holdings");
 
   const recalculatePortfolioMutation = useRecalculatePortfolioMutation();
+  const { entitlements } = useEntitlements();
+  const { requestUpgrade } = useUpgradeGate();
   const { accounts, isLoading: isAccountsLoading } = useAccounts();
   const account = useMemo(() => accounts?.find((acc) => acc.id === id), [accounts, id]);
 
@@ -355,6 +365,41 @@ const AccountPage = () => {
     }
     return 0; // Default if no specific logic matches or data is unavailable
   }, [accountPerformance, selectedIntervalCode, frontendSimpleReturn, isHoldingsMode]);
+
+  // Route the asset-class drill-down "Add" to the correct editor: securities
+  // classes open the holdings editor, bank accounts and physical/alternative
+  // assets each open their dedicated modal (Feroz: "click bank → add bank",
+  // no detour through the generic securities form).
+  const handleAddForClass = useCallback(
+    (cls: AssetClass) => {
+      // Proactive free-tier gate: stop at the holdings cap with an upgrade
+      // prompt rather than opening an editor the save would then reject.
+      if (!withinLimit(holdings?.length ?? 0, entitlements.maxHoldings)) {
+        requestUpgrade("max_holdings");
+        return;
+      }
+      switch (cls) {
+        case AssetClass.BANK_ACCOUNTS:
+          setBankModalOpen(true);
+          break;
+        case AssetClass.PROPERTY:
+          setAltKind(AlternativeAssetKind.PROPERTY);
+          setAltModalOpen(true);
+          break;
+        case AssetClass.COLLECTIBLES:
+          setAltKind(AlternativeAssetKind.COLLECTIBLE);
+          setAltModalOpen(true);
+          break;
+        case AssetClass.PRECIOUS_METALS:
+          setAltKind(AlternativeAssetKind.PRECIOUS_METAL);
+          setAltModalOpen(true);
+          break;
+        default:
+          setIsEditingHoldings(true);
+      }
+    },
+    [holdings, entitlements.maxHoldings, requestUpgrade],
+  );
 
   const handleAccountSwitch = (selectedAccount: Account) => {
     navigate(`/accounts/${selectedAccount.id}`);
@@ -753,10 +798,7 @@ const AccountPage = () => {
                 />
 
                 {activeAccountDetailTab === "holdings" ? (
-                  <AssetClassesView
-                    accountId={id}
-                    onAddHoldings={() => setIsEditingHoldings(true)}
-                  />
+                  <AssetClassesView accountId={id} onAddForClass={handleAddForClass} />
                 ) : (
                   <AccountSnapshotHistory
                     account={account}
@@ -769,11 +811,11 @@ const AccountPage = () => {
                 )}
               </div>
             ) : (
-              <AssetClassesView accountId={id} onAddHoldings={() => setIsEditingHoldings(true)} />
+              <AssetClassesView accountId={id} onAddForClass={handleAddForClass} />
             )}
           </>
         ) : (
-          <AssetClassesView accountId={id} onAddHoldings={() => setIsEditingHoldings(true)} />
+          <AssetClassesView accountId={id} onAddForClass={handleAddForClass} />
         )}
       </PageContent>
 
@@ -866,6 +908,17 @@ const AccountPage = () => {
           defaultCurrency={account.currency}
         />
       ) : null}
+
+      {/* Class-aware "Add" from the asset-class drill-down: a bank account
+          (country/currency/amount) and physical assets (property, collectible,
+          precious metal) each route to their dedicated editor instead of the
+          securities holdings form. */}
+      <AddBankAccountModal open={bankModalOpen} onOpenChange={setBankModalOpen} />
+      <AlternativeAssetQuickAddModal
+        open={altModalOpen}
+        onOpenChange={setAltModalOpen}
+        defaultKind={altKind}
+      />
     </Page>
   );
 };

@@ -140,6 +140,59 @@ export interface PlansResponse {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Entitlements (resolved subscription matrix; mirrors crates/connect Entitlements)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Sentinel meaning "no limit" on any numeric quota. */
+export const UNLIMITED = -1;
+
+export interface Entitlements {
+  /** Resolved plan slug this matrix derives from (free/basic/pro/…). */
+  plan: string;
+  maxPortfolios: number;
+  maxHoldings: number;
+  maxAssetClasses: number;
+  brokerSync: boolean;
+  maxBrokerConnections: number;
+  deviceSync: boolean;
+  cloudBackup: boolean;
+  managedAi: boolean;
+  aiCreditsMonthly: number;
+  newsDailyLimit: number;
+  marketRefreshDailyLimit: number;
+  csvImportsMonthly: number;
+  advancedReports: boolean;
+  advisorMode: boolean;
+}
+
+/** True when `current` is below `limit` (UNLIMITED always passes). */
+export function withinLimit(current: number, limit: number): boolean {
+  return limit === UNLIMITED || current < limit;
+}
+
+/** Feature keys the backend GatedError can carry (maps to upgrade copy). */
+export type GatedFeature =
+  | "broker_sync"
+  | "device_sync"
+  | "managed_ai"
+  | "max_portfolios"
+  | "max_holdings"
+  | "max_asset_classes"
+  | "csv_imports"
+  | "advanced_reports";
+
+/** Structured "upgrade required" error decoded from a command rejection. */
+export interface GatedError {
+  __gated: true;
+  /** Backend feature key; one of {@link GatedFeature} in practice, typed as
+   *  string since the wire value is untrusted. */
+  feature: string;
+  requiredTier: string;
+  currentPlan: string;
+  message: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // User Info Types
 // ─────────────────────────────────────────────────────────────────────────────
 

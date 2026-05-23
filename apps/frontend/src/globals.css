@@ -435,6 +435,23 @@
   --chart-8: hsl(50 14% 83%);
   --chart-9: hsl(51 21% 88%);
 
+  /* Asset-class accents — Feroz Step 8 ("every asset class a different
+   * colored graph"). Curated from Flexoki's named hue set so each class
+   * reads as distinctly colored yet stays inside the app's paper palette.
+   * Light mode uses the Flexoki 600 weights for contrast on the cream
+   * background; red is intentionally skipped (reserved for losses), and
+   * Precious Metals borrows the brand gold. Dark-mode counterparts (the
+   * 400 weights) live in `.dark`. */
+  --asset-stocks: #205ea6; /* blue */
+  --asset-sukuks: #66800b; /* green */
+  --asset-etfs: #5e409d; /* purple */
+  --asset-bonds: #24837b; /* cyan */
+  --asset-bank: #ad8301; /* yellow */
+  --asset-property: #bc5215; /* orange */
+  --asset-collectibles: #a02f6f; /* magenta */
+  --asset-metals: var(--gold-deep); /* brand gold */
+  --asset-other: #6f6e69; /* neutral base */
+
   /* Sidebar (full hsl colors) */
   --sidebar: hsl(var(--flexoki-bg));
   --sidebar-foreground: hsl(var(--flexoki-tx));
@@ -515,6 +532,19 @@
   --chart-7: hsl(22 79% 25%);
   --chart-8: hsl(22 75% 20%);
   --chart-9: hsl(22 70% 15%);
+
+  /* Asset-class accents — Flexoki 400 weights, lifted for legibility on
+   * the dark paper background. Precious Metals uses the lighter brand
+   * gold. Mirrors the light-mode set in `:root`. */
+  --asset-stocks: #4385be; /* blue */
+  --asset-sukuks: #879a39; /* green */
+  --asset-etfs: #8b7ec8; /* purple */
+  --asset-bonds: #3aa99f; /* cyan */
+  --asset-bank: #d0a215; /* yellow */
+  --asset-property: #da702c; /* orange */
+  --asset-collectibles: #ce5d97; /* magenta */
+  --asset-metals: var(--gold-primary); /* brand gold */
+  --asset-other: #b7b5ac; /* neutral base */
 
   /* Sonner toast overrides for dark mode - solid backgrounds for better readability */
   --toast-bg: hsl(var(--flexoki-bg-2));

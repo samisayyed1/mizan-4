@@ -43,6 +43,7 @@ pub async fn sync_market_data(
     refetch_all: bool,
     refetch_recent_days: Option<i64>,
     handle: AppHandle,
+    state: tauri::State<'_, std::sync::Arc<crate::context::ServiceContext>>,
     rate_limiter: tauri::State<'_, std::sync::Arc<crate::rate_limit::RateLimiter>>,
 ) -> Result<(), String> {
     // Rate-limit guard. Market data sync hits Yahoo / Alpha Vantage /
@@ -76,6 +77,15 @@ pub async fn sync_market_data(
         .market_sync_mode(market_sync_mode)
         .build();
     emit_portfolio_trigger_update(&handle, payload);
+
+    // Fire-and-forget usage report. The cloud ledger is authoritative for the
+    // per-day cap (Free = 5/day); the local rate-limiter above only prevents
+    // burst abuse. Failure here doesn't abort the sync.
+    state
+        .connect_service()
+        .report_usage("market_refresh", 1)
+        .await;
+
     Ok(())
 }
 

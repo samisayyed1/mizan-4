@@ -32,6 +32,23 @@ pub async fn create_account(
     state: State<'_, Arc<ServiceContext>>,
 ) -> Result<Account, String> {
     debug!("Adding new account...");
+
+    // Portfolio-count gate. Each account is a "portfolio" in the product model;
+    // Free is capped at one. Count non-archived accounts the user already has.
+    let entitlements = crate::commands::entitlements::resolve_entitlements(&state).await;
+    let current = state
+        .account_service()
+        .get_non_archived_accounts()
+        .map(|a| a.len() as i32)
+        .unwrap_or(0);
+    crate::commands::entitlements::gated(
+        mizan_connect::Entitlements::within(current, entitlements.max_portfolios),
+        "max_portfolios",
+        "basic",
+        &entitlements.plan,
+        "You've reached your portfolio limit. Upgrade to manage multiple portfolios across countries, brokers, and family goals.",
+    )?;
+
     // Domain events handle recalculation automatically
     state
         .account_service()

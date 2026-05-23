@@ -92,17 +92,20 @@ pub async fn sync_broker_data(
         ));
     }
 
-    // Check plan entitlement before starting sync
-    match state.connect_service().has_broker_sync().await {
-        Ok(true) => {}
-        Ok(false) => {
-            info!("[Connect] Broker sync skipped: plan does not include broker sync");
-            return Err("Plan does not include broker sync".to_string());
-        }
-        Err(e) => {
-            return Err(format!("Could not verify broker sync entitlement: {}", e));
-        }
-    }
+    // Check plan entitlement before starting sync. Returns a structured
+    // GatedError the frontend turns into a contextual upgrade modal.
+    let entitlements = crate::commands::entitlements::resolve_entitlements(&state).await;
+    crate::commands::entitlements::gated(
+        entitlements.broker_sync,
+        "broker_sync",
+        "pro",
+        &entitlements.plan,
+        "Connect your broker and keep your portfolio updated automatically — included with Mizan Pro.",
+    )?;
+
+    // Fire-and-forget usage report after passing the gate. Authoritative
+    // count lives in the cloud ledger; failure here doesn't abort the sync.
+    state.connect_service().report_usage("broker_poll", 1).await;
 
     info!("[Connect] Starting broker data sync ...");
 

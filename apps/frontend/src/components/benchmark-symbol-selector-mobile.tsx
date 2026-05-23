@@ -236,7 +236,8 @@ export function BenchmarkSymbolSelectorMobile({
                   <h3 className="text-muted-foreground mb-3 text-sm font-medium">Search Results</h3>
                   <div className="space-y-2">
                     {filteredSearchResults.slice(0, 8).map((ticker) => (
-                      <button type="button"
+                      <button
+                        type="button"
                         key={ticker.symbol}
                         onClick={() => handleSearchResultSelect(ticker)}
                         className="hover:bg-accent active:bg-accent/80 focus:border-primary flex w-full items-center gap-3 rounded-lg border border-transparent p-3 text-left transition-colors focus:outline-none"
@@ -285,7 +286,8 @@ export function BenchmarkSymbolSelectorMobile({
                       </h3>
                       <div className="space-y-2">
                         {filteredItems.map((benchmark) => (
-                          <button type="button"
+                          <button
+                            type="button"
                             key={benchmark.symbol}
                             onClick={() => handleBenchmarkSelect(benchmark)}
                             className="hover:bg-accent active:bg-accent/80 focus:border-primary flex w-full items-center gap-3 rounded-lg border border-transparent p-3 text-left transition-colors focus:outline-none"

@@ -103,6 +103,7 @@ export const QueryKeys = {
   SUBSCRIPTION_PLANS: "subscriptionPlans",
   SUBSCRIPTION_PLANS_PUBLIC: "subscriptionPlansPublic",
   USER_INFO: "userInfo",
+  ENTITLEMENTS: "entitlements",
   BROKER_SYNC_STATES: "brokerSyncStates",
   IMPORT_RUNS: "importRuns",
 

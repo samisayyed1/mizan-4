@@ -14,6 +14,7 @@ use crate::broker::{
     BrokerAccount, BrokerBrokerage, BrokerConnection, BrokerConnectionBrokerage,
     BrokerHoldingsResponse, PaginatedUniversalActivity, PlansResponse, UserInfo, UserTeam,
 };
+use crate::entitlements::{entitlements_for_plan, Entitlements};
 use mizan_core::errors::{Error, Result};
 
 use super::broker::BrokerApiClient;
@@ -91,6 +92,10 @@ struct ApiTeam {
     country_code: Option<String>,
     #[serde(default)]
     created_at: Option<String>,
+    /// Explicit entitlements matrix once the cloud returns it (Contract §A).
+    /// Absent on current backends — we then derive from `plan`+status.
+    #[serde(default)]
+    entitlements: Option<crate::entitlements::Entitlements>,
 }
 
 #[allow(dead_code)]
@@ -113,6 +118,20 @@ struct ApiErrorResponse {
 pub struct LoginPortalResponse {
     pub url: String,
     pub expires_at: String,
+}
+
+/// Response of `POST /api/v1/billing/checkout-session`. `url` is a Stripe
+/// Checkout hosted-session URL the caller opens in the user's default browser.
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct CheckoutSessionResponse {
+    pub url: String,
+}
+
+/// Response of `POST /api/v1/billing/portal`. `url` is a Stripe Customer
+/// Portal hosted-session URL.
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct BillingPortalResponse {
+    pub url: String,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -188,6 +207,44 @@ impl ConnectApiClient {
             .map_err(|e| Error::Unexpected(format!("Request failed: {}", e)))?;
 
         self.parse_response(response).await
+    }
+
+    /// Make a JSON POST request and parse the response.
+    async fn post_json<B: serde::Serialize, T: DeserializeOwned>(
+        &self,
+        path: &str,
+        body: &B,
+    ) -> Result<T> {
+        let url = format!("{}{}", self.base_url, path);
+        let response = self
+            .client
+            .post(&url)
+            .headers(self.headers())
+            .json(body)
+            .send()
+            .await
+            .map_err(|e| Error::Unexpected(format!("Request failed: {}", e)))?;
+        self.parse_response(response).await
+    }
+
+    /// Fire-and-forget POST that ignores the response body. Used by usage
+    /// reporting where the caller doesn't care about the (empty) reply.
+    async fn post_no_response<B: serde::Serialize>(&self, path: &str, body: &B) -> Result<()> {
+        let url = format!("{}{}", self.base_url, path);
+        let response = self
+            .client
+            .post(&url)
+            .headers(self.headers())
+            .json(body)
+            .send()
+            .await
+            .map_err(|e| Error::Unexpected(format!("Request failed: {}", e)))?;
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().await.unwrap_or_default();
+            return Err(Error::Unexpected(format!("HTTP {}: {}", status, body)));
+        }
+        Ok(())
     }
 
     /// Parse an HTTP response, handling errors appropriately.
@@ -372,8 +429,74 @@ impl ConnectApiClient {
                 canceled_at: t.canceled_at,
                 country_code: t.country_code,
                 created_at: t.created_at,
+                entitlements: t.entitlements,
             }),
         })
+    }
+
+    /// Whether the `CONNECT_BYPASS_PLAN_CHECK` dev escape hatch is set (via the
+    /// compile-time CI variable or a runtime env var). When true, every plan
+    /// gate short-circuits to "fully unlocked". See [`Self::has_broker_sync`].
+    pub fn plan_check_bypassed() -> bool {
+        const COMPILE_TIME_BYPASS: Option<&str> = option_env!("CONNECT_BYPASS_PLAN_CHECK");
+        let runtime_bypass = std::env::var("CONNECT_BYPASS_PLAN_CHECK").ok();
+        COMPILE_TIME_BYPASS == Some("true") || runtime_bypass.as_deref() == Some("true")
+    }
+
+    /// Open Stripe Checkout for a subscription. Returns the hosted-session URL
+    /// the caller should open in the user's default browser.
+    pub async fn create_checkout_session(
+        &self,
+        plan: &str,
+        interval: &str,
+    ) -> Result<CheckoutSessionResponse> {
+        let body = serde_json::json!({ "plan": plan, "interval": interval });
+        self.post_json("/api/v1/billing/checkout-session", &body)
+            .await
+    }
+
+    /// Open the Stripe Customer Portal for self-service plan management.
+    /// Returns `Err` (404) when the user has no Stripe customer yet — caller
+    /// should fall back to the upgrade modal in that case.
+    pub async fn create_billing_portal_session(&self) -> Result<BillingPortalResponse> {
+        let body = serde_json::json!({});
+        self.post_json("/api/v1/billing/portal", &body).await
+    }
+
+    /// Fire-and-forget usage report. The cloud increments AI-credit balances
+    /// and ledger rows; the desktop calls this after metered local actions
+    /// (broker poll trigger, CSV import, market refresh) so the cloud has the
+    /// authoritative count.
+    pub async fn report_usage(&self, metric: &str, units: i32) -> Result<()> {
+        let body = serde_json::json!({ "metric": metric, "units": units });
+        self.post_no_response("/api/v1/usage", &body).await
+    }
+
+    /// Resolve the current user's [`Entitlements`].
+    ///
+    /// Prefers an explicit `entitlements` object from the cloud (Contract §A)
+    /// when present; otherwise derives the matrix from the team's `plan` slug +
+    /// `subscription_status` via [`entitlements_for_plan`]. Honors the
+    /// `CONNECT_BYPASS_PLAN_CHECK` dev bypass (→ fully unlocked).
+    pub async fn get_entitlements(&self) -> Result<Entitlements> {
+        if Self::plan_check_bypassed() {
+            debug!("[ConnectApi] CONNECT_BYPASS_PLAN_CHECK=true — entitlements unlocked");
+            return Ok(Entitlements::unlimited());
+        }
+
+        let user_info = self.get_user_info().await?;
+        let team = match user_info.team {
+            Some(t) => t,
+            None => return Ok(Entitlements::default()),
+        };
+
+        if let Some(explicit) = team.entitlements {
+            return Ok(explicit);
+        }
+        Ok(entitlements_for_plan(
+            team.plan.as_deref(),
+            team.subscription_status.as_deref(),
+        ))
     }
 
     /// Get available subscription plans (authenticated).

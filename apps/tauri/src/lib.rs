@@ -406,6 +406,11 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            // Entitlements / feature gating
+            commands::entitlements::get_entitlements,
+            commands::entitlements::open_checkout,
+            commands::entitlements::open_billing_portal,
+            commands::entitlements::report_usage,
             // Account commands
             commands::account::get_accounts,
             commands::account::create_account,

@@ -2,6 +2,7 @@ import { isWeb, logger } from "@/adapters";
 import { RootErrorBoundary } from "@/components/root-error-boundary";
 import { AuthGate, AuthProvider } from "@/context/auth-context";
 import { MizanConnectProvider } from "@/features/mizan-connect";
+import { emitGatedError } from "@/features/mizan-connect/lib/gated-error-bus";
 import { SettingsProvider } from "@/lib/settings-provider";
 import { MutationCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@mizan/ui";
@@ -40,6 +41,9 @@ function App() {
         // a generic "please try again".
         mutationCache: new MutationCache({
           onError: (error, _variables, _context, mutation) => {
+            // Premium gate failures raise the contextual upgrade modal instead
+            // of a destructive error toast.
+            if (emitGatedError(error)) return;
             if (mutation.options.onError) return;
             const meta = mutation.options.meta as { suppressDefaultError?: boolean } | undefined;
             if (meta?.suppressDefaultError) return;

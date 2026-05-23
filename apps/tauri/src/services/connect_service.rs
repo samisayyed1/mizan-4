@@ -6,8 +6,8 @@
 use std::sync::Arc;
 
 use mizan_connect::{
-    ensure_valid_access_token, ConnectApiClient, TokenLifecycleConfig, TokenLifecycleState,
-    DEFAULT_CLOUD_API_URL,
+    ensure_valid_access_token, ConnectApiClient, Entitlements, TokenLifecycleConfig,
+    TokenLifecycleState, DEFAULT_CLOUD_API_URL,
 };
 use mizan_core::secrets::SecretStore;
 
@@ -121,5 +121,55 @@ impl ConnectService {
     pub async fn has_broker_sync(&self) -> Result<bool, String> {
         let client = self.get_api_client().await?;
         client.has_broker_sync().await.map_err(|e| e.to_string())
+    }
+
+    /// Resolve the current user's entitlements matrix.
+    ///
+    /// When the build has no cloud session (or the dev bypass is unset and the
+    /// user is signed out) this surfaces the underlying error; callers that
+    /// want a safe default for signed-out users should fall back to
+    /// [`mizan_connect::Entitlements::default`] on `Err`.
+    pub async fn get_entitlements(&self) -> Result<Entitlements, String> {
+        // The dev bypass must work even with no token / no cloud build, so
+        // short-circuit before requiring an API client.
+        if ConnectApiClient::plan_check_bypassed() {
+            return Ok(Entitlements::unlimited());
+        }
+        let client = self.get_api_client().await?;
+        client.get_entitlements().await.map_err(|e| e.to_string())
+    }
+
+    /// Fetch a Stripe Checkout URL for the requested plan/interval. The
+    /// caller opens this in the user's default browser; on return, focus
+    /// listeners invalidate the entitlements query so the new plan unlocks.
+    pub async fn create_checkout_url(&self, plan: &str, interval: &str) -> Result<String, String> {
+        let client = self.get_api_client().await?;
+        client
+            .create_checkout_session(plan, interval)
+            .await
+            .map(|r| r.url)
+            .map_err(|e| e.to_string())
+    }
+
+    /// Fetch a Stripe Customer Portal URL for self-service plan management.
+    pub async fn create_billing_portal_url(&self) -> Result<String, String> {
+        let client = self.get_api_client().await?;
+        client
+            .create_billing_portal_session()
+            .await
+            .map(|r| r.url)
+            .map_err(|e| e.to_string())
+    }
+
+    /// Fire-and-forget usage report. Failures are logged but don't abort the
+    /// caller — the cloud's authoritative reading of /user/me corrects any
+    /// drift on the next refresh.
+    pub async fn report_usage(&self, metric: &str, units: i32) {
+        let Ok(client) = self.get_api_client().await else {
+            return;
+        };
+        if let Err(e) = client.report_usage(metric, units).await {
+            log::warn!("usage report failed (metric={metric}, units={units}): {e}");
+        }
     }
 }

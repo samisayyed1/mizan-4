@@ -27,6 +27,12 @@ interface HistoryChartProps {
   showMarkers?: boolean;
   /** Callback when a marker is clicked */
   onMarkerClick?: (date: string) => void;
+  /**
+   * When set, render the series in this single accent color (any CSS
+   * color string) instead of the gain/loss green/red split. Used by
+   * per-asset-class charts so each class shows in its own color.
+   */
+  accentColor?: string;
 }
 
 interface TooltipEntry {
@@ -42,6 +48,7 @@ interface TooltipBaseProps {
 interface CustomTooltipProps extends TooltipBaseProps {
   isBalanceHidden: boolean;
   isChartHovered: boolean;
+  accentColor?: string;
 }
 
 const CustomTooltip = ({
@@ -49,6 +56,7 @@ const CustomTooltip = ({
   payload,
   isBalanceHidden,
   isChartHovered,
+  accentColor,
 }: CustomTooltipProps) => {
   if (!active || !payload?.length) {
     return null;
@@ -71,7 +79,8 @@ const CustomTooltip = ({
   }
 
   const netContributionPayload = ncPayload ?? tvPayload;
-  const tooltipColor = tvPayload.totalValue >= 0 ? "var(--success)" : "var(--destructive)";
+  const tooltipColor =
+    accentColor ?? (tvPayload.totalValue >= 0 ? "var(--success)" : "var(--destructive)");
 
   return (
     <div className="bg-popover pointer-events-none grid grid-cols-1 gap-1.5 rounded-md border p-2 shadow-md">
@@ -116,6 +125,7 @@ export function HistoryChart({
   snapshotDates,
   showMarkers,
   onMarkerClick,
+  accentColor,
 }: HistoryChartProps) {
   const { triggerHaptic } = useHapticFeedback();
   const { isBalanceHidden } = useBalancePrivacy();
@@ -275,7 +285,13 @@ export function HistoryChart({
       >
         <defs>
           <linearGradient id={fillGradientId} x1="0" y1="0" x2="0" y2="1">
-            {allNegative ? (
+            {accentColor ? (
+              <>
+                <stop offset="5%" stopColor={accentColor} stopOpacity={0.2} />
+                <stop offset="70%" stopColor={accentColor} stopOpacity={0.12} />
+                <stop offset="100%" stopColor={accentColor} stopOpacity={0} />
+              </>
+            ) : allNegative ? (
               <>
                 <stop offset="5%" stopColor="var(--destructive)" stopOpacity={0.2} />
                 <stop offset="70%" stopColor="var(--destructive)" stopOpacity={0.12} />
@@ -297,7 +313,9 @@ export function HistoryChart({
             )}
           </linearGradient>
           <linearGradient id={strokeGradientId} x1="0" y1="0" x2="0" y2="1">
-            {allNegative ? (
+            {accentColor ? (
+              <stop offset="0%" stopColor={accentColor} />
+            ) : allNegative ? (
               <stop offset="0%" stopColor="var(--destructive)" />
             ) : allPositive ? (
               <stop offset="0%" stopColor="var(--success)" />
@@ -318,6 +336,7 @@ export function HistoryChart({
               {...(props as unknown as TooltipBaseProps)}
               isBalanceHidden={isBalanceHidden}
               isChartHovered={isChartHovered}
+              accentColor={accentColor}
             />
           )}
         />
@@ -369,7 +388,9 @@ export function HistoryChart({
                 return (
                   <polygon
                     points={`${cx},${cy - size} ${cx + size},${cy} ${cx},${cy + size} ${cx - size},${cy}`}
-                    fill={point.value >= 0 ? "var(--success)" : "var(--destructive)"}
+                    fill={
+                      accentColor ?? (point.value >= 0 ? "var(--success)" : "var(--destructive)")
+                    }
                     stroke="hsl(var(--background))"
                     strokeWidth={2}
                     style={{ pointerEvents: "none" }}

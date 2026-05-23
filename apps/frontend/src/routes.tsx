@@ -6,6 +6,7 @@ import { OnboardingLayout } from "@/pages/layouts/onboarding-layout";
 import SettingsLayout from "@/pages/settings/settings-layout";
 
 import { getDynamicRoutes, subscribeToNavigationUpdates } from "@/addons/addons-runtime-context";
+import { UpgradeGateProvider } from "@/features/mizan-connect/providers/upgrade-gate-provider";
 import AuthCallbackPage from "@/features/mizan-connect/pages/auth-callback-page";
 import ConnectPage from "@/features/mizan-connect/pages/connect-page";
 import ActivityManagerPage from "@/pages/activity/activity-manager-page";
@@ -66,73 +67,77 @@ export function AppRoutes() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        {/* QR Scanner - No layout for fullscreen camera access */}
-        {/* <Route path="/qr-scanner" element={<QRScannerPage />} /> */}
+      <UpgradeGateProvider>
+        <Routes>
+          {/* QR Scanner - No layout for fullscreen camera access */}
+          {/* <Route path="/qr-scanner" element={<QRScannerPage />} /> */}
 
-        {/* Auth callback - PKCE code exchange handler for Mizan Connect */}
-        <Route path="/auth/callback" element={<AuthCallbackPage />} />
+          {/* Auth callback - PKCE code exchange handler for Mizan Connect */}
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
-        {/* Onboarding with dedicated layout */}
-        <Route path="/onboarding" element={<OnboardingLayout />}>
-          <Route index element={<OnboardingPage />} />
-        </Route>
-
-        {/* Main app with sidebar */}
-        <Route path="/" element={<AppLayout />}>
-          <Route index element={<PortfolioPage />} />
-          <Route path="dashboard" element={<PortfolioPage />} />
-          <Route path="activities" element={<ActivityPage />} />
-          <Route path="activities/manage" element={<ActivityManagerPage />} />
-          <Route path="holdings" element={<HoldingsPage />} />
-          <Route path="news" element={<NewsPage />} />
-          <Route path="holdings-insights" element={<HoldingsInsightsPage />} />
-          <Route path="holdings/:assetId" element={<AssetProfilePage />} />
-          <Route path="import" element={<ActivityImportPage />} />
-          <Route path="accounts/:id" element={<AccountPage />} />
-          <Route path="income" element={<IncomePage />} />
-          <Route path="performance" element={<PerformancePage />} />
-          <Route path="insights" element={<PortfolioInsightsPage />} />
-          <Route path="health" element={<HealthPage />} />
-          <Route path="assistant" element={<AiAssistantPage />} />
-          <Route path="connect" element={<ConnectPage />} />
-          <Route path="goals" element={<GoalsDashboardPage />} />
-          <Route path="goals/new" element={<GoalNewPage />} />
-          <Route path="goals/:goalId/guide" element={<GoalRetirementGuidePage />} />
-          <Route path="goals/:goalId" element={<GoalDetailPage />} />
-          {/* Dynamic addon routes */}
-          {dynamicRoutes.map(({ path, component: Component }) => (
-            <Route
-              key={path}
-              path={path}
-              element={
-                <Suspense
-                  fallback={<div className="flex h-64 items-center justify-center">Loading...</div>}
-                >
-                  <Component />
-                </Suspense>
-              }
-            />
-          ))}
-          <Route path="settings" element={<SettingsLayout />}>
-            <Route index element={<GeneralSettingsPage />} />
-            <Route path="general" element={<GeneralSettingsPage />} />
-            <Route path="accounts" element={<SettingsAccountsPage />} />
-            <Route path="appearance" element={<SettingsAppearancePage />} />
-            <Route path="about" element={<AboutSettingsPage />} />
-            <Route path="exports" element={<ExportSettingsPage />} />
-            <Route path="contribution-limits" element={<ContributionLimitPage />} />
-            <Route path="market-data" element={<MarketDataSettingsPage />} />
-            <Route path="market-data/import" element={<MarketDataImportPage />} />
-            <Route path="securities" element={<AssetsPage />} />
-            <Route path="taxonomies" element={<TaxonomiesPage />} />
-            <Route path="connect" element={<ConnectSettingsPage />} />
-            <Route path="ai-providers" element={<AiProvidersPage />} />
-            <Route path="addons" element={<AddonSettingsPage />} />
+          {/* Onboarding with dedicated layout */}
+          <Route path="/onboarding" element={<OnboardingLayout />}>
+            <Route index element={<OnboardingPage />} />
           </Route>
-          <Route path="*" element={<NotFoundPage />} />
-        </Route>
-      </Routes>
+
+          {/* Main app with sidebar */}
+          <Route path="/" element={<AppLayout />}>
+            <Route index element={<PortfolioPage />} />
+            <Route path="dashboard" element={<PortfolioPage />} />
+            <Route path="activities" element={<ActivityPage />} />
+            <Route path="activities/manage" element={<ActivityManagerPage />} />
+            <Route path="holdings" element={<HoldingsPage />} />
+            <Route path="news" element={<NewsPage />} />
+            <Route path="holdings-insights" element={<HoldingsInsightsPage />} />
+            <Route path="holdings/:assetId" element={<AssetProfilePage />} />
+            <Route path="import" element={<ActivityImportPage />} />
+            <Route path="accounts/:id" element={<AccountPage />} />
+            <Route path="income" element={<IncomePage />} />
+            <Route path="performance" element={<PerformancePage />} />
+            <Route path="insights" element={<PortfolioInsightsPage />} />
+            <Route path="health" element={<HealthPage />} />
+            <Route path="assistant" element={<AiAssistantPage />} />
+            <Route path="connect" element={<ConnectPage />} />
+            <Route path="goals" element={<GoalsDashboardPage />} />
+            <Route path="goals/new" element={<GoalNewPage />} />
+            <Route path="goals/:goalId/guide" element={<GoalRetirementGuidePage />} />
+            <Route path="goals/:goalId" element={<GoalDetailPage />} />
+            {/* Dynamic addon routes */}
+            {dynamicRoutes.map(({ path, component: Component }) => (
+              <Route
+                key={path}
+                path={path}
+                element={
+                  <Suspense
+                    fallback={
+                      <div className="flex h-64 items-center justify-center">Loading...</div>
+                    }
+                  >
+                    <Component />
+                  </Suspense>
+                }
+              />
+            ))}
+            <Route path="settings" element={<SettingsLayout />}>
+              <Route index element={<GeneralSettingsPage />} />
+              <Route path="general" element={<GeneralSettingsPage />} />
+              <Route path="accounts" element={<SettingsAccountsPage />} />
+              <Route path="appearance" element={<SettingsAppearancePage />} />
+              <Route path="about" element={<AboutSettingsPage />} />
+              <Route path="exports" element={<ExportSettingsPage />} />
+              <Route path="contribution-limits" element={<ContributionLimitPage />} />
+              <Route path="market-data" element={<MarketDataSettingsPage />} />
+              <Route path="market-data/import" element={<MarketDataImportPage />} />
+              <Route path="securities" element={<AssetsPage />} />
+              <Route path="taxonomies" element={<TaxonomiesPage />} />
+              <Route path="connect" element={<ConnectSettingsPage />} />
+              <Route path="ai-providers" element={<AiProvidersPage />} />
+              <Route path="addons" element={<AddonSettingsPage />} />
+            </Route>
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+        </Routes>
+      </UpgradeGateProvider>
     </BrowserRouter>
   );
 }

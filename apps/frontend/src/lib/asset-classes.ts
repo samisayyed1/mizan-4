@@ -82,6 +82,30 @@ export const ASSET_CLASS_ICON_NAMES: Record<AssetClass, string> = {
 };
 
 /**
+ * A stable accent color per asset class (Feroz: "every asset class a
+ * different colored graph"). Each class maps to a distinct Flexoki hue
+ * defined as a theme token in `globals.css` (`--asset-*`), so the colors
+ * are genuinely different yet stay inside the app's paper palette and
+ * adapt to light/dark. Consumed by the per-class history chart and the
+ * asset-class card weight bar so the two always agree.
+ */
+const ASSET_CLASS_TOKEN: Record<AssetClass, string> = {
+  STOCKS: "var(--asset-stocks)",
+  SUKUKS: "var(--asset-sukuks)",
+  ETFS: "var(--asset-etfs)",
+  BONDS: "var(--asset-bonds)",
+  BANK_ACCOUNTS: "var(--asset-bank)",
+  PROPERTY: "var(--asset-property)",
+  COLLECTIBLES: "var(--asset-collectibles)",
+  PRECIOUS_METALS: "var(--asset-metals)",
+  OTHER: "var(--asset-other)",
+};
+
+export function assetClassColor(cls: AssetClass): string {
+  return ASSET_CLASS_TOKEN[cls] ?? "var(--asset-other)";
+}
+
+/**
  * Stable display order on the Portfolio detail page. Matches the order
  * Feroz enumerated on the call. New classes append at the end (before
  * OTHER) — never insert in the middle.

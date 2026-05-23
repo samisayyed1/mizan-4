@@ -851,6 +851,11 @@ pub struct UserTeam {
     pub canceled_at: Option<String>,
     pub country_code: Option<String>,
     pub created_at: Option<String>,
+    /// Explicit entitlements from the cloud (Contract §A); `None` on backends
+    /// that don't yet return them, in which case entitlements are derived from
+    /// `plan` + `subscription_status`.
+    #[serde(default)]
+    pub entitlements: Option<crate::entitlements::Entitlements>,
 }
 
 /// User information from the cloud API

@@ -379,12 +379,33 @@ pub async fn import_activities(
     state: State<'_, Arc<ServiceContext>>,
 ) -> Result<ImportActivitiesResult, String> {
     debug!("Importing {} activities", activities.len());
+
+    // CSV import gate. Free tier still gets one import/month; the desktop
+    // can't count cleanly without an ImportRun query, so for the boolean
+    // gate we just check `csv_imports_monthly > 0`. The cloud's
+    // `/v1/usage` ledger does the authoritative monthly-cap enforcement
+    // (the desktop reports usage after each successful import — see
+    // [`crate::commands::entitlements::report_usage`]).
+    let entitlements = crate::commands::entitlements::resolve_entitlements(&state).await;
+    crate::commands::entitlements::gated(
+        entitlements.csv_imports_monthly != 0,
+        "csv_imports",
+        "basic",
+        &entitlements.plan,
+        "CSV import with AI column mapping is included with a Mizan subscription.",
+    )?;
+
     // Domain events handle recalculation and asset enrichment automatically
-    state
+    let result = state
         .activity_service()
         .import_activities(activities)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+
+    // Fire-and-forget usage report to the cloud ledger (B5).
+    state.connect_service().report_usage("csv_intel", 1).await;
+
+    Ok(result)
 }
 
 #[tauri::command]

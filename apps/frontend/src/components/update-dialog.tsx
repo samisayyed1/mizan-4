@@ -156,7 +156,8 @@ export function UpdateDialog() {
         <div className="flex-1 overflow-y-auto">
           {/* Header */}
           <div className="relative px-6 pb-4 pt-6">
-            <button type="button"
+            <button
+              type="button"
               onClick={handleDismiss}
               className="bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground absolute right-4 top-4 rounded-full p-2 transition-all duration-200 hover:scale-105"
               aria-label="Close dialog"
