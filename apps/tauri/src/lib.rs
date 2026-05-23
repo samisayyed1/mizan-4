@@ -408,6 +408,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             // Entitlements / feature gating
             commands::entitlements::get_entitlements,
+            // Zakat assessment (Pro)
+            commands::zakat::compute_zakat,
             commands::entitlements::open_checkout,
             commands::entitlements::open_billing_portal,
             commands::entitlements::report_usage,

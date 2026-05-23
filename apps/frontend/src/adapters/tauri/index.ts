@@ -103,6 +103,9 @@ export * from "../shared/secrets";
 // Connect Commands (Broker + Device Sync + Auth)
 export * from "../shared/connect";
 
+// Zakat assessment (M3.7, Pro)
+export * from "../shared/zakat";
+
 // AI Providers Commands
 export * from "../shared/ai-providers";
 
