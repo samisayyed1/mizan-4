@@ -11,11 +11,13 @@ import { cn } from "@/lib/utils";
 import { GainPercent } from "@mizan/ui";
 import React, { useState } from "react";
 
-// Explanatory texts for info popovers
+// Explanatory texts for info popovers.
+// Symbol names keep the old "TWR / MWR" wording for grep-ability; the user-
+// visible strings are plain-English so a non-finance reader gets the gist.
 export const TIME_WEIGHTED_RETURN_INFO =
-  "Time-Weighted Return (TWR) measures the compound growth rate of a portfolio, ignoring the impact of cash flows (deposits/withdrawals). It isolates the performance of the underlying investments.";
+  "Investment growth — how your portfolio's underlying investments performed, ignoring deposits and withdrawals. This isolates the picks from the timing.";
 export const MONEY_WEIGHTED_RETURN_INFO =
-  "Money-Weighted Return (MWR) measures the performance of a portfolio taking into account the size and timing of cash flows. It represents the internal rate of return (IRR) of the portfolio.";
+  "Net performance — your actual rate of return, taking into account when you added or withdrew money. This is what your real account did, end to end.";
 export const VOLATILITY_INFO =
   "Volatility measures the dispersion of returns for a given investment. Higher volatility means the price of the investment can change dramatically over a short time period in either direction.";
 export const MAX_DRAWDOWN_INFO =

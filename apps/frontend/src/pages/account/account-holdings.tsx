@@ -96,7 +96,7 @@ const AccountHoldings = ({
             title="No holdings yet"
             description={
               canEditHoldingsDirectly
-                ? "Add your current holdings snapshot or import from a CSV file to get started."
+                ? "Add your current holdings or import from a CSV file to get started."
                 : "Holdings will be synced from your connected account."
             }
           >

@@ -1,6 +1,7 @@
 import { isWeb } from "@/adapters";
-import { isAppleDevice } from "@/lib/device-utils";
 import { useAuth } from "@/context/auth-context";
+import { useAddAsset } from "@/features/add-asset";
+import { isAppleDevice } from "@/lib/device-utils";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -186,7 +187,44 @@ interface NavItemProps {
 
 function NavItem({ item, collapsed, className, ...props }: NavItemProps) {
   const location = useLocation();
+  const addAsset = useAddAsset();
   const isActive = isPathActive(location.pathname, item.href);
+
+  const labelSpan = (
+    <span
+      className={cn({
+        "ml-2 transition-opacity delay-100 duration-300 ease-in-out": true,
+        "sr-only opacity-0": collapsed,
+        "block opacity-100": !collapsed,
+      })}
+    >
+      {item.title}
+    </span>
+  );
+
+  // Action items (today: only "Add") render as buttons that fire a global
+  // handler instead of navigating. Keeps the nav declarative — the discrim
+  // lives on the data, not the renderer.
+  if (item.action === "openAddAssetWizard") {
+    return (
+      <Button
+        key={item.title}
+        type="button"
+        variant="ghost"
+        onClick={() => addAsset.open()}
+        title={item.title}
+        className={cn(
+          "text-foreground [&_svg]:size-5! mb-1 h-12 rounded-md transition-all duration-300",
+          collapsed ? "justify-center" : "justify-start",
+          className,
+        )}
+        {...props}
+      >
+        <span aria-hidden="true">{item.icon ?? <Icons.Plus className="h-5 w-5" />}</span>
+        {labelSpan}
+      </Button>
+    );
+  }
 
   return (
     <Button
@@ -207,16 +245,7 @@ function NavItem({ item, collapsed, className, ...props }: NavItemProps) {
         {...props}
       >
         <span aria-hidden="true">{item.icon ?? <Icons.ArrowRight className="h-5 w-5" />}</span>
-
-        <span
-          className={cn({
-            "ml-2 transition-opacity delay-100 duration-300 ease-in-out": true,
-            "sr-only opacity-0": collapsed,
-            "block opacity-100": !collapsed,
-          })}
-        >
-          {item.title}
-        </span>
+        {labelSpan}
       </Link>
     </Button>
   );

@@ -1,4 +1,5 @@
 import { LiquidGlass } from "@/components/liquid-glass";
+import { useAddAsset } from "@/features/add-asset";
 import { useHapticFeedback } from "@/hooks/use-haptic-feedback";
 import { cn } from "@/lib/utils";
 import {
@@ -23,6 +24,7 @@ interface MobileNavBarProps {
 export function MobileNavBar({ navigation }: MobileNavBarProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const addAsset = useAddAsset();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [addonsSheetOpen, setAddonsSheetOpen] = useState(false);
   const { triggerHaptic } = useHapticFeedback();
@@ -60,15 +62,12 @@ export function MobileNavBar({ navigation }: MobileNavBarProps) {
   const secondaryItems = navigation?.secondary ?? [];
   const addonItems = navigation?.addons ?? [];
 
-  const searchItem = {
-    title: "Search",
-    href: "#search",
-    icon: <Icons.Search2 className="size-6" />,
-  };
-
-  const visibleItems = [primaryItems[0], primaryItems[1], searchItem].filter(Boolean);
-
-  const menuItems = [...primaryItems.slice(2), ...secondaryItems];
+  // M2 simplification: show all 5 primary tabs in the bottom bar. Search is
+  // still reachable via Cmd/Ctrl+K (or long-press on Home), so dropping the
+  // synthetic search slot frees room for the full nav. Settings + addons live
+  // behind the "more" sheet at the end of the row when present.
+  const visibleItems = primaryItems;
+  const menuItems = secondaryItems;
 
   const hasMenu = menuItems.length > 0 || addonItems.length > 0;
   const hasAddons = addonItems.length > 0;
@@ -90,30 +89,35 @@ export function MobileNavBar({ navigation }: MobileNavBarProps) {
           >
             {visibleItems.map((item) => {
               const isActive = isPathActive(location.pathname, item.href);
-              const isSearch = item.href === "#search";
+
+              // Action items (today: Add) fire a global handler instead of
+              // navigating. Render as a button — no href.
+              if (item.action === "openAddAssetWizard") {
+                return (
+                  <button
+                    type="button"
+                    key={item.href}
+                    onClick={() => {
+                      triggerHaptic();
+                      addAsset.open();
+                    }}
+                    aria-label={item.title}
+                    className="text-foreground relative z-10 flex h-14 w-full items-center justify-center rounded-full transition-colors"
+                  >
+                    <span
+                      className="relative flex size-7 shrink-0 items-center justify-center outline-none"
+                      aria-hidden="true"
+                    >
+                      {renderIcon(item.icon)}
+                    </span>
+                  </button>
+                );
+              }
 
               return (
                 <Link
                   to={item.href}
-                  onClick={(e) => {
-                    if (isSearch) {
-                      e.preventDefault();
-                      triggerHaptic();
-                      const event = new KeyboardEvent("keydown", {
-                        key: "k",
-                        code: "KeyK",
-                        keyCode: 75,
-                        which: 75,
-                        metaKey: true,
-                        ctrlKey: true,
-                        bubbles: true,
-                        cancelable: true,
-                      });
-                      document.dispatchEvent(event);
-                    } else {
-                      handleNavigation(item.href, isActive);
-                    }
-                  }}
+                  onClick={() => handleNavigation(item.href, isActive)}
                   aria-label={item.title}
                   className="text-foreground relative z-10 flex h-14 w-full items-center justify-center rounded-full transition-colors"
                   key={item.href}

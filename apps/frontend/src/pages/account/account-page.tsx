@@ -25,7 +25,7 @@ import {
   TooltipTrigger,
   getInitialIntervalData,
 } from "@mizan/ui";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ActionPalette, type ActionPaletteGroup } from "@/components/action-palette";
 import { FixedDepositDialog } from "@/components/fixed-deposit-dialog";
@@ -81,7 +81,7 @@ import {
   SheetTrigger,
 } from "@mizan/ui/components/ui/sheet";
 import { format, parseISO } from "date-fns";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { AccountContributionLimit } from "./account-contribution-limit";
 import AccountMetrics from "./account-metrics";
 import AccountSnapshotHistory from "./account-snapshot-history";
@@ -133,6 +133,7 @@ const AccountPage = () => {
   const baseCurrency = settings?.baseCurrency ?? "USD";
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [dateRange, setDateRange] = useState<DateRange | undefined>(getInitialDateRange());
   const [selectedIntervalCode, setSelectedIntervalCode] =
     useState<TimePeriod>(INITIAL_INTERVAL_CODE);
@@ -140,6 +141,18 @@ const AccountPage = () => {
   const [mobileSelectorOpen, setMobileSelectorOpen] = useState(false);
   const [actionPaletteOpen, setActionPaletteOpen] = useState(false);
   const [isEditingHoldings, setIsEditingHoldings] = useState(false);
+
+  // The Add-Asset wizard (M2.2) deep-links securities-kind picks here with
+  // `?addHoldings=1` so the user lands straight in the holdings editor. Strip
+  // the param after consuming it so a back-nav doesn't re-trigger.
+  useEffect(() => {
+    if (searchParams.get("addHoldings") === "1") {
+      setIsEditingHoldings(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete("addHoldings");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
   const [bankModalOpen, setBankModalOpen] = useState(false);
   const [altModalOpen, setAltModalOpen] = useState(false);
   const [altKind, setAltKind] = useState<AlternativeAssetKind>(AlternativeAssetKind.PROPERTY);
