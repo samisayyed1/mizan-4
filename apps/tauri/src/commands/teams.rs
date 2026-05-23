@@ -12,6 +12,7 @@ use tauri::State;
 use crate::context::ServiceContext;
 
 /// `list_my_teams() -> MyTeamsResponse`
+#[allow(dead_code)] // referenced by tauri::generate_handler! in lib.rs
 #[tauri::command]
 pub async fn list_my_teams(
     state: State<'_, Arc<ServiceContext>>,
@@ -20,6 +21,7 @@ pub async fn list_my_teams(
 }
 
 /// `list_team_members(teamId) -> TeamMembersResponse`
+#[allow(dead_code)] // referenced by tauri::generate_handler! in lib.rs
 #[tauri::command(rename_all = "camelCase")]
 pub async fn list_team_members(
     team_id: String,

@@ -159,12 +159,14 @@ impl ConnectService {
     }
 
     /// List every team the caller is a member of (M5.2).
+    #[allow(dead_code)] // called via commands::teams in lib.rs invoke_handler
     pub async fn list_my_teams(&self) -> Result<MyTeamsResponse, String> {
         let client = self.get_api_client().await?;
         client.list_my_teams().await.map_err(|e| e.to_string())
     }
 
     /// Roster of one team (M5.2). Returns 403 when the caller isn't a member.
+    #[allow(dead_code)] // called via commands::teams in lib.rs invoke_handler
     pub async fn list_team_members(&self, team_id: &str) -> Result<TeamMembersResponse, String> {
         let client = self.get_api_client().await?;
         client
