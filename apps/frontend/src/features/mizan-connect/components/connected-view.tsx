@@ -17,8 +17,10 @@ import { toast } from "@mizan/ui/components/ui/use-toast";
 import { formatDate } from "@/lib/utils";
 import { useCallback, useMemo, useState } from "react";
 import { useCreateBrokerLoginPortal } from "../hooks";
+import { useEntitlements } from "../hooks/use-entitlements";
 import { useIsBrokerSyncRunning, useSyncBrokerData } from "../hooks/use-sync-broker-data";
 import { useMizanConnect } from "../providers/mizan-connect-provider";
+import { useUpgradeGate } from "../providers/upgrade-gate-provider";
 import {
   deleteBrokerConnection,
   listBrokerAccounts,
@@ -367,7 +369,25 @@ function BrokerConnectionsCard({
   // every entry point goes through useCreateBrokerLoginPortal so we get
   // the polling refetch and consistent error toasts for free.
   const [portal, isPolling] = useCreateBrokerLoginPortal();
-  const handleConnect = () => portal.mutate(undefined);
+  const { entitlements } = useEntitlements();
+  const { requestUpgrade } = useUpgradeGate();
+
+  // Connection cap: Pro = 5, Enterprise = unlimited (-1). The cloud
+  // enforces this server-side too; the UI gate is just to avoid a round-
+  // trip when the user is already at the cap.
+  const cap = entitlements.maxBrokerConnections;
+  const isUnlimited = cap < 0;
+  const used = connections.length;
+  const atCap = !isUnlimited && used >= cap;
+  const capLabel = isUnlimited ? null : `${used} / ${cap} used`;
+
+  const handleConnect = () => {
+    if (atCap) {
+      requestUpgrade("max_broker_connections");
+      return;
+    }
+    portal.mutate(undefined);
+  };
   const isPortalBusy = portal.isPending || isPolling;
   const portalLabel = portal.isPending
     ? "Opening portal..."
@@ -384,6 +404,11 @@ function BrokerConnectionsCard({
               <Icons.Link className="text-muted-foreground h-4 w-4" />
             </div>
             <h3 className="text-base font-semibold">Broker connections</h3>
+            {capLabel && (
+              <Badge variant={atCap ? "destructive" : "secondary"} className="ml-1 text-[10px]">
+                {capLabel}
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-1">
             <Button
@@ -403,10 +428,12 @@ function BrokerConnectionsCard({
               className="text-muted-foreground hover:text-foreground sm:hidden"
               onClick={handleConnect}
               disabled={isPortalBusy}
-              aria-label="Add broker"
+              aria-label={atCap ? "Upgrade for more broker connections" : "Add broker"}
             >
               {isPortalBusy ? (
                 <Icons.Spinner className="h-4 w-4 animate-spin" />
+              ) : atCap ? (
+                <Icons.Sparkles className="h-4 w-4" />
               ) : (
                 <Icons.Plus className="h-4 w-4" />
               )}
@@ -423,6 +450,11 @@ function BrokerConnectionsCard({
                 <>
                   <Icons.Spinner className="mr-1 h-4 w-4 animate-spin" />
                   {portalLabel ?? "Connecting..."}
+                </>
+              ) : atCap ? (
+                <>
+                  <Icons.Sparkles className="mr-1 h-3.5 w-3.5" />
+                  Upgrade for more
                 </>
               ) : (
                 <>

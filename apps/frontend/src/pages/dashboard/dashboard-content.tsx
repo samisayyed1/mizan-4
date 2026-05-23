@@ -25,6 +25,7 @@ import { useMemo, useState } from "react";
 import { AccountsSummary } from "./accounts-summary";
 import { NewsHomeWidget } from "./news-home-widget";
 import { PortfolioHealthCard } from "./portfolio-health-card";
+import { ZakatCard } from "./zakat-card";
 import Balance from "./balance";
 import SavingGoals from "./goals";
 
@@ -257,6 +258,7 @@ export function DashboardContent() {
             <div className="space-y-6 lg:col-span-1">
               <SavingGoals />
               <PortfolioHealthCard />
+              <ZakatCard />
               <NewsHomeWidget />
             </div>
           </div>
