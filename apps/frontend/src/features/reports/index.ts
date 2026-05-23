@@ -13,3 +13,13 @@ export { ReportSection } from "./report-section";
 export type { ReportSectionProps } from "./report-section";
 export { useReportRenderer } from "./use-report-renderer";
 export type { RenderOptions, RenderResult } from "./use-report-renderer";
+
+// Report templates (M4.2)
+export { IncomeReport } from "./templates/income-report";
+export type { IncomeReportData } from "./templates/income-report";
+export { RentalReport } from "./templates/rental-report";
+export type { RentalReportData, RentalProperty } from "./templates/rental-report";
+export { PayoffReport } from "./templates/payoff-report";
+export type { PayoffReportData } from "./templates/payoff-report";
+export { HealthReport } from "./templates/health-report";
+export type { HealthReportData } from "./templates/health-report";

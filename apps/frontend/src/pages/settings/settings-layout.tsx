@@ -55,8 +55,14 @@ const settingsSections = [
         icon: <Icons.Coins className="size-5" />,
       },
       {
-        title: "Monthly reports",
+        title: "Reports",
         href: "/reports",
+        subtitle: "Income, rental, payoff, portfolio health (Pro)",
+        icon: <Icons.FileText className="size-5" />,
+      },
+      {
+        title: "Monthly AI report",
+        href: "/reports/monthly",
         subtitle: "AI wealth summary, generated each month",
         icon: <Icons.Sparkles className="size-5" />,
       },

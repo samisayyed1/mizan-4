@@ -72,7 +72,7 @@ export function useReportRenderer() {
 
     try {
       // Mount and wait one paint so fonts/images settle before capture.
-      root.render(opts.tree as React.ReactNode);
+      root.render(opts.tree);
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 

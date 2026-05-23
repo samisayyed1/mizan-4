@@ -520,7 +520,7 @@ export function useChatRuntime(config?: ChatModelConfig) {
             );
             if (imgContent) {
               const raw = imgContent.image.includes(",")
-                ? imgContent.image.split(",")[1]!
+                ? imgContent.image.split(",")[1]
                 : imgContent.image;
               attachmentPayloads.push({
                 name: attachment.name,

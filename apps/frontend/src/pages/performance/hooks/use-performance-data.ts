@@ -53,8 +53,8 @@ export function useCalculatePerformanceHistory({
         calculatePerformanceHistory(
           item.type,
           item.id,
-          startDate!,
-          endDate!,
+          startDate,
+          endDate,
           // Only pass trackingMode for accounts, not for symbols
           item.type === "account" ? trackingMode : undefined,
         ),

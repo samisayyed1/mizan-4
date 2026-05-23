@@ -71,7 +71,7 @@ function normalizeMappingResult(raw: RawResult, csvContent: string): NormalizeRe
     return { mapping: null, errorMessage: cleanErrorMessage(String(raw)) };
   }
 
-  const obj = raw as Record<string, unknown>;
+  const obj = raw;
 
   // Check for error envelope: { error: "..." }
   if ("error" in obj && typeof obj.error === "string") {
