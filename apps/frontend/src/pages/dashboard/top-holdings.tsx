@@ -282,7 +282,8 @@ export function TopHoldings({ holdings, isLoading, baseCurrency }: TopHoldingsPr
                 Show
               </p>
               {(["total", "daily"] as const).map((v) => (
-                <button type="button"
+                <button
+                  type="button"
                   key={v}
                   className="hover:bg-accent flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm font-medium transition-colors"
                   onClick={() => setShowTotalReturn(v === "total")}
@@ -307,7 +308,8 @@ export function TopHoldings({ holdings, isLoading, baseCurrency }: TopHoldingsPr
                 Sort by
               </p>
               {(["value", "gain"] as const).map((v) => (
-                <button type="button"
+                <button
+                  type="button"
                   key={v}
                   className="hover:bg-accent flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm font-medium transition-colors"
                   onClick={() => setSortBy(v)}
@@ -330,7 +332,8 @@ export function TopHoldings({ holdings, isLoading, baseCurrency }: TopHoldingsPr
                 Display
               </p>
               {(["symbol", "name"] as const).map((v) => (
-                <button type="button"
+                <button
+                  type="button"
                   key={v}
                   className="hover:bg-accent flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm font-medium transition-colors"
                   onClick={() => setDisplayMode(v)}

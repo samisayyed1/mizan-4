@@ -144,7 +144,8 @@ export function MobileNavBar({ navigation }: MobileNavBarProps) {
             {hasMenu && (
               <DropdownMenu open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <DropdownMenuTrigger asChild>
-                  <button type="button"
+                  <button
+                    type="button"
                     onClick={triggerHaptic}
                     aria-label="More options"
                     className="text-foreground relative z-10 flex h-14 w-full items-center justify-center rounded-full transition-colors"
@@ -201,7 +202,8 @@ export function MobileNavBar({ navigation }: MobileNavBarProps) {
 
                   {hasAddons && (
                     <LiquidGlass variant="floating" intensity="subtle">
-                      <button type="button"
+                      <button
+                        type="button"
                         onClick={() => {
                           triggerHaptic();
                           setMobileMenuOpen(false);
