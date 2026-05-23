@@ -48,6 +48,12 @@ const settingsSections = [
         subtitle: "Symbol library and custom assets",
         icon: <Icons.BadgeDollarSign className="size-5" />,
       },
+      {
+        title: "Zakat",
+        href: "/zakat",
+        subtitle: "Annual Zakat assessment (Pro)",
+        icon: <Icons.Coins className="size-5" />,
+      },
     ],
   },
   {

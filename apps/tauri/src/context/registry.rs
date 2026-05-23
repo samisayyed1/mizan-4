@@ -45,6 +45,7 @@ pub struct ServiceContext {
     pub allocation_service: Arc<dyn portfolio::allocation::AllocationServiceTrait>,
     pub valuation_service: Arc<dyn portfolio::valuation::ValuationServiceTrait>,
     pub net_worth_service: Arc<dyn portfolio::net_worth::NetWorthServiceTrait>,
+    pub zakat_service: Arc<dyn portfolio::zakat::ZakatServiceTrait>,
     pub sync_service: Arc<dyn BrokerSyncServiceTrait>,
     pub alternative_asset_service: Arc<dyn AlternativeAssetServiceTrait>,
     pub taxonomy_service: Arc<dyn taxonomies::TaxonomyServiceTrait>,
@@ -144,6 +145,10 @@ impl ServiceContext {
 
     pub fn sync_service(&self) -> Arc<dyn BrokerSyncServiceTrait> {
         Arc::clone(&self.sync_service)
+    }
+
+    pub fn zakat_service(&self) -> Arc<dyn portfolio::zakat::ZakatServiceTrait> {
+        Arc::clone(&self.zakat_service)
     }
 
     pub fn net_worth_service(&self) -> Arc<dyn portfolio::net_worth::NetWorthServiceTrait> {

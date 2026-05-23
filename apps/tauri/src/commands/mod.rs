@@ -30,3 +30,4 @@ pub mod settings;
 pub mod sync_crypto;
 pub mod taxonomy;
 pub mod utilities;
+pub mod zakat;
