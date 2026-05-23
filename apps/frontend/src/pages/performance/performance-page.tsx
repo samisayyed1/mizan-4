@@ -16,7 +16,22 @@ import { useIsMobileViewport } from "@/hooks/use-platform";
 import { PORTFOLIO_ACCOUNT_ID } from "@/lib/constants";
 import { DateRange, PerformanceMetrics, ReturnData, TrackedItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import NumberFlow from "@number-flow/react";
+// `@number-flow/react` was bypassed because its custom element exposes
+// the raw 0–9 reel in the Tauri 2 webview. Render plain percent values
+// instead via the local `PercentValue` helper below.
+function PercentValue({ value }: { value: number }) {
+  const formatted = (() => {
+    try {
+      return new Intl.NumberFormat(
+        typeof navigator !== "undefined" ? navigator.language : "en-US",
+        { style: "percent", maximumFractionDigits: 2 },
+      ).format(value);
+    } catch {
+      return `${(value * 100).toFixed(2)}%`;
+    }
+  })();
+  return <>{formatted}</>;
+}
 import {
   AlertFeedback,
   Badge,
@@ -562,14 +577,7 @@ export default function PerformancePage() {
                                   Volatility
                                 </span>
                                 <span className="text-foreground text-base font-bold">
-                                  <NumberFlow
-                                    value={selectedItemData?.volatility ?? 0}
-                                    animated={true}
-                                    format={{
-                                      style: "percent",
-                                      maximumFractionDigits: 2,
-                                    }}
-                                  />
+                                  <PercentValue value={selectedItemData?.volatility ?? 0} />
                                 </span>
                               </div>
                             </CarouselItem>
@@ -580,14 +588,7 @@ export default function PerformancePage() {
                                   Max Drawdown
                                 </span>
                                 <span className="text-destructive text-base font-bold">
-                                  <NumberFlow
-                                    value={(selectedItemData?.maxDrawdown ?? 0) * -1}
-                                    animated={true}
-                                    format={{
-                                      style: "percent",
-                                      maximumFractionDigits: 2,
-                                    }}
-                                  />
+                                  <PercentValue value={(selectedItemData?.maxDrawdown ?? 0) * -1} />
                                 </span>
                               </div>
                             </CarouselItem>
@@ -641,14 +642,7 @@ export default function PerformancePage() {
                             <MetricLabelWithInfo label="Volatility" infoText={volatilityInfo} />
                             <div className="flex items-baseline justify-center">
                               <span className="text-foreground text-base sm:text-lg">
-                                <NumberFlow
-                                  value={selectedItemData?.volatility ?? 0}
-                                  animated={true}
-                                  format={{
-                                    style: "percent",
-                                    maximumFractionDigits: 2,
-                                  }}
-                                />
+                                <PercentValue value={selectedItemData?.volatility ?? 0} />
                               </span>
                             </div>
                           </div>
@@ -657,14 +651,7 @@ export default function PerformancePage() {
                             <MetricLabelWithInfo label="Max Drawdown" infoText={maxDrawdownInfo} />
                             <div className="flex items-baseline justify-center">
                               <span className="text-destructive text-base sm:text-lg">
-                                <NumberFlow
-                                  value={(selectedItemData?.maxDrawdown ?? 0) * -1}
-                                  animated={true}
-                                  format={{
-                                    style: "percent",
-                                    maximumFractionDigits: 2,
-                                  }}
-                                />
+                                <PercentValue value={(selectedItemData?.maxDrawdown ?? 0) * -1} />
                               </span>
                             </div>
                           </div>

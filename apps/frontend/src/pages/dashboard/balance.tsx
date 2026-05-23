@@ -1,7 +1,12 @@
 import { Skeleton } from "@mizan/ui/components/ui/skeleton";
 import { useBalancePrivacy } from "@/hooks/use-balance-privacy";
-import NumberFlow from "@number-flow/react";
 import { useMemo } from "react";
+
+// NOTE: We used to wrap the headline number in `@number-flow/react` for a
+// digit-roll animation, but its custom element exposes the raw 0–9 reel in
+// the Tauri 2 webview (custom-element registration races / CSP interplay)
+// — producing strings like "$01234567890123456789..." instead of the real
+// value. Until that's diagnosed upstream, render plain formatted text.
 
 const isValidCurrencyCode = (code: string) => /^[A-Za-z]{3}$/.test(code);
 
@@ -67,29 +72,7 @@ const Balance: React.FC<BalanceProps> = ({
           •••••••
         </span>
       ) : (
-        <>
-          <NumberFlow
-            className="muted-fraction"
-            value={targetValue}
-            isolate={false}
-            style={{
-              // @ts-expect-error https://number-flow.barvian.me/ - but it's not in TS object
-              "--number-flow-mask-height": "0px",
-              "--number-flow-mask-width": "0px",
-            }}
-            format={{
-              ...(displayCurrency && validCurrency
-                ? { currency, currencyDisplay: "narrowSymbol" as const }
-                : {}),
-              style: displayCurrency && validCurrency ? "currency" : "decimal",
-              minimumFractionDigits: displayDecimal ? 2 : 0,
-              maximumFractionDigits: displayDecimal ? 2 : 0,
-            }}
-          />
-          <span className="sr-only" data-testid="portfolio-balance-value">
-            {formattedValue}
-          </span>
-        </>
+        <span data-testid="portfolio-balance-value">{formattedValue}</span>
       )}
     </h1>
   );

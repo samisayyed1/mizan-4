@@ -11,30 +11,16 @@ interface GainPercentProps extends React.HTMLAttributes<HTMLDivElement> {
   invertColor?: boolean;
 }
 
+/**
+ * Animated percent renderer.
+ *
+ * Previously this dynamically imported `@number-flow/react`, but its
+ * custom element exposes the raw 0–9 reel in the Tauri 2 webview. We
+ * now render a plain formatted percent — same shape, no animation.
+ */
 function AnimatedNumber({ value }: { value: number }) {
-  const [NumberFlow, setNumberFlow] = React.useState<React.ComponentType<any> | null>(null);
-
   const absValue = Math.abs(value * 100);
-  React.useEffect(() => {
-    import("@number-flow/react").then((module) => {
-      setNumberFlow(module.default);
-    });
-  }, []);
-
-  if (!NumberFlow) {
-    return <span>{formatPercent(absValue)}</span>;
-  }
-
-  return (
-    <NumberFlow
-      value={absValue}
-      animated={true}
-      format={{
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }}
-    />
-  );
+  return <span>{formatPercent(absValue)}</span>;
 }
 
 export function GainPercent({
