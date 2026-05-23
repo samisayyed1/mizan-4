@@ -341,12 +341,12 @@ function PerformanceToolUIContentImpl({ args, result, status }: PerformanceToolU
         {/* Metrics Grid */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricCard
-            label="Annualized TWR"
+            label="Investment growth"
             value={formatPercentSigned(parsed.annualizedTwr)}
             isPositive={parsed.annualizedTwr >= 0}
           />
           <MetricCard
-            label="Money-Weighted (MWR)"
+            label="Net performance"
             value={formatPercentSigned(parsed.cumulativeMwr)}
             subValue={`${formatPercentSigned(parsed.annualizedMwr)} ann.`}
             isPositive={parsed.cumulativeMwr >= 0}

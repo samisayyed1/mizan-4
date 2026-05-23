@@ -4,6 +4,11 @@ import { Separator } from "@mizan/ui/components/ui/separator";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { SidebarNav } from "./sidebar-nav";
 
+// M2 settings groups: simplified into six top-level buckets so first-time
+// users don't have to think about which section a given page lives under.
+// Operator/power-user surfaces (Market Data, Classifications, Backup/Export,
+// Add-ons) collapse into "Advanced" — still one click away, not crowding the
+// list for the 95% of users who never touch them.
 const settingsSections = [
   {
     title: "Preferences",
@@ -23,75 +28,75 @@ const settingsSections = [
     ],
   },
   {
-    title: "Portfolio",
+    title: "Wealth",
     items: [
       {
         title: "Portfolios",
         href: "accounts",
-        subtitle: "Investment and savings portfolios",
+        subtitle: "Your investment and savings portfolios",
         icon: <Icons.CreditCard className="size-5" />,
       },
       {
         title: "Contribution Limits",
         href: "contribution-limits",
-        subtitle: "Limits by year and account",
+        subtitle: "Tax-advantaged account limits",
         icon: <Icons.TrendingUp className="size-5" />,
       },
-    ],
-  },
-  {
-    title: "Data",
-    items: [
       {
         title: "Securities",
         href: "securities",
-        subtitle: "Manage security definitions",
+        subtitle: "Symbol library and custom assets",
         icon: <Icons.BadgeDollarSign className="size-5" />,
-      },
-      {
-        title: "Classifications",
-        href: "taxonomies",
-        subtitle: "Asset classification hierarchies",
-        icon: <Icons.Blocks className="size-5" />,
-      },
-      {
-        title: "Backup & Export",
-        href: "exports",
-        subtitle: "Backups and data exports",
-        icon: <Icons.Download className="size-5" />,
       },
     ],
   },
   {
-    title: "Connections",
+    title: "Sync",
     items: [
       {
         title: "Mizan Connect",
         href: "connect",
-        subtitle: "Broker and device linking",
+        subtitle: "Subscription, broker sync, device sync, cloud backup",
         icon: <Icons.CloudSync2 className="text-primary size-6" />,
       },
+    ],
+  },
+  {
+    title: "AI",
+    items: [
       {
-        title: "Market Data",
-        href: "market-data",
-        subtitle: "Providers, sync, and imports",
-        icon: <Icons.BarChart className="size-5" />,
-      },
-      {
-        title: "AI Providers",
+        title: "Providers",
         href: "ai-providers",
-        subtitle: "Configure AI for portfolio insights",
+        subtitle: "Mizan AI (included) or bring your own key",
         icon: <Icons.SparklesOutline className="size-5" />,
       },
     ],
   },
   {
-    title: "Extensions",
+    title: "Advanced",
     items: [
+      {
+        title: "Market Data",
+        href: "market-data",
+        subtitle: "Quote sources, sync schedule, manual imports",
+        icon: <Icons.BarChart className="size-5" />,
+      },
+      {
+        title: "Classifications",
+        href: "taxonomies",
+        subtitle: "Asset classification hierarchies (sectors, regions)",
+        icon: <Icons.Blocks className="size-5" />,
+      },
+      {
+        title: "Backup & Export",
+        href: "exports",
+        subtitle: "Local backup files and data exports",
+        icon: <Icons.Download className="size-5" />,
+      },
       {
         title: "Add-ons",
         href: "addons",
-        subtitle: "Extend Mizan with features",
+        subtitle: "Extend Mizan with optional features",
         icon: <Icons.Package className="size-5" />,
       },
     ],
@@ -102,7 +107,7 @@ const settingsSections = [
       {
         title: "About",
         href: "about",
-        subtitle: "Application information",
+        subtitle: "App version, build, and licenses",
         icon: <Icons.InfoCircle className="size-5" />,
       },
     ],

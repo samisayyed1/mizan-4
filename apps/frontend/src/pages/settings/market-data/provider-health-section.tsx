@@ -24,10 +24,10 @@ export function ProviderHealthSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Provider health</CardTitle>
+        <CardTitle className="text-base">Data connections</CardTitle>
         <CardDescription>
-          Live status of each market-data provider. A provider that keeps failing is put in cooldown
-          and skipped until it recovers.
+          Live status of each market-data source. A source that keeps failing is paused
+          automatically and skipped until it recovers.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">

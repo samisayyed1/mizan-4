@@ -2,12 +2,22 @@ import { getDynamicNavItems, subscribeToNavigationUpdates } from "@/addons/addon
 import { Icons } from "@mizan/ui/components/ui/icons";
 import { useEffect, useState } from "react";
 
+/**
+ * Navigation entry shape.
+ *
+ * Most entries are plain `<Link>` destinations (`href`). Items that should
+ * trigger an in-app action instead of navigation (Add Asset wizard) set
+ * `action` — the rendering layer (`app-sidebar.tsx`, `mobile-navbar.tsx`)
+ * detects it and renders a button instead of a Link.
+ */
 export interface NavLink {
   title: string;
   href: string;
   icon?: React.ReactNode;
   keywords?: string[];
   label?: string; // Optional descriptive label for launcher/search
+  /** Discriminator for special nav behaviors. Today: opens the Add-Asset wizard. */
+  action?: "openAddAssetWizard";
 }
 
 export interface NavigationProps {
@@ -16,42 +26,39 @@ export interface NavigationProps {
   addons?: NavLink[];
 }
 
+/**
+ * The Feroz/M2 simplified five-tab top-level nav: Home / Portfolio / Add /
+ * Goals / Assistant. Older surfaces (Insights, Holdings, News, Activities,
+ * Connect) stay reachable through Settings → Advanced but don't crowd the
+ * primary nav anymore — they were the #1 source of "I can't find anything"
+ * feedback on first-time users.
+ */
 const staticNavigation: NavigationProps = {
   primary: [
     {
       icon: <Icons.Dashboard className="size-6" />,
-      title: "Dashboard",
-      href: "/dashboard",
-      keywords: ["home", "overview", "summary"],
-      label: "View Dashboard",
+      title: "Home",
+      href: "/",
+      keywords: ["home", "dashboard", "overview", "summary"],
+      label: "Home",
     },
     {
-      icon: <Icons.Insight className="size-6" />,
-      title: "Insights",
-      href: "/insights",
-      keywords: ["insights", "Analytics"],
-      label: "View Insights",
+      icon: <Icons.Briefcase className="size-6" />,
+      title: "Portfolio",
+      href: "/portfolio",
+      keywords: ["portfolio", "portfolios", "holdings", "assets", "positions"],
+      label: "Portfolio",
     },
     {
-      icon: <Icons.Holdings className="size-6" />,
-      title: "Holdings",
-      href: "/holdings",
-      keywords: ["Holdings", "portfolio", "assets", "positions", "stocks"],
-      label: "View Holdings",
-    },
-    {
-      icon: <Icons.Newspaper className="size-6" />,
-      title: "News",
-      href: "/news",
-      keywords: ["news", "headlines", "markets", "financial"],
-      label: "Financial News",
-    },
-    {
-      icon: <Icons.Activity className="size-6" />,
-      title: "Activities",
-      href: "/activities",
-      keywords: ["transactions", "trades", "history"],
-      label: "View Activities",
+      icon: <Icons.Plus className="size-6" />,
+      title: "Add",
+      // `/add` is a sentinel — the renderer triggers `action` instead of
+      // navigating. Kept as a non-empty string so search/launcher logic still
+      // has a stable key.
+      href: "/add",
+      keywords: ["add", "create", "new", "stock", "bank", "property", "gold", "liability"],
+      label: "Add asset",
+      action: "openAddAssetWizard",
     },
     {
       icon: <Icons.Goals className="size-6" />,
@@ -70,17 +77,10 @@ const staticNavigation: NavigationProps = {
   ],
   secondary: [
     {
-      icon: <Icons.Link className="size-6" />,
-      title: "Connect",
-      href: "/connect",
-      keywords: ["sync", "broker", "device", "supabase", "cloud", "account"],
-      label: "Mizan Connect",
-    },
-    {
       icon: <Icons.Settings className="size-6" />,
       title: "Settings",
       href: "/settings",
-      keywords: ["preferences", "config", "configuration"],
+      keywords: ["preferences", "config", "configuration", "connect", "sync", "broker"],
     },
   ],
 };
@@ -135,14 +135,25 @@ export function isPathActive(pathname: string, href: string): boolean {
   const normalizedPath = normalize(pathname);
 
   if (normalizedHref === "/") {
-    return normalizedPath === "/";
+    // Home matches just `/` and `/dashboard` (the legacy alias). Net Worth
+    // moved off the main nav in M2 and lives under Portfolio / Settings now.
+    return normalizedPath === "/" || normalizedPath === "/dashboard";
   }
 
-  // Dashboard and Net Worth are grouped together
-  if (normalizedHref === "/dashboard") {
+  // Portfolio tab also lights up when drilled into a specific portfolio
+  // (`/accounts/:id`) — that's the same primary destination from the user's
+  // perspective.
+  if (normalizedHref === "/portfolio") {
     return (
-      normalizedPath === "/" || normalizedPath === "/dashboard" || normalizedPath === "/net-worth"
+      normalizedPath === "/portfolio" ||
+      normalizedPath.startsWith("/portfolio/") ||
+      normalizedPath.startsWith("/accounts/")
     );
+  }
+
+  // The Add sentinel never matches a real path — it always opens a dialog.
+  if (normalizedHref === "/add") {
+    return false;
   }
 
   return normalizedPath === normalizedHref || normalizedPath.startsWith(`${normalizedHref}/`);

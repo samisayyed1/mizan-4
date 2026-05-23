@@ -245,7 +245,7 @@ function HoldingsHelpContent() {
         <div>
           <p className="font-semibold">Example CSV format:</p>
           <pre className="bg-muted mt-2 select-all overflow-x-auto p-3 text-xs leading-relaxed">
-            <span className="text-muted-foreground"># Holdings snapshot:</span>
+            <span className="text-muted-foreground"># Current holdings:</span>
             <br />
             date,symbol,quantity,avgCost,currency
             <br />
