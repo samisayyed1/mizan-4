@@ -4,6 +4,7 @@ pub mod addon;
 pub mod ai_chat;
 pub mod ai_providers;
 pub mod alternative_assets;
+pub mod amortization;
 pub mod asset;
 #[cfg(feature = "connect-sync")]
 pub mod brokers_sync;
@@ -24,6 +25,7 @@ pub mod mizan_connect;
 pub mod monthly_reports;
 pub mod platform;
 pub mod portfolio;
+pub mod portfolio_health;
 pub mod providers_settings;
 pub mod secrets;
 pub mod settings;

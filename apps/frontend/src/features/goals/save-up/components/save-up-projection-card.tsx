@@ -197,8 +197,8 @@ function ProjectionChart({
                 // Render a custom date label anchored to the bottom-right of the
                 // vertical line, matching how the amount callouts sit outside
                 // the plot area on the right. Keeps it clear of the X-axis ticks.
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const vb = (props as any).viewBox ?? {};
+
+                const vb = props.viewBox ?? {};
                 const x = (typeof vb.x === "number" ? vb.x : 0) + 6;
                 const y =
                   (typeof vb.y === "number" ? vb.y : 0) +

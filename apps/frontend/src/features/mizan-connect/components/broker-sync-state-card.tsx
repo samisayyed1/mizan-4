@@ -69,8 +69,8 @@ export function BrokerSyncStateCard({ syncState, account, platform }: BrokerSync
           <div className="bg-muted flex h-10 w-10 items-center justify-center rounded-lg">
             {showLogo ? (
               <img
-                src={`https://logo.clearbit.com/${new URL(platform!.url!).hostname}`}
-                alt={platform!.name || "Platform"}
+                src={`https://logo.clearbit.com/${new URL(platform.url).hostname}`}
+                alt={platform.name || "Platform"}
                 className="h-6 w-6"
                 onError={() => setLogoFailed(true)}
               />

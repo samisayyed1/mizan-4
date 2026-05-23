@@ -37,7 +37,7 @@ function FilterPills({
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {FILTER_CONFIG.map((f) => {
-        const count = stats[f.countKey] as number;
+        const count = stats[f.countKey];
         if (count === 0 && f.key !== "all") return null;
         const active = filter === f.key;
         return (

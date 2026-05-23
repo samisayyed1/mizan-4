@@ -5,7 +5,7 @@ import { useHapticFeedback } from "@/hooks";
 import { useHoldings } from "@/hooks/use-holdings";
 import { useValuationHistory } from "@/hooks/use-valuation-history";
 import type { AccountValuation } from "@/lib/types";
-import { isAlternativeAssetKind, PORTFOLIO_ACCOUNT_ID, type AssetKind } from "@/lib/constants";
+import { isAlternativeAssetKind, PORTFOLIO_ACCOUNT_ID } from "@/lib/constants";
 import { useSettingsContext } from "@/lib/settings-provider";
 import { DateRange, TimePeriod } from "@/lib/types";
 import { calculatePerformanceMetrics } from "@/lib/utils";
@@ -24,6 +24,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { AccountsSummary } from "./accounts-summary";
 import { NewsHomeWidget } from "./news-home-widget";
+import { PortfolioHealthCard } from "./portfolio-health-card";
 import Balance from "./balance";
 import SavingGoals from "./goals";
 
@@ -51,7 +52,7 @@ export function DashboardContent() {
     if (!allHoldings) return 0;
     return allHoldings
       .filter((h) => {
-        return !(h.assetKind && isAlternativeAssetKind(h.assetKind as AssetKind));
+        return !(h.assetKind && isAlternativeAssetKind(h.assetKind));
       })
       .reduce((acc, holding) => acc + (holding.marketValue?.base ?? 0), 0);
   }, [allHoldings]);
@@ -255,6 +256,7 @@ export function DashboardContent() {
             </div>
             <div className="space-y-6 lg:col-span-1">
               <SavingGoals />
+              <PortfolioHealthCard />
               <NewsHomeWidget />
             </div>
           </div>

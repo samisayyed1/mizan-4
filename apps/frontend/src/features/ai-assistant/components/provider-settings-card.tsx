@@ -1011,7 +1011,7 @@ function AdvancedTuningSection({
     // Extra options — iterate the catalog, keep primitives, drop complex shapes.
     const catalogExtras = catalog.extraOptions ?? {};
     if (catalogExtras && typeof catalogExtras === "object" && !Array.isArray(catalogExtras)) {
-      for (const [key, value] of Object.entries(catalogExtras as Record<string, unknown>)) {
+      for (const [key, value] of Object.entries(catalogExtras)) {
         if (!isPrimitive(value)) continue;
         const meta = EXTRA_FIELD_META[key];
         list.push({
@@ -1053,7 +1053,7 @@ function AdvancedTuningSection({
   const complexEntries = useMemo(() => {
     const extras = catalog.extraOptions;
     if (!extras || typeof extras !== "object" || Array.isArray(extras)) return [];
-    return Object.entries(extras as Record<string, unknown>).filter(([, v]) => !isPrimitive(v));
+    return Object.entries(extras).filter(([, v]) => !isPrimitive(v));
   }, [catalog.extraOptions]);
 
   // Orphaned: user override exists for a key no longer in the catalog.
@@ -1061,7 +1061,7 @@ function AdvancedTuningSection({
     const catalogKeys = new Set<string>();
     const extras = catalog.extraOptions;
     if (extras && typeof extras === "object" && !Array.isArray(extras)) {
-      for (const k of Object.keys(extras as Record<string, unknown>)) catalogKeys.add(k);
+      for (const k of Object.keys(extras)) catalogKeys.add(k);
     }
     return Object.entries(extraOverrides).filter(([k]) => !catalogKeys.has(k));
   }, [catalog.extraOptions, extraOverrides]);

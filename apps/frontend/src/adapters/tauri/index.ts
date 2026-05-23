@@ -109,6 +109,9 @@ export * from "../shared/zakat";
 // Monthly AI Wealth Reports (M3.6)
 export * from "../shared/monthly-reports";
 
+// Pro reports — amortization + portfolio health (M4.2)
+export * from "../shared/reports";
+
 // AI Providers Commands
 export * from "../shared/ai-providers";
 

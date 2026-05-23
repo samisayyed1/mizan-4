@@ -34,7 +34,7 @@ function formatBytes(bytes: number): string {
 }
 
 function isDismissed(dismissed: DismissedUpdate | null, version: string): boolean {
-  if (!dismissed || dismissed.version !== version) return false;
+  if (dismissed?.version !== version) return false;
   return Date.now() - dismissed.dismissedAt < SNOOZE_DURATION_MS;
 }
 

@@ -5,7 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 
 import { useHoldings } from "@/hooks/use-holdings";
 import { usePortfolioAllocations } from "@/hooks/use-portfolio-allocations";
-import { PORTFOLIO_ACCOUNT_ID, isAlternativeAssetKind, type AssetKind } from "@/lib/constants";
+import { PORTFOLIO_ACCOUNT_ID, isAlternativeAssetKind } from "@/lib/constants";
 import { useSettingsContext } from "@/lib/settings-provider";
 import type { TaxonomyAllocation } from "@/lib/types";
 import { useNavigate } from "react-router-dom";
@@ -93,8 +93,7 @@ export const HoldingsInsightsPage = ({ accountId: accountIdProp }: HoldingsInsig
     const nonCash =
       holdings?.filter((holding) => {
         if (holding.holdingType?.toLowerCase() === "cash") return false;
-        if (holding.assetKind && isAlternativeAssetKind(holding.assetKind as AssetKind))
-          return false;
+        if (holding.assetKind && isAlternativeAssetKind(holding.assetKind)) return false;
         return true;
       }) ?? [];
 
