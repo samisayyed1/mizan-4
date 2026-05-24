@@ -1,8 +1,11 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { listen } from "@tauri-apps/api/event";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { useHoldings } from "@/hooks/use-holdings";
 import { useTickerQuotes } from "@/hooks/use-ticker-quotes";
 import { HoldingType, PORTFOLIO_ACCOUNT_ID } from "@/lib/constants";
+import { QueryKeys } from "@/lib/query-keys";
 
 import { TickerItem, type TickerDatum } from "./ticker-item";
 
@@ -17,7 +20,23 @@ const MAX_ITEMS = 40;
  */
 export function TickerConveyor() {
   const { holdings } = useHoldings(PORTFOLIO_ACCOUNT_ID);
-  const { data: indices } = useTickerQuotes();
+  const { data: indices, isLoading: indicesLoading } = useTickerQuotes();
+  const queryClient = useQueryClient();
+
+  // Refetch the curated indices the moment the Tauri startup quote sync
+  // completes. Without this listener, the ticker waits up to ~6 hours
+  // (the periodic sync cadence) before showing live prices on a cold
+  // launch. The backend emits this event from
+  // `apps/tauri/src/scheduler.rs::run_startup_quote_sync`.
+  useEffect(() => {
+    const unlisten = listen("quotes:startup-sync-complete", () => {
+      void queryClient.invalidateQueries({ queryKey: [QueryKeys.TICKER_QUOTES] });
+      void queryClient.invalidateQueries({ queryKey: [QueryKeys.HOLDINGS] });
+    });
+    return () => {
+      void unlisten.then((fn) => fn());
+    };
+  }, [queryClient]);
 
   const items = useMemo<TickerDatum[]>(() => {
     const fromHoldings: TickerDatum[] = holdings
@@ -39,7 +58,23 @@ export function TickerConveyor() {
     return [...fromHoldings, ...fromIndices].slice(0, MAX_ITEMS);
   }, [holdings, indices]);
 
-  if (items.length === 0) return null;
+  // Empty-state UX: previously this returned null and the user saw
+  // nothing — looked broken even when the cache was just warming up.
+  // Now we render a thin status strip so the absence is intentional and
+  // legible.
+  if (items.length === 0) {
+    const label = indicesLoading
+      ? "Loading live quotes…"
+      : "Live quotes unavailable — they'll appear when market data syncs.";
+    return (
+      <div
+        className="bg-card/40 text-muted-foreground border-b px-6 py-2 text-xs"
+        aria-label="Live market ticker (empty)"
+      >
+        {label}
+      </div>
+    );
+  }
 
   // Steady scroll speed: longer lists take proportionally longer per loop.
   const durationSeconds = Math.max(20, items.length * 4);
