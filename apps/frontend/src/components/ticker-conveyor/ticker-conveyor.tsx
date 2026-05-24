@@ -20,7 +20,7 @@ const MAX_ITEMS = 40;
  */
 export function TickerConveyor() {
   const { holdings } = useHoldings(PORTFOLIO_ACCOUNT_ID);
-  const { data: indices, isLoading: indicesLoading } = useTickerQuotes();
+  const { data: indices } = useTickerQuotes();
   const queryClient = useQueryClient();
 
   // Refetch the curated indices the moment the Tauri startup quote sync
@@ -58,23 +58,7 @@ export function TickerConveyor() {
     return [...fromHoldings, ...fromIndices].slice(0, MAX_ITEMS);
   }, [holdings, indices]);
 
-  // Empty-state UX: previously this returned null and the user saw
-  // nothing — looked broken even when the cache was just warming up.
-  // Now we render a thin status strip so the absence is intentional and
-  // legible.
-  if (items.length === 0) {
-    const label = indicesLoading
-      ? "Loading live quotes…"
-      : "Live quotes unavailable — they'll appear when market data syncs.";
-    return (
-      <div
-        className="bg-card/40 text-muted-foreground border-b px-6 py-2 text-xs"
-        aria-label="Live market ticker (empty)"
-      >
-        {label}
-      </div>
-    );
-  }
+  if (items.length === 0) return null;
 
   // Steady scroll speed: longer lists take proportionally longer per loop.
   const durationSeconds = Math.max(20, items.length * 4);

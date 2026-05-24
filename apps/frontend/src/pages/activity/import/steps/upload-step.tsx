@@ -9,7 +9,7 @@ import { AccountSelectorMobile } from "@/components/account-selector-mobile";
 import { useAccounts } from "@/hooks/use-accounts";
 import { usePlatform } from "@/hooks/use-platform";
 import { QueryKeys } from "@/lib/query-keys";
-import type { Account, ImportTemplateData, ParsedCsvResult } from "@/lib/types";
+import type { Account, ImportTemplateData } from "@/lib/types";
 import { ImportType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -716,32 +716,8 @@ export function UploadStep() {
     [dispatch],
   );
 
-  // 60-second hard ceiling on CSV parse. Without this, a wedged Tauri
-  // command (large file → huge JSON-IPC payload, an unreachable provider,
-  // anything else) leaves the UI spinning forever with no error and no
-  // way to recover except force-quitting the app. We've shipped that
-  // bug once already — never again.
-  const CSV_PARSE_TIMEOUT_MS = 60_000;
-
   const { mutate: parseFile, isPending } = useMutation({
-    mutationFn: (file: File) => {
-      return Promise.race<ParsedCsvResult>([
-        parseCsv(file, state.parseConfig),
-        new Promise<ParsedCsvResult>((_, reject) =>
-          setTimeout(
-            () =>
-              reject(
-                new Error(
-                  `CSV parser took longer than ${
-                    CSV_PARSE_TIMEOUT_MS / 1000
-                  } s — the file may be too large or malformed. Try a smaller sample, or check that the file is valid UTF-8 CSV.`,
-                ),
-              ),
-            CSV_PARSE_TIMEOUT_MS,
-          ),
-        ),
-      ]);
-    },
+    mutationFn: (file: File) => parseCsv(file, state.parseConfig),
     onSuccess: (result) => {
       setParseError(null);
       dispatch(setParsedData(result.headers, result.rows));
