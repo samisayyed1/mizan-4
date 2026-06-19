@@ -1,7 +1,10 @@
+import { Button } from "@mizan/ui/components/ui/button";
 import { Card } from "@mizan/ui/components/ui/card";
 import { Icons, type IconName } from "@mizan/ui/components/ui/icons";
 import { Skeleton } from "@mizan/ui/components/ui/skeleton";
 
+import { useEntitlements, useUpgradeGate } from "@/features/mizan-connect";
+import { UNLIMITED } from "@/features/mizan-connect/types";
 import { useFinancialNews } from "@/hooks/use-financial-news";
 import type { NewsScope } from "@/lib/types";
 
@@ -36,6 +39,8 @@ function NewsFeedSkeleton() {
 
 export function NewsFeed({ scope }: { scope: NewsScope }) {
   const { data: articles = [], isLoading, isError, hasSymbols } = useFinancialNews(scope);
+  const { entitlements } = useEntitlements();
+  const { requestUpgrade } = useUpgradeGate();
 
   if (scope === "forYou" && !hasSymbols) {
     return (
@@ -59,7 +64,15 @@ export function NewsFeed({ scope }: { scope: NewsScope }) {
     );
   }
 
-  const [hero, ...rest] = articles;
+  // M3.4 — daily-limit gate. Free plans cap the visible feed at
+  // `entitlements.newsDailyLimit`; the remainder collapses to a single
+  // upgrade CTA card the user can click to unlock the full feed.
+  const limit = entitlements.newsDailyLimit;
+  const isLimited = limit !== UNLIMITED && articles.length > limit;
+  const visible = isLimited ? articles.slice(0, limit) : articles;
+  const hiddenCount = isLimited ? articles.length - limit : 0;
+
+  const [hero, ...rest] = visible;
   return (
     <div className="space-y-6">
       <NewsHero article={hero} />
@@ -69,6 +82,22 @@ export function NewsFeed({ scope }: { scope: NewsScope }) {
             <NewsCard key={article.id} article={article} />
           ))}
         </div>
+      )}
+      {isLimited && (
+        <Card className="border-primary/20 from-primary/5 to-card bg-linear-to-br flex flex-col items-center gap-3 p-6 text-center sm:flex-row sm:text-left">
+          <div className="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+            <Icons.Newspaper className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold">+{hiddenCount} more headlines today</p>
+            <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
+              Free shows {limit} headlines per day. Upgrade to get the full feed plus AI summaries.
+            </p>
+          </div>
+          <Button size="sm" onClick={() => requestUpgrade("managed_ai")}>
+            Unlock full feed
+          </Button>
+        </Card>
       )}
     </div>
   );
